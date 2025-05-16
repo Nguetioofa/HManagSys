@@ -1,0 +1,218 @@
+﻿@model HManagSys.Models.ViewModels.CenterSelectionViewModel
+@{
+    ViewData["Title"] = "Sélection du centre";
+    Layout = "_Layout";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-hospital"></i>
+                        Sélectionnez votre centre de travail
+                    </h4>
+                    <small>Bonjour @Model.UserName</small>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <p class="text-muted">
+                            Vous êtes affecté(e) à plusieurs centres. Veuillez sélectionner celui où vous souhaitez travailler.
+                        </p>
+                    </div>
+
+                    <form asp-controller="Auth" asp-action="SelectCenter" method="post">
+                        <div class="row">
+                            @foreach (var center in Model.AvailableCenters)
+                            {
+                                <div class="col-md-6 mb-3">
+                                    <label class="center-card @(center.IsLastSelected ? "selected" : "")">
+                                        <input type="radio" name="centerId" value="@center.HospitalCenterId"
+                                               @(center.IsLastSelected ? "checked" : "") class="d-none center-radio" />
+                                        <div class="card h-100 center-option">
+                                            <div class="card-body text-center">
+                                                <div class="center-icon mb-3">
+                                                    <i class="fas fa-hospital fa-3x text-primary"></i>
+                                                </div>
+                                                <h5 class="card-title">@center.CenterName</h5>
+                                                <p class="card-text text-muted small">
+                                                    <i class="fas fa-map-marker-alt"></i>
+                                                    @center.CenterAddress
+                                                </p>
+                                                <div class="role-badge">
+                                                    <span class="badge badge-pill @(center.RoleType == "SuperAdmin" ? "badge-danger" : "badge-success")">
+                                                        @(center.RoleType == "SuperAdmin" ? "Super Administrateur" : "Personnel Soignant")
+                                                    </span>
+                                                </div>
+                                                @if (center.IsLastSelected)
+                                                {
+                                                    <div class="mt-2">
+                                                        <small class="text-success">
+                                                            <i class="fas fa-check-circle"></i>
+                                                            Dernier centre utilisé
+                                                        </small>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="fas fa-sign-in-alt"></i>
+                                Continuer
+                            </button>
+                            <a asp-controller="Auth" asp-action="Logout" class="btn btn-outline-secondary ms-3">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Se déconnecter
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Information card -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="fas fa-info-circle text-info"></i>
+                        À propos des centres
+                    </h6>
+                    <p class="small text-muted mb-0">
+                        Vous pouvez changer de centre à tout moment pendant votre session en utilisant le menu déroulant
+                        dans la barre de navigation. Vos données et autorisations dépendront du centre sélectionné.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .center-card {
+            cursor: pointer;
+            display: block;
+            position: relative;
+        }
+
+        .center-option {
+            border: 2px solid #e3e6f0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+            .center-option:hover {
+                border-color: #5a67d8;
+                box-shadow: 0 4px 12px rgba(90, 103, 216, 0.15);
+                transform: translateY(-2px);
+            }
+
+        .center-card.selected .center-option {
+            border-color: #5a67d8;
+            background-color: #f7faff;
+            box-shadow: 0 4px 12px rgba(90, 103, 216, 0.15);
+        }
+
+        .center-card.selected .center-icon i {
+            color: #5a67d8 !important;
+        }
+
+        .role-badge {
+            margin-top: 10px;
+        }
+
+        .badge-danger {
+            background-color: #e74c3c;
+        }
+
+        .badge-success {
+            background-color: #27ae60;
+        }
+
+        .center-card .card-body {
+            padding: 1.5rem;
+        }
+
+        .center-icon {
+            transition: all 0.3s ease;
+        }
+
+        .center-card:hover .center-icon i {
+            transform: scale(1.1);
+        }
+
+        /* Animation pour la sélection */
+        .center-radio:checked + .center-option .center-icon i {
+            animation: pulse 1s infinite;
+        }
+
+        @@keyframes pulse {
+            0%
+
+        {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.05);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        // Gestionnaire pour la sélection des centres
+        document.querySelectorAll('.center-card').forEach(card => {
+            card.addEventListener('click', function() {
+                // Enlever la sélection précédente
+                document.querySelectorAll('.center-card').forEach(c => c.classList.remove('selected'));
+
+                // Ajouter la sélection à la carte cliquée
+                this.classList.add('selected');
+
+                // Cocher le radio bouton correspondant
+                const radio = this.querySelector('.center-radio');
+                radio.checked = true;
+
+                // Animation de feedback
+                const icon = this.querySelector('.center-icon i');
+                icon.style.transform = 'scale(1.2)';
+                setTimeout(() => {
+                    icon.style.transform = 'scale(1)';
+                }, 200);
+            });
+        });
+
+        // Auto-submit après sélection (optionnel - peut être activé si désiré)
+        // document.querySelectorAll('.center-radio').forEach(radio => {
+        //     radio.addEventListener('change', function() {
+        //         if (this.checked) {
+        //             setTimeout(() => {
+        //                 this.closest('form').submit();
+        //             }, 500);
+        //         }
+        //     });
+        // });
+
+        // Validation avant soumission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const selectedCenter = document.querySelector('.center-radio:checked');
+            if (!selectedCenter) {
+                e.preventDefault();
+                alert('Veuillez sélectionner un centre avant de continuer.');
+                return false;
+            }
+        });
+    </script>
+}

@@ -19,17 +19,14 @@ namespace HManagSys.Data.Repositories
     {
         protected readonly HospitalManagementContext _context;
         protected readonly DbSet<TEntity> _dbSet;
-        protected readonly IMapper _mapper;
         protected readonly ILogger<GenericRepository<TEntity>> _logger;
 
         public GenericRepository(
             HospitalManagementContext context,
-            IMapper mapper,
             ILogger<GenericRepository<TEntity>> logger)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _dbSet = _context.Set<TEntity>();
-            _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -363,42 +360,42 @@ namespace HManagSys.Data.Repositories
 
         // ===== OPÉRATIONS AVEC PROJECTION =====
 
-        public virtual async Task<TResult?> GetByIdAsAsync<TResult>(int id) where TResult : class
-        {
-            try
-            {
-                var entity = await GetByIdAsync(id);
-                if (entity == null) return null;
+        //public virtual async Task<TResult?> GetByIdAsAsync<TResult>(int id) where TResult : class
+        //{
+        //    try
+        //    {
+        //        var entity = await GetByIdAsync(id);
+        //        if (entity == null) return null;
 
-                return _mapper.Map<TResult>(entity);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erreur lors de la projection de {EntityName} vers {ResultType}",
-                    typeof(TEntity).Name, typeof(TResult).Name);
-                throw;
-            }
-        }
+        //        return _mapper.Map<TResult>(entity);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Erreur lors de la projection de {EntityName} vers {ResultType}",
+        //            typeof(TEntity).Name, typeof(TResult).Name);
+        //        throw;
+        //    }
+        //}
 
-        public virtual async Task<IList<TResult>> GetAllAsAsync<TResult>(
-            Func<IQueryable<TEntity>, IQueryable<TEntity>>? filter = null) where TResult : class
-        {
-            try
-            {
-                IQueryable<TEntity> query = _dbSet;
+        //public virtual async Task<IList<TResult>> GetAllAsAsync<TResult>(
+        //    Func<IQueryable<TEntity>, IQueryable<TEntity>>? filter = null) where TResult : class
+        //{
+        //    try
+        //    {
+        //        IQueryable<TEntity> query = _dbSet;
 
-                if (filter != null)
-                    query = filter(query);
+        //        if (filter != null)
+        //            query = filter(query);
 
-                return await query.ProjectTo<TResult>(_mapper.ConfigurationProvider).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erreur lors de la projection de {EntityName} vers {ResultType}",
-                    typeof(TEntity).Name, typeof(TResult).Name);
-                throw;
-            }
-        }
+        //        return await query.ProjectTo<TResult>(_mapper.ConfigurationProvider).ToListAsync();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Erreur lors de la projection de {EntityName} vers {ResultType}",
+        //            typeof(TEntity).Name, typeof(TResult).Name);
+        //        throw;
+        //    }
+        //}
 
         // ===== PAGINATION =====
 
@@ -430,34 +427,34 @@ namespace HManagSys.Data.Repositories
             }
         }
 
-        public virtual async Task<(IList<TResult> Items, int TotalCount)> GetPagedAsAsync<TResult>(
-            int pageIndex = 1,
-            int pageSize = 20,
-            Func<IQueryable<TEntity>, IQueryable<TEntity>>? filter = null) where TResult : class
-        {
-            try
-            {
-                IQueryable<TEntity> query = _dbSet;
+        //public virtual async Task<(IList<TResult> Items, int TotalCount)> GetPagedAsAsync<TResult>(
+        //    int pageIndex = 1,
+        //    int pageSize = 20,
+        //    Func<IQueryable<TEntity>, IQueryable<TEntity>>? filter = null) where TResult : class
+        //{
+        //    try
+        //    {
+        //        IQueryable<TEntity> query = _dbSet;
 
-                if (filter != null)
-                    query = filter(query);
+        //        if (filter != null)
+        //            query = filter(query);
 
-                var totalCount = await query.CountAsync();
-                var items = await query
-                    .Skip((pageIndex - 1) * pageSize)
-                    .Take(pageSize)
-                    .ProjectTo<TResult>(_mapper.ConfigurationProvider)
-                    .ToListAsync();
+        //        var totalCount = await query.CountAsync();
+        //        var items = await query
+        //            .Skip((pageIndex - 1) * pageSize)
+        //            .Take(pageSize)
+        //            .ProjectTo<TResult>(_mapper.ConfigurationProvider)
+        //            .ToListAsync();
 
-                return (items, totalCount);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erreur lors de la pagination avec projection de {EntityName}",
-                    typeof(TEntity).Name);
-                throw;
-            }
-        }
+        //        return (items, totalCount);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Erreur lors de la pagination avec projection de {EntityName}",
+        //            typeof(TEntity).Name);
+        //        throw;
+        //    }
+        //}
 
         // ===== REQUÊTES PERSONNALISÉES =====
 

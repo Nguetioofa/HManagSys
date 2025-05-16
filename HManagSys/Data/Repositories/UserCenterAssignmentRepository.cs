@@ -21,10 +21,9 @@ namespace HospitalManagementSystem.Data.Repositories
 
         public UserCenterAssignmentRepository(
             HospitalManagementContext context,
-            IMapper mapper,
             ILogger<UserCenterAssignmentRepository> logger,
             IApplicationLogger appLogger)
-            : base(context, mapper, logger)
+            : base(context, logger)
         {
             _appLogger = appLogger;
         }

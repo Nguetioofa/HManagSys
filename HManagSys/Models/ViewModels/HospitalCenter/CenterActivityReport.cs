@@ -16,4 +16,6 @@
         public int UniquePatients { get; set; }
         public DateTime ReportGeneratedAt { get; set; }
     }
+
+
 }

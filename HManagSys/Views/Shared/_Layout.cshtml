@@ -1,49 +1,246 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - HManagSys</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/HManagSys.styles.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+@{
+    var isAuthenticated = Context.Session.GetString("SessionToken") != null;
+    var currentUser = Context.Session.GetString("UserName");
+    var currentCenter = Context.Session.GetString("CurrentCenterName");
+    var currentRole = Context.Session.GetString("CurrentRole");
+}
+
+@if (isAuthenticated)
+{
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">HManagSys</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                <a class="navbar-brand" asp-controller="Dashboard" asp-action="Index">
+                    <i class="fas fa-hospital-alt"></i>
+                    HManagSys
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link" asp-controller="Dashboard" asp-action="Index">
+                                <i class="fas fa-tachometer-alt"></i>
+                                Tableau de bord
+                            </a>
                         </li>
+
+                        @if (currentRole == "SuperAdmin")
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-users-cog"></i>
+                                    Administration
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-users"></i> Gestion Utilisateurs</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-hospital"></i> Centres</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-chart-bar"></i> Rapports Globaux</a></li>
+                                </ul>
+                            </li>
+                        }
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-md"></i>
+                                Patients & Soins
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-user-plus"></i> Nouveau Patient</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-search"></i> Rechercher Patient</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-stethoscope"></i> Épisodes de Soins</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-prescription"></i> Prescriptions</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-x-ray"></i> Examens</a></li>
+                            </ul>
+                        </li>
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-box"></i>
+                                Stocks & Ventes
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-inventory"></i> État des Stocks</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-exchange-alt"></i> Mouvements</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-cash-register"></i> Nouvelle Vente</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-receipt"></i> Historique Ventes</a></li>
+                            </ul>
+                        </li>
+
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link" href="#">
+                                <i class="fas fa-money-bill-wave"></i>
+                                Finances
+                            </a>
+                        </li>
+                    </ul>
+
+                    <ul class="navbar-nav">
+                        <!-- Sélecteur de centre -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-hospital"></i>
+                                @currentCenter
+                            </a>
+                            <ul class="dropdown-menu" id="centerSwitchMenu">
+                                <li><h6 class="dropdown-header">Changer de centre</h6></li>
+                                <li><a class="dropdown-item" href="#" onclick="switchCenter(1)">Centre Principal</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="switchCenter(2)">Centre Nord</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="switchCenter(3)">Centre Sud</a></li>
+                            </ul>
+                        </li>
+
+                        <!-- Menu utilisateur -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user-circle"></i>
+                                @currentUser
+                                <span class="badge bg-secondary ms-1">@currentRole</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><h6 class="dropdown-header">Mon Compte</h6></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-user-edit"></i> Profil</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-key"></i> Changer mot de passe</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="fas fa-history"></i> Mon Activité</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
+                                        <button type="submit" class="dropdown-item text-danger">
+                                            <i class="fas fa-sign-out-alt"></i> Déconnexion
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
                         </li>
                     </ul>
                 </div>
             </div>
         </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+}
+
+    <div class="@(isAuthenticated ? "container-fluid" : "")">
+        <main role="main" class="@(isAuthenticated ? "p-3" : "")">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle"></i>
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle"></i>
+                    @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - HManagSys - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
+@if (isAuthenticated)
+{
+        <footer class="bg-light border-top mt-auto py-3">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-md-6">
+                        <span class="text-muted">
+                            &copy; 2025 - HManagSys - Système de Gestion Hospitalière
+                        </span>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <span class="text-muted">
+                            <i class="fas fa-clock"></i>
+                            <span id="currentTime"></span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </footer>
+}
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+@*     <script src="~/js/site.js" asp-append-version="true" />
+ *@
+@if (isAuthenticated)
+{
+        <script>
+            // Affichage de l'heure en temps réel
+            function updateTime() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('fr-FR');
+                document.getElementById('currentTime').textContent = timeString;
+            }
+            updateTime();
+            setInterval(updateTime, 1000);
+
+            // Fonction pour changer de centre
+            async function switchCenter(centerId) {
+                try {
+                    const response = await fetch('/Dashboard/SwitchCenter', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                        },
+                        body: JSON.stringify(centerId)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // Recharger la page pour refléter le changement
+                        window.location.reload();
+                    } else {
+                        alert('Erreur lors du changement de centre: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    alert('Erreur lors du changement de centre');
+                }
+            }
+
+            // Vérification périodique de la session
+            setInterval(async function() {
+                try {
+                    const response = await fetch('/Auth/ValidateSession');
+                    const result = await response.json();
+
+                    if (!result.valid) {
+                        alert('Votre session a expiré. Vous allez être redirigé vers la page de connexion.');
+                        window.location.href = '/Auth/Login';
+                    }
+                } catch (error) {
+                    console.error('Erreur lors de la vérification de session:', error);
+                }
+            }, 300000); // Vérifier toutes les 5 minutes
+        </script>
+}
+
+@await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

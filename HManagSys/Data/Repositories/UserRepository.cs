@@ -24,11 +24,10 @@ namespace HManagSys.Data.Repositories
 
         public UserRepository(
             HospitalManagementContext context,
-            IMapper mapper,
             ILogger<UserRepository> logger,
             IApplicationLogger appLogger,
             IPasswordHasher passwordHasher)
-            : base(context, mapper, logger)
+            : base(context, logger)
         {
             _appLogger = appLogger;
             _passwordHasher = passwordHasher;
@@ -616,7 +615,7 @@ namespace HManagSys.Data.Repositories
                 {
                     LoginTime = s.LoginTime,
                     IpAddress = s.IpAddress,
-                    UserAgent = s.UserAgent,
+                    //UserAgent = s.UserAgent,
                     CenterName = s.CurrentHospitalCenter.Name,
                     IsCurrentSession = s.IsActive && s.LogoutTime == null
                 }).ToList();

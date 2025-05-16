@@ -1,7 +1,7 @@
 ﻿using HManagSys.Models.EfModels;
 using HManagSys.Models.Enums;
 
-namespace HManagSys.Data.Repositories.Interfaces
+namespace HManagSys.Services.Interfaces
 {
     /// <summary>
     /// Service d'audit complet - L'historien de notre hôpital numérique

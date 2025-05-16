@@ -5,6 +5,7 @@ using HManagSys.Data.Repositories;
 using HManagSys.Data.Repositories.Interfaces;
 using HManagSys.Helpers;
 using HManagSys.Models.EfModels;
+using HManagSys.Models.ViewModels.HospitalCenter;
 using HManagSys.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,10 +22,9 @@ namespace HManagSys.Data.Repositories
 
         public HospitalCenterRepository(
             HospitalManagementContext context,
-            IMapper mapper,
             ILogger<HospitalCenterRepository> logger,
             IApplicationLogger appLogger)
-            : base(context, mapper, logger)
+            : base(context, logger)
         {
             _appLogger = appLogger;
         }
@@ -226,7 +226,7 @@ namespace HManagSys.Data.Repositories
         /// Génère un rapport d'activité pour un centre
         /// Vue d'ensemble des opérations sur une période
         /// </summary>
-        public async Task<CenterActivityReport> GenerateActivityReportAsync(
+        public async Task<HManagSys.Models.ViewModels.HospitalCenter.CenterActivityReport> GenerateActivityReportAsync(
             int centerId, DateTime fromDate, DateTime toDate)
         {
             try
@@ -270,7 +270,7 @@ namespace HManagSys.Data.Repositories
                       .CountAsync();
                 //var results = await Task.WhenAll(metricsTask.Select(t => t.ConfigureAwait(false)));
 
-                var report = new CenterActivityReport
+                var report = new HManagSys.Models.ViewModels.HospitalCenter.CenterActivityReport
                 {
                     HospitalCenterId = centerId,
                     CenterName = center.Name,

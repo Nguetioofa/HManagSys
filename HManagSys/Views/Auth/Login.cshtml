@@ -1,0 +1,312 @@
+﻿@model HManagSys.Models.ViewModels.Users.LoginViewModel
+@{
+    ViewData["Title"] = "Connexion";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid vh-100">
+    <div class="row h-100">
+        <!-- Panel d'information -->
+        <div class="col-lg-8 d-none d-lg-flex bg-primary text-white">
+            <div class="d-flex align-items-center p-5">
+                <div>
+                    <h1 class="display-4 fw-bold mb-4">
+                        <i class="fas fa-hospital-alt"></i>
+                        HManagSys
+                    </h1>
+                    <h2 class="h3 mb-4">Système de Gestion Hospitalière</h2>
+                    <p class="lead mb-4">
+                        Plateforme complète pour la gestion des opérations hospitalières,
+                        des soins aux patients, de la pharmacie et des finances.
+                    </p>
+                    <div class="row mt-5">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="fas fa-user-md fa-2x me-3"></i>
+                                <div>
+                                    <h5>Gestion des Patients</h5>
+                                    <small>Dossiers complets et soins personnalisés</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="fas fa-pills fa-2x me-3"></i>
+                                <div>
+                                    <h5>Pharmacie & Stocks</h5>
+                                    <small>Gestion automatisée des médicaments</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="fas fa-chart-bar fa-2x me-3"></i>
+                                <div>
+                                    <h5>Rapports & Analytics</h5>
+                                    <small>Tableaux de bord en temps réel</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <i class="fas fa-shield-alt fa-2x me-3"></i>
+                                <div>
+                                    <h5>Sécurité & Audit</h5>
+                                    <small>Traçabilité complète des actions</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel de connexion -->
+        <div class="col-lg-4 d-flex align-items-center bg-light">
+            <div class="w-100 p-4">
+                <div class="text-center mb-4">
+                    <div class="d-lg-none mb-3">
+                        <h1 class="h2 text-primary">
+                            <i class="fas fa-hospital-alt"></i>
+                            HManagSys
+                        </h1>
+                    </div>
+                    <h2 class="h4 fw-normal">Connexion</h2>
+                    <p class="text-muted">Accédez à votre espace de travail</p>
+                </div>
+
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fas fa-check-circle"></i>
+                        @TempData["SuccessMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+                @if (TempData["ErrorMessage"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-circle"></i>
+                        @TempData["ErrorMessage"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Erreur de connexion</strong>
+                        <ul class="mb-0 mt-2">
+                            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                            {
+                                <li>@error.ErrorMessage</li>
+                            }
+                        </ul>
+                    </div>
+                }
+
+                <form asp-controller="Auth" asp-action="Login" method="post" id="loginForm">
+                    @Html.HiddenFor(m => m.ReturnUrl)
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label">
+                            <i class="fas fa-envelope"></i>
+                            Adresse email
+                        </label>
+                        <input asp-for="Email" class="form-control form-control-lg"
+                               placeholder="votre.email@hopital.cm" autocomplete="email" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label">
+                            <i class="fas fa-lock"></i>
+                            Mot de passe
+                        </label>
+                        <div class="input-group">
+                            <input asp-for="Password" class="form-control form-control-lg"
+                                   type="password" placeholder="Votre mot de passe" autocomplete="current-password" />
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input asp-for="RememberMe" class="form-check-input" />
+                            <label asp-for="RememberMe" class="form-check-label">
+                                Se souvenir de moi
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg" id="loginButton">
+                            <span id="loginButtonText">
+                                <i class="fas fa-sign-in-alt"></i>
+                                Se connecter
+                            </span>
+                            <span id="loginButtonLoading" class="d-none">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                Connexion en cours...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+
+                <div class="text-center mt-4">
+                    <small class="text-muted">
+                        Problème de connexion ? Contactez votre administrateur système.
+                    </small>
+                </div>
+
+                <!-- Informations de version (optionnel) -->
+                <div class="text-center mt-5">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Version 1.0.0 &middot;
+                        <i class="fas fa-shield-alt"></i>
+                        Connexion sécurisée
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Basculer la visibilité du mot de passe
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('Password');
+            const icon = this.querySelector('i');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+
+        // Gestion du formulaire de connexion
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            const loginButton = document.getElementById('loginButton');
+            const loginButtonText = document.getElementById('loginButtonText');
+            const loginButtonLoading = document.getElementById('loginButtonLoading');
+
+            // Désactiver le bouton et afficher le spinner
+            loginButton.disabled = true;
+            loginButtonText.classList.add('d-none');
+            loginButtonLoading.classList.remove('d-none');
+
+            // Réactiver le bouton après 5 secondes si pas de redirection
+            setTimeout(function() {
+                loginButton.disabled = false;
+                loginButtonText.classList.remove('d-none');
+                loginButtonLoading.classList.add('d-none');
+            }, 5000);
+        });
+
+        // Focus automatique sur le champ email au chargement
+        document.addEventListener('DOMContentLoaded', function() {
+            const emailInput = document.getElementById('Email');
+            if (emailInput && !emailInput.value) {
+                emailInput.focus();
+            }
+        });
+
+        // Animation au survol des fonctionnalités
+        document.querySelectorAll('.col-md-6').forEach(function(element) {
+            element.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateX(10px)';
+                this.style.transition = 'transform 0.3s ease';
+            });
+
+            element.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateX(0)';
+            });
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .vh-100 {
+            min-height: 100vh;
+        }
+
+        .bg-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        }
+
+        .form-control-lg {
+            border-radius: 8px;
+            border: 1px solid #e0e6ed;
+            padding: 12px 16px;
+        }
+
+            .form-control-lg:focus {
+                border-color: #667eea;
+                box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 500;
+        }
+
+            .btn-primary:hover {
+                background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            }
+
+        .alert {
+            border-radius: 8px;
+            border: none;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Responsive adjustments */
+        @@media (max-width: 991px) {
+            .vh-100
+
+        {
+            min-height: auto;
+        }
+
+        .col-lg-4 {
+            min-height: 100vh;
+        }
+
+        }
+
+        /* Animation pour les icônes */
+        .fas {
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover .fas {
+            transform: scale(1.1);
+        }
+    </style>
+}

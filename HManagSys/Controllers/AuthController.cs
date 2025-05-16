@@ -1,5 +1,4 @@
-﻿using HManagSys.Data.Repositories.Interfaces;
-using HManagSys.Models.Enums;
+﻿using HManagSys.Models.Enums;
 using HManagSys.Models.ViewModels;
 using HManagSys.Models.ViewModels.Users;
 using HManagSys.Services.Interfaces;
@@ -85,17 +84,18 @@ namespace HManagSys.Controllers
 
             try
             {
+
                 // Tentative d'authentification avec logging automatique
                 var result = await _authService.LoginAsync(model.Email, model.Password, clientIp);
 
                 // Enregistrement détaillé de la tentative
-                await _auditService.LogAuthenticationEventAsync(
-                    result.User?.Id ?? 0,
-                    AuthenticationEvent.Login,
-                    result.IsSuccess,
-                    clientIp,
-                    userAgent,
-                    result.ErrorMessage);
+                //await _auditService.LogAuthenticationEventAsync(
+                //    result.User?.Id ?? 0,
+                //    AuthenticationEvent.Login,
+                //    result.IsSuccess,
+                //    clientIp,
+                //    userAgent,
+                //    result.ErrorMessage);
 
                 if (result.IsSuccess && result.User != null)
                 {
@@ -147,8 +147,8 @@ namespace HManagSys.Controllers
             {
                 _logger.LogError(ex, "Erreur lors de la tentative de connexion pour {Email}", model.Email);
 
-                await _auditService.LogSystemErrorAsync(ex, "AuthController.Login",
-                    contextData: new { Email = model.Email, IpAddress = clientIp });
+                //await _auditService.LogSystemErrorAsync(ex, "AuthController.Login",
+                //    contextData: new { Email = model.Email, IpAddress = clientIp });
 
                 ModelState.AddModelError(string.Empty,
                     "Une erreur s'est produite. Veuillez réessayer ou contacter le support.");

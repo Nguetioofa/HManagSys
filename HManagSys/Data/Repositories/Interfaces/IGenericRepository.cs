@@ -96,13 +96,13 @@ public interface IGenericRepository<TEntity> where TEntity : class, IEntity
         /// Récupère et projette une entité vers un autre type
         /// Comme extraire seulement certaines informations d'un dossier
         /// </summary>
-        Task<TResult?> GetByIdAsAsync<TResult>(int id) where TResult : class;
+      //  Task<TResult?> GetByIdAsAsync<TResult>(int id) where TResult : class;
 
     /// <summary>
     /// Récupère et projette toutes les entités
     /// </summary>
-    Task<IList<TResult>> GetAllAsAsync<TResult>(
-        Func<IQueryable<TEntity>, IQueryable<TEntity>>? filter = null) where TResult : class;
+    //Task<IList<TResult>> GetAllAsAsync<TResult>(
+    //    Func<IQueryable<TEntity>, IQueryable<TEntity>>? filter = null) where TResult : class;
 
     // ===== PAGINATION =====
 
@@ -118,10 +118,10 @@ public interface IGenericRepository<TEntity> where TEntity : class, IEntity
     /// <summary>
     /// Récupère et projette les entités de manière paginée
     /// </summary>
-    Task<(IList<TResult> Items, int TotalCount)> GetPagedAsAsync<TResult>(
-        int pageIndex = 1,
-        int pageSize = 20,
-        Func<IQueryable<TEntity>, IQueryable<TEntity>>? filter = null) where TResult : class;
+    //Task<(IList<TResult> Items, int TotalCount)> GetPagedAsAsync<TResult>(
+    //    int pageIndex = 1,
+    //    int pageSize = 20,
+    //    Func<IQueryable<TEntity>, IQueryable<TEntity>>? filter = null) where TResult : class;
 
     // ===== REQUÊTES PERSONNALISÉES =====
 
