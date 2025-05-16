@@ -11,15 +11,16 @@
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-@{
-    var isAuthenticated = Context.Session.GetString("SessionToken") != null;
-    var currentUser = Context.Session.GetString("UserName");
-    var currentCenter = Context.Session.GetString("CurrentCenterName");
-    var currentRole = Context.Session.GetString("CurrentRole");
-}
+    @{
+        var isAuthenticated = Context.Session.GetString("SessionToken") != null;
+        var currentUser = Context.Session.GetString("UserName");
+        var currentCenter = Context.Session.GetString("CurrentCenterName");
+        var currentRole = Context.Session.GetString("CurrentRole");
+        var currentCenterId = Context.Session.GetInt32("CurrentCenterId");
+    }
 
-@if (isAuthenticated)
-{
+    @if (isAuthenticated)
+    {
         <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-controller="Dashboard" asp-action="Index">
@@ -48,7 +49,7 @@
                                     Administration
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#"><i class="fas fa-users"></i> Gestion Utilisateurs</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index"><i class="fas fa-users"></i> Gestion Utilisateurs</a></li>
                                     <li><a class="dropdown-item" href="#"><i class="fas fa-hospital"></i> Centres</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="#"><i class="fas fa-chart-bar"></i> Rapports Globaux</a></li>
@@ -94,17 +95,29 @@
                     </ul>
 
                     <ul class="navbar-nav">
-                        <!-- Sélecteur de centre -->
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <!-- Sélecteur de centre dynamique -->
+                        <li class="nav-item dropdown" id="centerSwitchDropdown">
+                            <a class="nav-link dropdown-toggle center-switch-link" href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-hospital"></i>
-                                @currentCenter
+                                <span id="current-center-name">@currentCenter</span>
+                                <span class="badge bg-secondary ms-1" id="current-role">@currentRole</span>
+                                <span class="spinner-border spinner-border-sm ms-2 d-none" id="center-loading" role="status">
+                                    <span class="visually-hidden">Chargement...</span>
+                                </span>
                             </a>
-                            <ul class="dropdown-menu" id="centerSwitchMenu">
-                                <li><h6 class="dropdown-header">Changer de centre</h6></li>
-                                <li><a class="dropdown-item" href="#" onclick="switchCenter(1)">Centre Principal</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="switchCenter(2)">Centre Nord</a></li>
-                                <li><a class="dropdown-item" href="#" onclick="switchCenter(3)">Centre Sud</a></li>
+                            <ul class="dropdown-menu dropdown-menu-end" id="centerSwitchMenu">
+                                <li>
+                                    <h6 class="dropdown-header">
+                                        <i class="fas fa-exchange-alt"></i>
+                                        Changer de centre
+                                    </h6>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li class="px-3 py-2 text-center">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Chargement...</span>
+                                    </div>
+                                </li>
                             </ul>
                         </li>
 
@@ -113,7 +126,6 @@
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-user-circle"></i>
                                 @currentUser
-                                <span class="badge bg-secondary ms-1">@currentRole</span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><h6 class="dropdown-header">Mon Compte</h6></li>
@@ -135,7 +147,7 @@
                 </div>
             </div>
         </nav>
-}
+    }
 
     <div class="@(isAuthenticated ? "container-fluid" : "")">
         <main role="main" class="@(isAuthenticated ? "p-3" : "")">
@@ -161,8 +173,8 @@
         </main>
     </div>
 
-@if (isAuthenticated)
-{
+    @if (isAuthenticated)
+    {
         <footer class="bg-light border-top mt-auto py-3">
             <div class="container-fluid">
                 <div class="row">
@@ -180,15 +192,18 @@
                 </div>
             </div>
         </footer>
-}
+    }
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-@*     <script src="~/js/site.js" asp-append-version="true" />
- *@
-@if (isAuthenticated)
-{
+
+    @if (isAuthenticated)
+    {
         <script>
+            // Variables globales pour la gestion des centres
+            let availableCenters = [];
+            let currentCenterId = @(currentCenterId ?? 0);
+
             // Affichage de l'heure en temps réel
             function updateTime() {
                 const now = new Date();
@@ -198,49 +213,237 @@
             updateTime();
             setInterval(updateTime, 1000);
 
-            // Fonction pour changer de centre
-            async function switchCenter(centerId) {
+            // Chargement des centres accessibles au clic sur le dropdown
+            document.getElementById('centerSwitchDropdown').addEventListener('show.bs.dropdown', function() {
+                loadAccessibleCenters();
+            });
+
+            // Fonction pour charger les centres accessibles
+            async function loadAccessibleCenters() {
+                const menu = document.getElementById('centerSwitchMenu');
+
                 try {
-                    const response = await fetch('/Dashboard/SwitchCenter', {
+                    const response = await fetch('@Url.Action("GetAccessibleCenters", "Auth")');
+                    const result = await response.json();
+
+                    if (result.success) {
+                        updateCenterMenu(result.data);
+                    } else {
+                        console.error('Erreur lors du chargement des centres:', result.message);
+                        showCenterMenuError();
+                    }
+                } catch (error) {
+                    console.error('Erreur lors du chargement des centres:', error);
+                    showCenterMenuError();
+                }
+            }
+
+            // Fonction pour mettre à jour le menu des centres
+            function updateCenterMenu(data) {
+                const menu = document.getElementById('centerSwitchMenu');
+                availableCenters = data.availableCenters;
+
+                let menuHtml = `
+                    <li><h6 class="dropdown-header">
+                        <i class="fas fa-exchange-alt"></i>
+                        Changer de centre
+                    </h6></li>
+                    <li><hr class="dropdown-divider"></li>
+                `;
+
+                data.availableCenters.forEach(center => {
+                    const isActive = center.isCurrent ? 'active' : '';
+                    const currentIcon = center.isCurrent ? '<i class="fas fa-check text-success me-2"></i>' : '';
+                    const roleBadgeClass = center.roleInCenter === 'SuperAdmin' ? 'bg-danger' : 'bg-primary';
+
+                    menuHtml += `
+                        <li>
+                            <a class="dropdown-item center-option ${isActive}"
+                               href="#"
+                               data-center-id="${center.hospitalCenterId}"
+                               onclick="switchCenter(${center.hospitalCenterId}, event)">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-2">
+                                        <i class="fas fa-hospital ${center.isCurrent ? 'text-success' : 'text-secondary'}"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold">${center.centerName}</div>
+                                        <small class="text-muted">${center.address}</small>
+                                        <div>
+                                            <span class="badge ${roleBadgeClass} badge-sm">${center.roleDisplayName}</span>
+                                        </div>
+                                    </div>
+                                    ${currentIcon}
+                                </div>
+                            </a>
+                        </li>
+                    `;
+                });
+
+                menu.innerHTML = menuHtml;
+            }
+
+            // Fonction pour afficher une erreur dans le menu des centres
+            function showCenterMenuError() {
+                const menu = document.getElementById('centerSwitchMenu');
+                menu.innerHTML = `
+                    <li><h6 class="dropdown-header">Changer de centre</h6></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="px-3 py-2 text-center text-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Erreur lors du chargement
+                    </li>
+                `;
+            }
+
+            // Fonction pour changer de centre
+            async function switchCenter(centerId, event) {
+                event.preventDefault();
+
+                // Éviter le changement si c'est déjà le centre actuel
+                if (centerId === currentCenterId) {
+                    return;
+                }
+
+                // Afficher l'indicateur de chargement
+                const loadingSpinner = document.getElementById('center-loading');
+                const centerLink = document.querySelector('.center-switch-link');
+
+                centerLink.classList.add('disabled');
+                loadingSpinner.classList.remove('d-none');
+
+                try {
+                    const response = await fetch('@Url.Action("SwitchCenter", "Auth")', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
                         },
-                        body: JSON.stringify(centerId)
+                        body: JSON.stringify({ centerId: centerId })
                     });
 
                     const result = await response.json();
 
                     if (result.success) {
-                        // Recharger la page pour refléter le changement
-                        window.location.reload();
+                        // Mettre à jour l'affichage du centre actuel
+                        document.getElementById('current-center-name').textContent = result.centerName || '';
+                        document.getElementById('current-role').textContent = result.role || '';
+
+                        // Mettre à jour la variable globale
+                        currentCenterId = centerId;
+
+                        // Afficher un message de succès
+                        showToast(`Centre changé vers ${result.centerName}`, 'success');
+
+                        // Recharger la page pour mettre à jour toutes les données
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+
                     } else {
-                        alert('Erreur lors du changement de centre: ' + result.message);
+                        showToast(result.message || 'Erreur lors du changement de centre', 'error');
                     }
                 } catch (error) {
-                    console.error('Erreur:', error);
-                    alert('Erreur lors du changement de centre');
+                    console.error('Erreur lors du changement de centre:', error);
+                    showToast('Erreur lors du changement de centre', 'error');
+                } finally {
+                    // Masquer l'indicateur de chargement
+                    centerLink.classList.remove('disabled');
+                    loadingSpinner.classList.add('d-none');
                 }
             }
 
             // Vérification périodique de la session
             setInterval(async function() {
                 try {
-                    const response = await fetch('/Auth/ValidateSession');
+                    const response = await fetch('@Url.Action("ValidateSession", "Auth")');
                     const result = await response.json();
 
                     if (!result.valid) {
-                        alert('Votre session a expiré. Vous allez être redirigé vers la page de connexion.');
-                        window.location.href = '/Auth/Login';
+                        if (result.expired) {
+                            showToast('Votre session a expiré. Redirection vers la page de connexion...', 'warning');
+                            setTimeout(() => {
+                                window.location.href = '@Url.Action("Login", "Auth")';
+                            }, 3000);
+                        }
                     }
                 } catch (error) {
                     console.error('Erreur lors de la vérification de session:', error);
                 }
             }, 300000); // Vérifier toutes les 5 minutes
-        </script>
-}
 
-@await RenderSectionAsync("Scripts", required: false)
+            // Fonction utilitaire pour les notifications toast
+            function showToast(message, type = 'info') {
+                const toastContainer = getOrCreateToastContainer();
+                const toastId = 'toast-' + Date.now();
+
+                let iconClass = 'fa-info-circle';
+                let bgClass = 'bg-primary';
+
+                switch(type) {
+                    case 'success':
+                        iconClass = 'fa-check-circle';
+                        bgClass = 'bg-success';
+                        break;
+                    case 'error':
+                        iconClass = 'fa-exclamation-circle';
+                        bgClass = 'bg-danger';
+                        break;
+                    case 'warning':
+                        iconClass = 'fa-exclamation-triangle';
+                        bgClass = 'bg-warning';
+                        break;
+                }
+
+                const toastHtml = `
+                    <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                <i class="fas ${iconClass} me-2"></i>
+                                ${message}
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                `;
+
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+
+                const toastElement = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastElement, {
+                    autohide: true,
+                    delay: type === 'error' ? 8000 : 5000
+                });
+
+                toast.show();
+
+                // Supprimer l'élément du DOM après fermeture
+                toastElement.addEventListener('hidden.bs.toast', () => {
+                    toastElement.remove();
+                });
+            }
+
+            // Fonction pour créer ou récupérer le conteneur de toasts
+            function getOrCreateToastContainer() {
+                let container = document.getElementById('toast-container');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.id = 'toast-container';
+                    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+                    container.style.zIndex = '9999';
+                    document.body.appendChild(container);
+                }
+                return container;
+            }
+
+            // Initialisation au chargement de la page
+            document.addEventListener('DOMContentLoaded', function() {
+                // Pré-charger les centres accessibles si nécessaire
+                // loadAccessibleCenters();
+            });
+        </script>
+    }
+
+    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

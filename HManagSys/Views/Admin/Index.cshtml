@@ -1,0 +1,670 @@
+﻿@model HManagSys.Models.ViewModels.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Tableau de Bord Administrateur";
+}
+
+<div class="container-fluid">
+    <!-- En-tête avec titre -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-users-cog text-primary"></i>
+                    Tableau de Bord Administrateur
+                </h1>
+                <div class="d-flex gap-2">
+                    <a asp-action="CreateUser" class="btn btn-success">
+                        <i class="fas fa-user-plus"></i>
+                        Nouvel utilisateur
+                    </a>
+                    <button type="button" class="btn btn-outline-success" onclick="exportUsers()">
+                        <i class="fas fa-file-excel"></i>
+                        Exporter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques rapides -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <p class="text-white-50 small mb-1">Total Utilisateurs</p>
+                            <h3 class="mb-0">@Model.Statistics.TotalUsers</h3>
+                            <small class="text-white-75">
+                                @Model.Statistics.ActiveUsersPercentage.ToString("F1")% actifs
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <p class="text-white-50 small mb-1">Utilisateurs Actifs</p>
+                            <h3 class="mb-0">@Model.Statistics.ActiveUsers</h3>
+                            <small class="text-white-75">
+                                @Model.Statistics.UsersLoggedToday connectés aujourd'hui
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-check fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <p class="text-white-50 small mb-1">Mots de passe à changer</p>
+                            <h3 class="mb-0">@Model.Statistics.UsersRequiringPasswordChange</h3>
+                            <small class="text-white-75">
+                                Attention requise
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-key fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <p class="text-white-50 small mb-1">Sessions Actives</p>
+                            <h3 class="mb-0">@Model.Statistics.TotalActiveSessions</h3>
+                            <small class="text-white-75">
+                                Utilisateurs connectés
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-globe fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="@Url.Action("Index")" id="filtersForm">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Recherche</label>
+                        <input type="text" class="form-control" name="searchTerm" 
+                               value="@Model.Filters.SearchTerm" placeholder="Nom, email, téléphone...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Statut</label>
+                        <select class="form-select" name="isActive">
+                            <option value="">Tous</option>
+                            <option value="true" >Actifs</option>
+                            <option value="false" >Inactifs</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Rôle</label>
+                        <select class="form-select" name="roleFilter">
+                            <option value="">Tous</option>
+                            <option value="SuperAdmin" >SuperAdmin</option>
+                            <option value="MedicalStaff" >Personnel Soignant</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Centre</label>
+                        <select class="form-select" name="hospitalCenterId">
+                            <option value="">Tous les centres</option>
+                            @foreach (var center in Model.AvailableCenters)
+                            {
+                                <option value="@center.Id" >
+                                    @center.Name
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i>
+                            Filtrer
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tableau des utilisateurs -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list"></i>
+                Liste des Utilisateurs
+                <span class="badge bg-secondary ms-2">@Model.Pagination.TotalCount</span>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Nom</th>
+                            <th>Email / Téléphone</th>
+                            <th>Centres / Rôles</th>
+                            <th>Dernière Connexion</th>
+                            <th>Statut</th>
+                            <th>Sessions</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in Model.Users)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div>
+                                            <strong>@user.FullName</strong>
+                                            @if (user.MustChangePassword)
+                                            {
+                                                <span class="badge bg-warning ms-2" title="Doit changer son mot de passe">
+                                                    <i class="fas fa-key"></i>
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div>
+                                        <div>@user.Email</div>
+                                        <small class="text-muted">@user.PhoneNumber</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    @foreach (var assignment in user.Assignments)
+                                    {
+                                        <div class="mb-1">
+                                            <span class="badge @assignment.RoleBadgeClass">@assignment.RoleDisplayName</span>
+                                            <span class="ms-1">@assignment.HospitalCenterName</span>
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="@(user.LastLoginDate.HasValue && user.LastLoginDate > DateTime.Now.AddDays(-1) ? "text-success" : "text-muted")">
+                                        @user.LastLoginText
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge @user.StatusBadge">@user.StatusText</span>
+                                </td>
+                                <td>
+                                    @if (user.ActiveSessionsCount > 0)
+                                    {
+                                        <span class="badge bg-success" title="Sessions actives">
+                                            <i class="fas fa-circle"></i> @user.ActiveSessionsCount
+                                        </span>
+                                        <button class="btn btn-sm btn-outline-info ms-1" onclick="viewSessions(@user.Id)" title="Voir les sessions">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Hors ligne</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <!-- Réinitialiser mot de passe -->
+                                        <button class="btn btn-sm btn-outline-warning" 
+                                                onclick="resetPassword(@user.Id, '@user.FullName')"
+                                                title="Réinitialiser le mot de passe">
+                                            <i class="fas fa-key"></i>
+                                        </button>
+                                        
+                                        <!-- Activer/Désactiver -->
+                                        <button class="btn btn-sm btn-outline-@(user.IsActive ? "danger" : "success")" 
+                                                onclick="toggleUserStatus(@user.Id, @user.IsActive.ToString().ToLower(), '@user.FullName')"
+                                                title="@(user.IsActive ? "Désactiver" : "Activer") le compte">
+                                            <i class="fas fa-@(user.IsActive ? "user-slash" : "user-check")"></i>
+                                        </button>
+                                        
+                                        <!-- Forcer déconnexion -->
+                                        @if (user.ActiveSessionsCount > 0)
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger" 
+                                                    onclick="forceLogout(@user.Id, '@user.FullName')"
+                                                    title="Forcer la déconnexion">
+                                                <i class="fas fa-sign-out-alt"></i>
+                                            </button>
+                                        }
+                                        
+                                        <!-- Historique -->
+                                        <button class="btn btn-sm btn-outline-info" 
+                                                onclick="viewLoginHistory(@user.Id, '@user.FullName')"
+                                                title="Historique des connexions">
+                                            <i class="fas fa-history"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Pagination -->
+        @if (Model.Pagination.TotalPages > 1)
+        {
+            <div class="card-footer">
+                <nav aria-label="Navigation des pages">
+                    <ul class="pagination justify-content-center mb-0">
+                        <li class="page-item @(!Model.Pagination.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link" href="@Url.Action("Index", new { pageIndex = Model.Pagination.PreviousPage, Model.Filters.SearchTerm, Model.Filters.IsActive, Model.Filters.RoleFilter, Model.Filters.HospitalCenterId })">
+                                Précédent
+                            </a>
+                        </li>
+                        
+                        @for (int i = Math.Max(1, Model.Pagination.CurrentPage - 2); 
+                              i <= Math.Min(Model.Pagination.TotalPages, Model.Pagination.CurrentPage + 2); 
+                              i++)
+                        {
+                            <li class="page-item @(i == Model.Pagination.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="@Url.Action("Index", new { pageIndex = i, Model.Filters.SearchTerm, Model.Filters.IsActive, Model.Filters.RoleFilter, Model.Filters.HospitalCenterId })">
+                                    @i
+                                </a>
+                            </li>
+                        }
+                        
+                        <li class="page-item @(!Model.Pagination.HasNextPage ? "disabled" : "")">
+                            <a class="page-link" href="@Url.Action("Index", new { pageIndex = Model.Pagination.NextPage, Model.Filters.SearchTerm, Model.Filters.IsActive, Model.Filters.RoleFilter, Model.Filters.HospitalCenterId })">
+                                Suivant
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="text-center text-muted mt-2">
+                    Affichage de @((Model.Pagination.CurrentPage - 1) * Model.Pagination.PageSize + 1) à 
+                    @(Math.Min(Model.Pagination.CurrentPage * Model.Pagination.PageSize, Model.Pagination.TotalCount)) 
+                    sur @Model.Pagination.TotalCount utilisateurs
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modals -->
+
+<!-- Modal pour réinitialisation de mot de passe -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Réinitialiser le mot de passe</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir réinitialiser le mot de passe de <strong id="resetPasswordUserName"></strong> ?</p>
+                <p class="text-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Un nouveau mot de passe temporaire sera généré et l'utilisateur devra le changer à sa prochaine connexion.
+                </p>
+                <div id="temporaryPasswordResult" class="alert alert-success d-none">
+                    <strong>Mot de passe temporaire généré :</strong>
+                    <span id="temporaryPasswordValue" class="font-monospace fs-5"></span>
+                    <button class="btn btn-sm btn-outline-dark ms-2" onclick="copyTemporaryPassword()">
+                        <i class="fas fa-copy"></i> Copier
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-warning" id="confirmResetPassword">
+                    <i class="fas fa-key"></i>
+                    Réinitialiser
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour changement de statut -->
+<div class="modal fade" id="toggleStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="toggleStatusTitle">Modifier le statut</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="toggleStatusMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn" id="confirmToggleStatus">Confirmer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour historique des connexions -->
+<div class="modal fade" id="loginHistoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-history"></i>
+                    Historique des connexions - <span id="historyUserName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="loginHistoryContent">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour sessions actives -->
+<div class="modal fade" id="activeSessionsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-globe"></i>
+                    Sessions actives - <span id="sessionsUserName"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="activeSessionsContent">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentUserId = null;
+        let currentUserIsActive = null;
+
+        // Réinitialisation du mot de passe
+        function resetPassword(userId, userName) {
+            currentUserId = userId;
+            document.getElementById('resetPasswordUserName').textContent = userName;
+            document.getElementById('temporaryPasswordResult').classList.add('d-none');
+            
+            const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+            modal.show();
+        }
+
+        document.getElementById('confirmResetPassword').addEventListener('click', async function() {
+            try {
+                const response = await fetch('@Url.Action("ResetPassword")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(currentUserId)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('temporaryPasswordValue').textContent = result.temporaryPassword;
+                    document.getElementById('temporaryPasswordResult').classList.remove('d-none');
+                    this.style.display = 'none';
+                    showToast('Mot de passe réinitialisé avec succès', 'success');
+                } else {
+                    showToast(result.message || 'Erreur lors de la réinitialisation', 'error');
+                }
+            } catch (error) {
+                showToast('Erreur lors de la réinitialisation', 'error');
+            }
+        });
+
+        // Copier le mot de passe temporaire
+        function copyTemporaryPassword() {
+            const password = document.getElementById('temporaryPasswordValue').textContent;
+            navigator.clipboard.writeText(password).then(() => {
+                showToast('Mot de passe copié dans le presse-papiers', 'success');
+            });
+        }
+
+        // Changer le statut d'un utilisateur
+        function toggleUserStatus(userId, isActive, userName) {
+            currentUserId = userId;
+            currentUserIsActive = isActive;
+            
+            const action = isActive ? 'désactiver' : 'activer';
+            const btnClass = isActive ? 'btn-danger' : 'btn-success';
+            
+            document.getElementById('toggleStatusTitle').textContent = `${action.charAt(0).toUpperCase() + action.slice(1)} le compte`;
+            document.getElementById('toggleStatusMessage').innerHTML = 
+                `Êtes-vous sûr de vouloir <strong>${action}</strong> le compte de <strong>${userName}</strong> ?`;
+            
+            const confirmBtn = document.getElementById('confirmToggleStatus');
+            confirmBtn.className = `btn ${btnClass}`;
+            confirmBtn.innerHTML = `<i class="fas fa-${isActive ? 'user-slash' : 'user-check'}"></i> ${action.charAt(0).toUpperCase() + action.slice(1)}`;
+            
+            const modal = new bootstrap.Modal(document.getElementById('toggleStatusModal'));
+            modal.show();
+        }
+
+        document.getElementById('confirmToggleStatus').addEventListener('click', async function() {
+            try {
+                const response = await fetch('@Url.Action("ToggleUserStatus")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({ userId: currentUserId, isActive: !currentUserIsActive })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    location.reload();
+                } else {
+                    showToast(result.message || 'Erreur lors de la modification', 'error');
+                }
+            } catch (error) {
+                showToast('Erreur lors de la modification du statut', 'error');
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('toggleStatusModal')).hide();
+        });
+
+        // Forcer la déconnexion
+        function forceLogout(userId, userName) {
+            if (confirm(`Êtes-vous sûr de vouloir forcer la déconnexion de ${userName} ?`)) {
+                fetch('@Url.Action("ForceLogout")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(userId)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        showToast(result.message, 'success');
+                        location.reload();
+                    } else {
+                        showToast(result.message || 'Erreur lors de la déconnexion', 'error');
+                    }
+                })
+                .catch(error => {
+                    showToast('Erreur lors de la déconnexion forcée', 'error');
+                });
+            }
+        }
+
+        // Voir l'historique des connexions
+        function viewLoginHistory(userId, userName) {
+            currentUserId = userId;
+            document.getElementById('historyUserName').textContent = userName;
+            document.getElementById('loginHistoryContent').innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                </div>
+            `;
+            
+            const modal = new bootstrap.Modal(document.getElementById('loginHistoryModal'));
+            modal.show();
+
+            fetch(`@Url.Action("UserLoginHistory")?userId=${userId}`)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        displayLoginHistory(result.data);
+                    } else {
+                        document.getElementById('loginHistoryContent').innerHTML = 
+                            '<div class="alert alert-danger">Erreur lors du chargement de l\'historique</div>';
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loginHistoryContent').innerHTML = 
+                        '<div class="alert alert-danger">Erreur lors du chargement de l\'historique</div>';
+                });
+        }
+
+        function displayLoginHistory(history) {
+            let html = '<div class="table-responsive"><table class="table table-sm">';
+            html += '<thead><tr><th>Date/Heure</th><th>Centre</th><th>Adresse IP</th><th>Statut</th></tr></thead><tbody>';
+            
+            history.forEach(item => {
+                html += `<tr>
+                    <td>${new Date(item.loginTime).toLocaleString('fr-FR')}</td>
+                    <td>${item.centerName}</td>
+                    <td>${item.ipAddress || 'Non disponible'}</td>
+                    <td>
+                        ${item.isCurrentSession 
+                            ? '<span class="badge bg-success">Session actuelle</span>' 
+                            : '<span class="badge bg-secondary">Terminée</span>'}
+                    </td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table></div>';
+            document.getElementById('loginHistoryContent').innerHTML = html;
+        }
+
+        // Voir les sessions actives
+        function viewSessions(userId) {
+            // Implémentation similaire à l'historique
+            currentUserId = userId;
+            // Code pour afficher les sessions actives...
+        }
+
+        // Exporter les utilisateurs
+        function exportUsers() {
+            const params = new URLSearchParams(window.location.search);
+            window.location.href = '@Url.Action("ExportUsers")?' + params.toString();
+        }
+
+        // Fonction utilitaire pour les toasts
+        function showToast(message, type) {
+            // Implémentation simple avec bootstrap alerts
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            
+            const toast = document.createElement('div');
+            toast.className = `alert ${alertClass} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `
+                <i class="fas ${icon}"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+
+        // Auto-submit du formulaire de filtres après changement
+        document.querySelectorAll('#filtersForm select').forEach(select => {
+            select.addEventListener('change', () => {
+                document.getElementById('filtersForm').submit();
+            });
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .opacity-75 {
+            opacity: 0.75;
+        }
+        
+        .btn-group .btn {
+            border-radius: 4px !important;
+            margin-right: 2px;
+        }
+        
+        .table th {
+            background-color: #343a40;
+            color: white;
+            border-color: #454d55;
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(0,123,255,0.1);
+        }
+        
+        .badge {
+            font-size: 0.8em;
+        }
+        
+        .font-monospace {
+            font-family: 'Courier New', monospace;
+        }
+        
+        .modal-dialog.modal-lg {
+            max-width: 900px;
+        }
+    </style>
+}

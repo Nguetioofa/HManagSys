@@ -20,3 +20,282 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+/* Styles pour le changement de centre */
+.center-switch-link.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.center-option {
+    padding: 0.75rem 1rem !important;
+    border-radius: 0.375rem;
+    margin: 0.25rem 0.5rem;
+    transition: all 0.2s ease;
+}
+
+    .center-option:hover {
+        background-color: rgba(13, 110, 253, 0.1) !important;
+        transform: translateX(4px);
+    }
+
+    .center-option.active {
+        background-color: rgba(13, 110, 253, 0.15) !important;
+        border-left: 3px solid #0d6efd;
+    }
+
+    .center-option .fw-bold {
+        font-size: 0.95rem;
+    }
+
+    .center-option small {
+        font-size: 0.8rem;
+    }
+
+    .center-option .badge-sm {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+
+/* Améliorations pour le tableau de bord admin */
+.admin-stats-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .admin-stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+.admin-filters-card {
+    background-color: #f8f9fa;
+    border: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.admin-table th {
+    background-color: #495057 !important;
+    color: white;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.admin-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+    .admin-table tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+
+.admin-actions .btn {
+    margin-right: 0.25rem;
+    transition: all 0.2s ease;
+}
+
+    .admin-actions .btn:hover {
+        transform: scale(1.05);
+    }
+
+/* Badges personnalisés */
+.badge.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.badge.bg-primary {
+    background-color: #0d6efd !important;
+}
+
+/* Toast container custom styling */
+.toast-container {
+    z-index: 9999;
+}
+
+.toast {
+    min-width: 300px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .center-option {
+        margin: 0.125rem 0.25rem;
+        padding: 0.5rem 0.75rem !important;
+    }
+
+    .admin-table {
+        font-size: 0.875rem;
+    }
+
+    .admin-actions .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Animation pour les spinners */
+@keyframes fadeInOut {
+    0% {
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+.center-loading {
+    animation: fadeInOut 1.5s infinite;
+}
+
+/* Améliorations pour les modals */
+.modal-content {
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+.modal-header {
+    border-bottom: 1px solid #e9ecef;
+    padding: 1.25rem 1.5rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid #e9ecef;
+    padding: 1rem 1.5rem;
+}
+
+/* Styles pour les alertes temporaires */
+.alert-temporary {
+    animation: slideInFromTop 0.3s ease-out;
+}
+
+@keyframes slideInFromTop {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Améliorations pour la pagination */
+.pagination .page-link {
+    border-radius: 0.375rem;
+    margin: 0 0.125rem;
+    border: 1px solid #dee2e6;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.pagination .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+
+/* Styles pour les badges avec icônes */
+.badge-with-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Améliorations pour les dropdowns */
+.dropdown-menu {
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.dropdown-item {
+    padding: 0.5rem 1rem;
+    transition: all 0.15s ease;
+}
+
+    .dropdown-item:hover {
+        background-color: rgba(13, 110, 253, 0.1);
+        color: #0d6efd;
+    }
+
+.dropdown-divider {
+    margin: 0.5rem 0;
+}
+
+.dropdown-header {
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.875rem;
+}
+
+/* Styles pour les tables responsives */
+@media (max-width: 992px) {
+    .table-responsive {
+        border-radius: 0.375rem;
+    }
+
+    .card-body.p-0 {
+        padding: 0.5rem !important;
+    }
+
+    .admin-table th,
+    .admin-table td {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Animation pour les cartes statistiques */
+.stats-card {
+    transition: all 0.3s ease;
+}
+
+    .stats-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+
+/* Styles pour les boutons avec état de chargement */
+.btn-loading {
+    position: relative;
+    pointer-events: none;
+}
+
+    .btn-loading::after {
+        content: '';
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        margin: auto;
+        border: 2px solid transparent;
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+    }
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}

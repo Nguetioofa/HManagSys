@@ -1,0 +1,648 @@
+﻿@model HManagSys.Models.ViewModels.Users.EditUserViewModel
+@{
+    ViewData["Title"] = "Modifier un utilisateur";
+}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-user-edit text-primary"></i>
+                    Modifier l'utilisateur
+                </h1>
+                <div class="d-flex gap-2">
+                    <a asp-action="UserDetails" asp-route-id="@Model.Id" class="btn btn-outline-info">
+                        <i class="fas fa-eye"></i> Voir détails
+                    </a>
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Retour à la liste
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form asp-action="EditUser" method="post" id="editUserForm">
+        <input type="hidden" asp-for="Id" />
+
+        <div class="row">
+            <div class="col-lg-8 col-xl-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-user"></i> Informations personnelles
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Prénom et nom -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="FirstName" class="form-label">Prénom <span class="text-danger">*</span></label>
+                                    <input asp-for="FirstName" class="form-control" placeholder="Entrez le prénom" />
+                                    <span asp-validation-for="FirstName" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="LastName" class="form-label">Nom <span class="text-danger">*</span></label>
+                                    <input asp-for="LastName" class="form-control" placeholder="Entrez le nom" />
+                                    <span asp-validation-for="LastName" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Email et téléphone -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Email" class="form-label">Email <span class="text-danger">*</span></label>
+                                    <input asp-for="Email" type="email" class="form-control" placeholder="utilisateur@hopital.cm" />
+                                    <span asp-validation-for="Email" class="text-danger"></span>
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i> La modification de l'email nécessite des permissions spéciales
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="PhoneNumber" class="form-label">Téléphone <span class="text-danger">*</span></label>
+                                    <input asp-for="PhoneNumber" type="tel" class="form-control" placeholder="+237 XXXXXXXXX" />
+                                    <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Statut du compte -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="IsActive" class="form-label">Statut du compte</label>
+                                    <div class="form-check form-switch">
+                                        <input asp-for="IsActive" type="checkbox" class="form-check-input" role="switch" />
+                                        <label asp-for="IsActive" class="form-check-label" id="statusLabel">
+                                            @(Model.IsActive ? "Compte actif" : "Compte désactivé")
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">
+                                        Désactiver un compte empêche l'utilisateur de se connecter
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Infos supplémentaires -->
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> Informations</h6>
+                            <ul class="mb-0">
+                                <li>Les modifications sont auditées et traçables</li>
+                                <li>L'utilisateur recevra une notification par email si configuré</li>
+                                <li>Les permissions dépendent des affectations de centre</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Affectations aux centres -->
+            <div class="col-lg-4 col-xl-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-hospital"></i> Affectations aux centres
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <small><i class="fas fa-exclamation-triangle"></i> Au moins une affectation active est requise</small>
+                        </div>
+
+                        <div id="centerAssignments">
+                            @for (int i = 0; i < Model.CenterAssignments.Count; i++)
+                            {
+                                var assignment = Model.CenterAssignments[i];
+                                <div class="card mb-3 center-assignment-card" data-center-id="@assignment.HospitalCenterId">
+                                    <div class="card-body">
+                                        <div class="form-check mb-2">
+                                            <input type="checkbox" class="form-check-input center-checkbox"
+                                                   name="CenterAssignments[@i].IsSelected"
+                                                   value="true"
+                                                   id="center_@assignment.HospitalCenterId"
+                                                   @(assignment.IsSelected ? "checked" : "") />
+                                            <input type="hidden" name="CenterAssignments[@i].IsSelected" value="false" />
+                                            <input type="hidden" name="CenterAssignments[@i].HospitalCenterId" value="@assignment.HospitalCenterId" />
+                                            <input type="hidden" name="CenterAssignments[@i].CenterName" value="@assignment.CenterName" />
+                                            <label class="form-check-label fw-bold" for="center_@assignment.HospitalCenterId">
+                                                @assignment.CenterName
+                                            </label>
+                                            @if (assignment.AssignmentStartDate.HasValue)
+                                            {
+                                                <small class="badge bg-info ms-2">
+                                                    Depuis le @assignment.AssignmentStartDate.Value.ToString("dd/MM/yyyy")
+                                                </small>
+                                            }
+                                        </div>
+
+                                        <div class="role-selection" style="@(assignment.IsSelected ? "" : "display:none;")">
+                                            <label class="form-label">Rôle dans ce centre</label>
+                                            <select name="CenterAssignments[@i].RoleType" class="form-select form-select-sm">
+                                                <option value="MedicalStaff">Personnel Soignant</option>
+                                                <option value="SuperAdmin">Super Administrateur</option>
+                                            </select>
+                                            @if (assignment.IsSelected)
+                                            {
+                                                <div class="current-role-badge mt-2">
+                                                    <span class="badge @(assignment.RoleType == "SuperAdmin" ? "bg-danger" : "bg-primary")">
+                                                        Rôle actuel: @assignment.RoleDisplayName
+                                                    </span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <span asp-validation-for="CenterAssignments" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <!-- Historique -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-history"></i> Informations de compte
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-sm">
+                            <div class="col-6">
+                                <strong>Créé le:</strong><br />
+                                <small class="text-muted">Non disponible</small>
+                            </div>
+                            <div class="col-6">
+                                <strong>Dernière modification:</strong><br />
+                                <small class="text-muted">Non disponible</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Boutons de soumission -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="d-flex justify-content-end gap-2">
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Annuler
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="fas fa-save"></i> Enregistrer les modifications
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+@* <div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-user-edit text-primary"></i>
+                    Modifier l'utilisateur
+                </h1>
+                <div class="d-flex gap-2">
+                    <a asp-action="UserDetails" asp-route-id="@Model.Id" class="btn btn-outline-info">
+                        <i class="fas fa-eye"></i>
+                        Voir détails
+                    </a>
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Retour à la liste
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user"></i>
+                        Informations personnelles
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="EditUser" method="post" id="editUserForm">
+                        <input type="hidden" asp-for="Id">
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="FirstName" class="form-label">Prénom <span class="text-danger">*</span></label>
+                                    <input asp-for="FirstName" class="form-control" placeholder="Entrez le prénom">
+                                    <span asp-validation-for="FirstName" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="LastName" class="form-label">Nom <span class="text-danger">*</span></label>
+                                    <input asp-for="LastName" class="form-control" placeholder="Entrez le nom">
+                                    <span asp-validation-for="LastName" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Email" class="form-label">Email <span class="text-danger">*</span></label>
+                                    <input asp-for="Email" type="email" class="form-control" placeholder="utilisateur@hopital.cm">
+                                    <span asp-validation-for="Email" class="text-danger"></span>
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i>
+                                        La modification de l'email nécessite des permissions spéciales
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="PhoneNumber" class="form-label">Téléphone <span class="text-danger">*</span></label>
+                                    <input asp-for="PhoneNumber" type="tel" class="form-control" placeholder="+237 XXXXXXXXX">
+                                    <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="IsActive" class="form-label">Statut du compte</label>
+                                    <div class="form-check form-switch">
+                                        <input asp-for="IsActive" type="checkbox" class="form-check-input" role="switch">
+                                        <label asp-for="IsActive" class="form-check-label" id="statusLabel">
+                                            @(Model.IsActive ? "Compte actif" : "Compte désactivé")
+                                        </label>
+                                    </div>
+                                    <small class="text-muted">
+                                        Désactiver un compte empêche l'utilisateur de se connecter
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> Informations</h6>
+                            <ul class="mb-0">
+                                <li>Les modifications sont auditées et traçables</li>
+                                <li>L'utilisateur recevra une notification par email si configuré</li>
+                                <li>Les permissions dépendent des affectations de centre</li>
+                            </ul>
+                        </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-xl-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-hospital"></i>
+                        Affectations aux centres
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <small>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Au moins une affectation active est requise
+                        </small>
+                    </div>
+
+                    <div id="centerAssignments">
+                        @for (int i = 0; i < Model.CenterAssignments.Count; i++)
+                        {
+                            var assignment = Model.CenterAssignments[i];
+
+                            <div class="card mb-3 center-assignment-card" data-center-id="@assignment.HospitalCenterId">
+                                <div class="card-body">
+                                    <div class="form-check mb-2">
+                                        <input type="checkbox" class="form-check-input center-checkbox" 
+                                               name="CenterAssignments[@i].IsSelected" 
+                                               value="true" 
+                                               id="center_@assignment.HospitalCenterId"
+                                               @(assignment.IsSelected ? "checked" : "")>
+                                        <input type="hidden" name="CenterAssignments[@i].IsSelected" value="false">
+                                        <input type="hidden" name="CenterAssignments[@i].HospitalCenterId" value="@assignment.HospitalCenterId">
+                                        <input type="hidden" name="CenterAssignments[@i].CenterName" value="@assignment.CenterName">
+                                        <label class="form-check-label fw-bold" for="center_@assignment.HospitalCenterId">
+                                            @assignment.CenterName
+                                        </label>
+                                        @if (assignment.AssignmentStartDate.HasValue)
+                                        {
+                                            <small class="badge bg-info ms-2">
+                                                Depuis le @assignment.AssignmentStartDate.Value.ToString("dd/MM/yyyy")
+                                            </small>
+                                        }
+                                    </div>
+                                    
+                                    <div class="role-selection" style="@(assignment.IsSelected ? "" : "display:none;")">
+                                        <label class="form-label">Rôle dans ce centre</label>
+                                        <select name="CenterAssignments[@i].RoleType" class="form-select form-select-sm">
+                                            <option value="MedicalStaff" >
+                                                Personnel Soignant
+                                            </option>
+                                            <option value="SuperAdmin" >
+                                                Super Administrateur
+                                            </option>
+                                        </select>
+                                        @if (assignment.IsSelected)
+                                        {
+                                            <div class="current-role-badge mt-2">
+                                                <span class="badge @(assignment.RoleType == "SuperAdmin" ? "bg-danger" : "bg-primary")">
+                                                    Rôle actuel: @assignment.RoleDisplayName
+                                                </span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <span asp-validation-for="CenterAssignments" class="text-danger"></span>
+                </div>
+            </div>
+
+            <!-- Historique des modifications -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-history"></i>
+                        Informations de compte
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-sm">
+                        <div class="col-6">
+                            <strong>Créé le:</strong><br>
+                            <small class="text-muted">Non disponible</small>
+                        </div>
+                        <div class="col-6">
+                            <strong>Dernière modification:</strong><br>
+                            <small class="text-muted">Non disponible</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <div class="d-flex justify-content-end gap-2">
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-times"></i>
+                    Annuler
+                </a>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="fas fa-save"></i>
+                    Enregistrer les modifications
+                </button>
+            </div>
+        </div>
+    </div>
+    </form>
+</div>
+ *@
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            // Gestion des checkboxes de centres
+            $('.center-checkbox').change(function() {
+                const isChecked = $(this).is(':checked');
+                const roleSelection = $(this).closest('.center-assignment-card').find('.role-selection');
+                const currentRoleBadge = $(this).closest('.center-assignment-card').find('.current-role-badge');
+                
+                if (isChecked) {
+                    roleSelection.slideDown();
+                    currentRoleBadge.show();
+                } else {
+                    roleSelection.slideUp();
+                    currentRoleBadge.hide();
+                }
+            });
+
+            // Mise à jour du statut du compte
+            $('#IsActive').change(function() {
+                const isActive = $(this).is(':checked');
+                const label = $('#statusLabel');
+                
+                if (isActive) {
+                    label.text('Compte actif').removeClass('text-danger').addClass('text-success');
+                } else {
+                    label.text('Compte désactivé').removeClass('text-success').addClass('text-danger');
+                }
+            });
+
+            // Validation côté client pour s'assurer qu'au moins un centre est sélectionné
+            $('#editUserForm').submit(function(e) {
+                const selectedCenters = $('.center-checkbox:checked').length;
+                
+                if (selectedCenters === 0) {
+                    e.preventDefault();
+                    alert('L\'utilisateur doit être affecté à au moins un centre hospitalier.');
+                    return false;
+                }
+
+                // Confirmation si désactivation du compte
+                const isActive = $('#IsActive').is(':checked');
+                if (!isActive && !confirm('Êtes-vous sûr de vouloir désactiver ce compte ? L\'utilisateur ne pourra plus se connecter.')) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                // Afficher un indicateur de chargement
+                const submitBtn = $('#submitBtn');
+                submitBtn.prop('disabled', true);
+                submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Enregistrement en cours...');
+                
+                return true;
+            });
+
+            // Mise à jour des badges de rôle en temps réel
+            $('select[name*="RoleType"]').change(function() {
+                const selectedRole = $(this).val();
+                const badge = $(this).closest('.role-selection').find('.current-role-badge .badge');
+                const roleDisplay = selectedRole === 'SuperAdmin' ? 'Super Administrateur' : 'Personnel Soignant';
+                const badgeClass = selectedRole === 'SuperAdmin' ? 'bg-danger' : 'bg-primary';
+                
+                badge.removeClass('bg-danger bg-primary').addClass(badgeClass);
+                badge.text('Rôle actuel: ' + roleDisplay);
+            });
+
+            // Validation en temps réel des champs requis
+            $('input[required], select[required]').on('blur', function() {
+                const $this = $(this);
+                const $formGroup = $this.closest('.mb-3');
+                const $feedback = $formGroup.find('.invalid-feedback');
+                
+                if ($this.val() === '') {
+                    $this.addClass('is-invalid');
+                    if ($feedback.length === 0) {
+                        $this.after('<div class="invalid-feedback">Ce champ est requis.</div>');
+                    }
+                } else {
+                    $this.removeClass('is-invalid');
+                    $feedback.remove();
+                }
+            });
+
+            // Formatage du numéro de téléphone
+            $('#PhoneNumber').on('input', function() {
+                let value = $(this).val().replace(/\D/g, '');
+                if (value.startsWith('237')) {
+                    value = '+' + value;
+                } else if (value.startsWith('6') || value.startsWith('2')) {
+                    value = '+237' + value;
+                }
+                $(this).val(value);
+            });
+
+            // Animation des cartes d'affectation au clic
+            $('.center-assignment-card').click(function(e) {
+                if (e.target.type !== 'checkbox' && e.target.tagName !== 'SELECT') {
+                    const checkbox = $(this).find('.center-checkbox');
+                    checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+                }
+            });
+
+            // Effet hover sur les cartes
+            $('.center-assignment-card').hover(
+                function() {
+                    $(this).addClass('border-primary');
+                },
+                function() {
+                    $(this).removeClass('border-primary');
+                }
+            );
+
+            // Alerte si modification d'email
+            $('#Email').on('change', function() {
+                const originalEmail = $(this).data('original') || '';
+                const currentEmail = $(this).val();
+                
+                if (originalEmail && originalEmail !== currentEmail) {
+                    if (!confirm('Attention: Changer l\'email peut affecter la connexion de l\'utilisateur. Continuer ?')) {
+                        $(this).val(originalEmail);
+                    }
+                }
+            });
+
+            // Enregistrer l'email original au chargement
+            $('#Email').data('original', $('#Email').val());
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .center-assignment-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .center-assignment-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .center-assignment-card.border-primary {
+            border-color: #0d6efd !important;
+        }
+
+        .form-check-input:checked + .form-check-label {
+            color: #0d6efd;
+            font-weight: 600;
+        }
+
+        .role-selection {
+            padding-top: 0.5rem;
+            border-top: 1px solid #dee2e6;
+            overflow: hidden;
+        }
+
+        .current-role-badge {
+            margin-top: 0.5rem;
+        }
+
+        .form-switch .form-check-input {
+            cursor: pointer;
+        }
+
+        .form-switch .form-check-input:checked {
+            background-color: #198754;
+            border-color: #198754;
+        }
+
+        .text-success {
+            color: #198754 !important;
+        }
+
+        .alert-info {
+            background-color: #e3f2fd;
+            border-color: #bbdefb;
+            color: #1976d2;
+        }
+
+        .alert-warning {
+            background-color: #fff3e0;
+            border-color: #ffcc02;
+            color: #ef6c00;
+        }
+
+        .text-sm {
+            font-size: 0.875rem;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+        }
+
+        /* Amélioration des boutons */
+        .btn {
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0a58ca;
+        }
+
+        /* Responsive adjustments */
+        @@media (max-width: 768px) {
+            .col-lg-8, .col-lg-4 {
+                margin-bottom: 1rem;
+            }
+            
+            .d-flex.gap-2 {
+                gap: 0.5rem !important;
+            }
+            
+            .btn {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+}

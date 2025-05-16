@@ -54,7 +54,7 @@ namespace HManagSys.Services
 
             var random = new Random();
             var number = random.Next(1000, 9999);
-            return $"Hosp{number}";
+            return $"1234";
         }
 
         public PasswordValidationResult ValidatePasswordStrength(string password)

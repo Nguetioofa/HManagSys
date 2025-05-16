@@ -1,0 +1,321 @@
+﻿@model HManagSys.Models.ViewModels.Users.CreateUserViewModel
+@{
+    ViewData["Title"] = "Créer un utilisateur";
+}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-user-plus text-primary"></i>
+                    Créer un nouvel utilisateur
+                </h1>
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i>
+                    Retour à la liste
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <form asp-action="CreateUser" method="post" id="createUserForm">
+        <div class="row">
+            <div class="col-lg-8 col-xl-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-user"></i>
+                            Informations personnelles
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="FirstName" class="form-label">Prénom <span class="text-danger">*</span></label>
+                                    <input asp-for="FirstName" class="form-control" placeholder="Entrez le prénom">
+                                    <span asp-validation-for="FirstName" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="LastName" class="form-label">Nom <span class="text-danger">*</span></label>
+                                    <input asp-for="LastName" class="form-control" placeholder="Entrez le nom">
+                                    <span asp-validation-for="LastName" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Email" class="form-label">Email <span class="text-danger">*</span></label>
+                                    <input asp-for="Email" type="email" class="form-control" placeholder="utilisateur@hopital.cm">
+                                    <span asp-validation-for="Email" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="PhoneNumber" class="form-label">Téléphone <span class="text-danger">*</span></label>
+                                    <input asp-for="PhoneNumber" type="tel" class="form-control" placeholder="+237 XXXXXXXXX">
+                                    <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle"></i> Informations importantes</h6>
+                            <ul class="mb-0">
+                                <li>Un mot de passe temporaire sera généré automatiquement</li>
+                                <li>L'utilisateur devra changer son mot de passe à sa première connexion</li>
+                                <li>Au moins une affectation de centre est requise</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-xl-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-hospital"></i>
+                            Affectations aux centres
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning">
+                            <small>
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Sélectionnez au moins un centre et définissez le rôle correspondant
+                            </small>
+                        </div>
+
+                        <div id="centerAssignments">
+                            @for (int i = 0; i < Model.AvailableCenters.Count; i++)
+                            {
+                                var center = Model.AvailableCenters[i];
+                                var assignment = Model.CenterAssignments.FirstOrDefault(a => a.HospitalCenterId == center.Id)
+                                ?? new HManagSys.Models.ViewModels.Users.UserCenterAssignmentDto { HospitalCenterId = center.Id, CenterName = center.Name };
+
+                                <div class="card mb-3 center-assignment-card" data-center-id="@center.Id">
+                                    <div class="card-body">
+                                        <div class="form-check mb-2">
+                                            <input type="checkbox" class="form-check-input center-checkbox"
+                                                   name="CenterAssignments[@i].IsSelected"
+                                                   value="true"
+                                                   id="center_@center.Id"
+                                                   @(assignment.IsSelected ? "checked" : "")>
+                                            <input type="hidden" name="CenterAssignments[@i].IsSelected" value="false">
+                                            <input type="hidden" name="CenterAssignments[@i].HospitalCenterId" value="@center.Id">
+                                            <input type="hidden" name="CenterAssignments[@i].CenterName" value="@center.Name">
+                                            <label class="form-check-label fw-bold" for="center_@center.Id">
+                                                @center.Name
+                                            </label>
+                                        </div>
+                                        <small class="text-muted d-block mb-2">@center.Address</small>
+
+                                        <div class="role-selection" style="@(assignment.IsSelected ? "" : "display:none;")">
+                                            <label class="form-label">Rôle dans ce centre</label>
+                                            <select name="CenterAssignments[@i].RoleType" class="form-select form-select-sm">
+                                                <option value="MedicalStaff">Personnel Soignant</option>
+                                                <option value="SuperAdmin">Super Administrateur</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <span asp-validation-for="CenterAssignments" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="d-flex justify-content-end gap-2">
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-times"></i>
+                        Annuler
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="fas fa-save"></i>
+                        Créer l'utilisateur
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            // Gestion des checkboxes de centres
+            $('.center-checkbox').change(function() {
+                const isChecked = $(this).is(':checked');
+                const roleSelection = $(this).closest('.center-assignment-card').find('.role-selection');
+                
+                if (isChecked) {
+                    roleSelection.slideDown();
+                } else {
+                    roleSelection.slideUp();
+                }
+            });
+
+            // Validation côté client pour s'assurer qu'au moins un centre est sélectionné
+            $('#createUserForm').submit(function(e) {
+                const selectedCenters = $('.center-checkbox:checked').length;
+                
+                if (selectedCenters === 0) {
+                    e.preventDefault();
+                    alert('Veuillez sélectionner au moins un centre hospitalier.');
+                    return false;
+                }
+
+                // Afficher un indicateur de chargement
+                const submitBtn = $('#submitBtn');
+                submitBtn.prop('disabled', true);
+                submitBtn.html('<i class="fas fa-spinner fa-spin"></i> Création en cours...');
+                
+                return true;
+            });
+
+            // Validation en temps réel des champs requis
+            $('input[required], select[required]').on('blur', function() {
+                const $this = $(this);
+                const $formGroup = $this.closest('.mb-3');
+                const $feedback = $formGroup.find('.invalid-feedback');
+                
+                if ($this.val() === '') {
+                    $this.addClass('is-invalid');
+                    if ($feedback.length === 0) {
+                        $this.after('<div class="invalid-feedback">Ce champ est requis.</div>');
+                    }
+                } else {
+                    $this.removeClass('is-invalid');
+                    $feedback.remove();
+                }
+            });
+
+            // Formatage automatique du numéro de téléphone
+            $('#PhoneNumber').on('input', function() {
+                let value = $(this).val().replace(/\D/g, '');
+                if (value.startsWith('237')) {
+                    value = '+' + value;
+                } else if (value.startsWith('6') || value.startsWith('2')) {
+                    value = '+237' + value;
+                }
+                $(this).val(value);
+            });
+
+            // Conversion automatique de l'email en minuscules
+            $('#Email').on('blur', function() {
+                $(this).val($(this).val().toLowerCase());
+            });
+
+            // Animation des cartes d'affectation au clic
+            $('.center-assignment-card').click(function(e) {
+                if (e.target.type !== 'checkbox' && e.target.tagName !== 'SELECT') {
+                    const checkbox = $(this).find('.center-checkbox');
+                    checkbox.prop('checked', !checkbox.prop('checked')).trigger('change');
+                }
+            });
+
+            // Effet hover sur les cartes
+            $('.center-assignment-card').hover(
+                function() {
+                    $(this).addClass('border-primary');
+                },
+                function() {
+                    $(this).removeClass('border-primary');
+                }
+            );
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .center-assignment-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .center-assignment-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .center-assignment-card.border-primary {
+            border-color: #0d6efd !important;
+        }
+
+        .form-check-input:checked + .form-check-label {
+            color: #0d6efd;
+            font-weight: 600;
+        }
+
+        .role-selection {
+            padding-top: 0.5rem;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .alert-info {
+            background-color: #e3f2fd;
+            border-color: #bbdefb;
+            color: #1976d2;
+        }
+
+        .alert-warning {
+            background-color: #fff3e0;
+            border-color: #ffcc02;
+            color: #ef6c00;
+        }
+
+        .text-danger {
+            color: #dc3545 !important;
+        }
+
+        /* Animation pour les sélections de rôle */
+        .role-selection {
+            overflow: hidden;
+        }
+
+        /* Amélioration des boutons */
+        .btn {
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0a58ca;
+        }
+
+        /* Responsive adjustments */
+        @@media (max-width: 768px) {
+            .col-lg-8, .col-lg-4 {
+                margin-bottom: 1rem;
+            }
+            
+            .d-flex.gap-2 {
+                gap: 0.5rem !important;
+            }
+            
+            .btn {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+}
