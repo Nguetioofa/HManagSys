@@ -1,9 +1,10 @@
 using HManagSys.Data.DBContext;
 using HManagSys.Data.Repositories;
 using HManagSys.Data.Repositories.Interfaces;
-using HManagSys.Services;
-using HManagSys.Services.Interfaces;
 using HManagSys.Middleware;
+using HManagSys.Services;
+using HManagSys.Services.Implementations;
+using HManagSys.Services.Interfaces;
 using HospitalManagementSystem.Data.Repositories;
 using HospitalManagementSystem.Services;
 using Microsoft.EntityFrameworkCore;
@@ -18,16 +19,24 @@ builder.Services.AddDbContext<HospitalManagementContext>(options =>
 builder.Services.AddAutoMapper(typeof(Program));
 
 // Configuration des repositories
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IHospitalCenterRepository, HospitalCenterRepository>();
 builder.Services.AddScoped<IUserCenterAssignmentRepository, UserCenterAssignmentRepository>();
-// Ajouter d'autres repositories ici...
+
 
 // Configuration des services
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IApplicationLogger, ApplicationLogger>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+
+
+// Services métier - Stock
+builder.Services.AddScoped<IProductCategoryService, ProductCategoryService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+// builder.Services.AddScoped<IStockService, StockService>(); // À ajouter plus tard
+
 
 // Configuration de la session
 builder.Services.AddSession(options =>
