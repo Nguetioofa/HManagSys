@@ -630,9 +630,9 @@ namespace HManagSys.Services
 
                 if (result.Success)
                 {
-                    //await _appLogger.LogInfoAsync("Authentication", "PasswordReset",
-                    //    $"Mot de passe réinitialisé pour utilisateur {userId} par {resetBy}",
-                    //    resetBy, details: new { TargetUserId = userId });
+                    await _appLogger.LogInfoAsync("Authentication", "PasswordReset",
+                        $"Mot de passe réinitialisé pour utilisateur {userId} par {resetBy}",
+                        resetBy, details: new { TargetUserId = userId });
 
                     return new PasswordResetResult
                     {

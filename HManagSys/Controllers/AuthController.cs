@@ -448,6 +448,7 @@ public class AuthController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
     {
+        model.CurrentPassword = "1234";
         if (!ModelState.IsValid)
         {
             return View(model);

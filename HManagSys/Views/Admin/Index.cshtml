@@ -4,6 +4,9 @@
 }
 
 <div class="container-fluid">
+    <!-- Token CSRF pour les requêtes AJAX -->
+    @Html.AntiForgeryToken()
+    
     <!-- En-tête avec titre -->
     <div class="row mb-4">
         <div class="col-12">
@@ -237,6 +240,11 @@
                                 </td>
                                 <td>
                                     <div class="btn-group" role="group">
+                                        <!-- Modifier -->
+                                        <a asp-action="EditUser" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary" title="Modifier l'utilisateur">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        
                                         <!-- Réinitialiser mot de passe -->
                                         <button class="btn btn-sm btn-outline-warning" 
                                                 onclick="resetPassword(@user.Id, '@user.FullName')"
@@ -423,25 +431,34 @@
         let currentUserId = null;
         let currentUserIsActive = null;
 
+        // Fonction pour obtenir le token CSRF
+        function getAntiForgeryToken() {
+            return document.querySelector('input[name="__RequestVerificationToken"]').value;
+        }
+
+         // JavaScript corrigé - Version Alternative (sans modifier le contrôleur)
+
         // Réinitialisation du mot de passe
         function resetPassword(userId, userName) {
             currentUserId = userId;
             document.getElementById('resetPasswordUserName').textContent = userName;
             document.getElementById('temporaryPasswordResult').classList.add('d-none');
-            
+            document.getElementById('confirmResetPassword').style.display = 'inline-block';
+
             const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
             modal.show();
         }
 
         document.getElementById('confirmResetPassword').addEventListener('click', async function() {
+            if (!currentUserId) return;
+
             try {
-                const response = await fetch('@Url.Action("ResetPassword")', {
+                // Envoyer l'ID dans l'URL au lieu du body
+                const response = await fetch(`@Url.Action("ResetPassword")?userId=${currentUserId}`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                    },
-                    body: JSON.stringify(currentUserId)
+                        'RequestVerificationToken': getAntiForgeryToken()
+                    }
                 });
 
                 const result = await response.json();
@@ -451,51 +468,30 @@
                     document.getElementById('temporaryPasswordResult').classList.remove('d-none');
                     this.style.display = 'none';
                     showToast('Mot de passe réinitialisé avec succès', 'success');
+
+                    setTimeout(() => {
+                        location.reload();
+                    }, 3000);
                 } else {
                     showToast(result.message || 'Erreur lors de la réinitialisation', 'error');
                 }
             } catch (error) {
+                console.error('Erreur:', error);
                 showToast('Erreur lors de la réinitialisation', 'error');
             }
         });
 
-        // Copier le mot de passe temporaire
-        function copyTemporaryPassword() {
-            const password = document.getElementById('temporaryPasswordValue').textContent;
-            navigator.clipboard.writeText(password).then(() => {
-                showToast('Mot de passe copié dans le presse-papiers', 'success');
-            });
-        }
-
         // Changer le statut d'un utilisateur
-        function toggleUserStatus(userId, isActive, userName) {
-            currentUserId = userId;
-            currentUserIsActive = isActive;
-            
-            const action = isActive ? 'désactiver' : 'activer';
-            const btnClass = isActive ? 'btn-danger' : 'btn-success';
-            
-            document.getElementById('toggleStatusTitle').textContent = `${action.charAt(0).toUpperCase() + action.slice(1)} le compte`;
-            document.getElementById('toggleStatusMessage').innerHTML = 
-                `Êtes-vous sûr de vouloir <strong>${action}</strong> le compte de <strong>${userName}</strong> ?`;
-            
-            const confirmBtn = document.getElementById('confirmToggleStatus');
-            confirmBtn.className = `btn ${btnClass}`;
-            confirmBtn.innerHTML = `<i class="fas fa-${isActive ? 'user-slash' : 'user-check'}"></i> ${action.charAt(0).toUpperCase() + action.slice(1)}`;
-            
-            const modal = new bootstrap.Modal(document.getElementById('toggleStatusModal'));
-            modal.show();
-        }
-
         document.getElementById('confirmToggleStatus').addEventListener('click', async function() {
+            if (!currentUserId) return;
+
             try {
-                const response = await fetch('@Url.Action("ToggleUserStatus")', {
+                // Envoyer les paramètres dans l'URL
+                const response = await fetch(`@Url.Action("ToggleUserStatus")?userId=${currentUserId}&isActive=${!currentUserIsActive}`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                    },
-                    body: JSON.stringify({ userId: currentUserId, isActive: !currentUserIsActive })
+                        'RequestVerificationToken': getAntiForgeryToken()
+                    }
                 });
 
                 const result = await response.json();
@@ -507,6 +503,7 @@
                     showToast(result.message || 'Erreur lors de la modification', 'error');
                 }
             } catch (error) {
+                console.error('Erreur:', error);
                 showToast('Erreur lors de la modification du statut', 'error');
             }
 
@@ -515,28 +512,50 @@
 
         // Forcer la déconnexion
         function forceLogout(userId, userName) {
-            if (confirm(`Êtes-vous sûr de vouloir forcer la déconnexion de ${userName} ?`)) {
-                fetch('@Url.Action("ForceLogout")', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                    },
-                    body: JSON.stringify(userId)
-                })
-                .then(response => response.json())
-                .then(result => {
-                    if (result.success) {
-                        showToast(result.message, 'success');
-                        location.reload();
-                    } else {
-                        showToast(result.message || 'Erreur lors de la déconnexion', 'error');
-                    }
-                })
-                .catch(error => {
-                    showToast('Erreur lors de la déconnexion forcée', 'error');
-                });
+            if (!confirm(`Êtes-vous sûr de vouloir forcer la déconnexion de ${userName} ?`)) {
+                return;
             }
+
+            // Envoyer l'ID dans l'URL
+            fetch(`@Url.Action("ForceLogout")?userId=${userId}`, {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': getAntiForgeryToken()
+                }
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    location.reload();
+                } else {
+                    showToast(result.message || 'Erreur lors de la déconnexion', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showToast('Erreur lors de la déconnexion forcée', 'error');
+            });
+        }
+
+                // Changer le statut d'un utilisateur
+        function toggleUserStatus(userId, isActive, userName) {
+            currentUserId = userId;
+            currentUserIsActive = isActive;
+
+            const action = isActive ? 'désactiver' : 'activer';
+            const btnClass = isActive ? 'btn-danger' : 'btn-success';
+
+            document.getElementById('toggleStatusTitle').textContent = `${action.charAt(0).toUpperCase() + action.slice(1)} le compte`;
+            document.getElementById('toggleStatusMessage').innerHTML =
+                `Êtes-vous sûr de vouloir <strong>${action}</strong> le compte de <strong>${userName}</strong> ?`;
+
+            const confirmBtn = document.getElementById('confirmToggleStatus');
+            confirmBtn.className = `btn ${btnClass}`;
+            confirmBtn.innerHTML = `<i class="fas fa-${isActive ? 'user-slash' : 'user-check'}"></i> ${action.charAt(0).toUpperCase() + action.slice(1)}`;
+
+            const modal = new bootstrap.Modal(document.getElementById('toggleStatusModal'));
+            modal.show();
         }
 
         // Voir l'historique des connexions
@@ -565,19 +584,27 @@
                     }
                 })
                 .catch(error => {
+                    console.error('Erreur:', error);
                     document.getElementById('loginHistoryContent').innerHTML = 
                         '<div class="alert alert-danger">Erreur lors du chargement de l\'historique</div>';
                 });
         }
 
         function displayLoginHistory(history) {
+            if (!history || history.length === 0) {
+                document.getElementById('loginHistoryContent').innerHTML = 
+                    '<div class="alert alert-info">Aucun historique de connexion disponible</div>';
+                return;
+            }
+            
             let html = '<div class="table-responsive"><table class="table table-sm">';
             html += '<thead><tr><th>Date/Heure</th><th>Centre</th><th>Adresse IP</th><th>Statut</th></tr></thead><tbody>';
             
             history.forEach(item => {
+                const loginDate = new Date(item.loginTime);
                 html += `<tr>
-                    <td>${new Date(item.loginTime).toLocaleString('fr-FR')}</td>
-                    <td>${item.centerName}</td>
+                    <td>${loginDate.toLocaleString('fr-FR')}</td>
+                    <td>${item.centerName || 'Non disponible'}</td>
                     <td>${item.ipAddress || 'Non disponible'}</td>
                     <td>
                         ${item.isCurrentSession 
@@ -593,9 +620,21 @@
 
         // Voir les sessions actives
         function viewSessions(userId) {
-            // Implémentation similaire à l'historique
-            currentUserId = userId;
-            // Code pour afficher les sessions actives...
+            fetch(`@Url.Action("GetActiveSessions")?userId=${userId}`)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        // Afficher les sessions dans un modal ou une alerte
+                        console.log('Sessions actives:', result.data);
+                        showToast(`Cet utilisateur a ${result.data.length} session(s) active(s)`, 'info');
+                    } else {
+                        showToast('Erreur lors de la récupération des sessions', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showToast('Erreur lors de la récupération des sessions', 'error');
+                });
         }
 
         // Exporter les utilisateurs
@@ -604,15 +643,27 @@
             window.location.href = '@Url.Action("ExportUsers")?' + params.toString();
         }
 
+        // Vider les filtres
+        function clearFilters() {
+            window.location.href = '@Url.Action("Index")';
+        }
+
         // Fonction utilitaire pour les toasts
         function showToast(message, type) {
-            // Implémentation simple avec bootstrap alerts
-            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+            // Supprimer les anciens toasts
+            const existingToasts = document.querySelectorAll('.toast-notification');
+            existingToasts.forEach(toast => toast.remove());
+            
+            const alertClass = type === 'success' ? 'alert-success' : 
+                             type === 'warning' ? 'alert-warning' :
+                             type === 'info' ? 'alert-info' : 'alert-danger';
+            const icon = type === 'success' ? 'fa-check-circle' : 
+                        type === 'warning' ? 'fa-exclamation-triangle' :
+                        type === 'info' ? 'fa-info-circle' : 'fa-exclamation-circle';
             
             const toast = document.createElement('div');
-            toast.className = `alert ${alertClass} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
-            toast.style.zIndex = '9999';
+            toast.className = `alert ${alertClass} alert-dismissible fade show position-fixed toast-notification`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 350px;';
             toast.innerHTML = `
                 <i class="fas ${icon}"></i> ${message}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -620,8 +671,11 @@
             
             document.body.appendChild(toast);
             
+            // Auto-suppression après 5 secondes
             setTimeout(() => {
-                toast.remove();
+                if (toast.parentNode) {
+                    toast.remove();
+                }
             }, 5000);
         }
 
@@ -630,6 +684,13 @@
             select.addEventListener('change', () => {
                 document.getElementById('filtersForm').submit();
             });
+        });
+        
+        // Enter sur le champ de recherche
+        document.querySelector('input[name="searchTerm"]').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('filtersForm').submit();
+            }
         });
     </script>
 }
@@ -665,6 +726,21 @@
         
         .modal-dialog.modal-lg {
             max-width: 900px;
+        }
+        
+        .toast-notification {
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        @@keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
     </style>
 }

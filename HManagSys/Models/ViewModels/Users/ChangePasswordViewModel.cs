@@ -12,7 +12,7 @@ namespace HManagSys.Models.ViewModels.Users
         public string Email { get; set; } = string.Empty;
         public bool IsForced { get; set; } = false;
 
-        [Required(ErrorMessage = "Le mot de passe actuel est obligatoire")]
+        //[Required(ErrorMessage = "Le mot de passe actuel est obligatoire")]
         [DataType(DataType.Password)]
         public string CurrentPassword { get; set; } = string.Empty;
 
