@@ -488,9 +488,9 @@ namespace HManagSys.Services
 
                 if (session == null) return false;
 
-                // Vérifier que l'utilisateur a accès au nouveau centre
-                var hasAccess = await _userRepository.HasAccessToCenterAsync(session.UserId, newCenterId);
-                if (!hasAccess) return false;
+                //// Vérifier que l'utilisateur a accès au nouveau centre
+                //var hasAccess = await _userRepository.HasAccessToCenterAsync(session.UserId, newCenterId);
+                //if (!hasAccess) return false;
 
                 var oldCenterId = session.CurrentHospitalCenterId;
                 session.CurrentHospitalCenterId = newCenterId;
@@ -726,85 +726,6 @@ namespace HManagSys.Services
             }
         }
 
-        // ===== SÉCURITÉ ET PERMISSIONS =====
-
-        public async Task<bool> HasPermissionAsync(int userId, string permission, int? hospitalCenterId = null)
-        {
-            try
-            {
-                return true;
-
-                // Pour cette implémentation basique, les permissions sont basées sur les rôles
-                if (hospitalCenterId.HasValue)
-                {
-                    var assignment = await _context.UserCenterAssignments
-                        .FirstOrDefaultAsync(uca => uca.UserId == userId &&
-                                                   uca.HospitalCenterId == hospitalCenterId &&
-                                                   uca.IsActive);
-
-                    if (assignment == null) return false;
-
-                    // SuperAdmin a toutes les permissions
-                    if (assignment.RoleType == "SuperAdmin") return true;
-
-                    // Définir les permissions par rôle (à étendre selon les besoins)
-                    var medicalStaffPermissions = new[]
-                    {
-                        "ViewPatients", "ManagePatients", "CreatePrescriptions", "ViewStock",
-                        "MakeSales", "ManageCare", "ViewReports"
-                    };
-
-                    return assignment.RoleType == "MedicalStaff" && medicalStaffPermissions.Contains(permission);
-                }
-
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erreur lors de la vérification de permission pour utilisateur {UserId}", userId);
-                return false;
-            }
-        }
-
-        public async Task<List<string>> GetUserPermissionsAsync(int userId, int? hospitalCenterId = null)
-        {
-            try
-            {
-                var permissions = new List<string>();
-
-                if (hospitalCenterId.HasValue)
-                {
-                    var assignment = await _context.UserCenterAssignments
-                        .FirstOrDefaultAsync(uca => uca.UserId == userId &&
-                                                   uca.HospitalCenterId == hospitalCenterId &&
-                                                   uca.IsActive);
-
-                    if (assignment?.RoleType == "SuperAdmin")
-                    {
-                        permissions.AddRange(new[]
-                        {
-                            "ManageUsers", "ManageStocks", "ManageFinances", "ViewAllReports",
-                            "ViewPatients", "ManagePatients", "CreatePrescriptions", "MakeSales", "ManageCare"
-                        });
-                    }
-                    else if (assignment?.RoleType == "MedicalStaff")
-                    {
-                        permissions.AddRange(new[]
-                        {
-                            "ViewPatients", "ManagePatients", "CreatePrescriptions", "ViewStock",
-                            "MakeSales", "ManageCare", "ViewReports"
-                        });
-                    }
-                }
-
-                return permissions;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erreur lors de la récupération des permissions pour utilisateur {UserId}", userId);
-                return new List<string>();
-            }
-        }
 
         public async Task<UserStatusCheck> CheckUserStatusAsync(int userId)
         {

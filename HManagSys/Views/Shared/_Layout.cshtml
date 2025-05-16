@@ -296,41 +296,91 @@
                 `;
             }
 
-            // Fonction pour changer de centre
+              // Fonction pour changer de centre
             async function switchCenter(centerId, event) {
                 event.preventDefault();
 
                 // Éviter le changement si c'est déjà le centre actuel
                 if (centerId === currentCenterId) {
+                    console.log('Déjà sur ce centre.');
                     return;
                 }
 
                 // Afficher l'indicateur de chargement
                 const loadingSpinner = document.getElementById('center-loading');
-                const centerLink = document.querySelector('.center-switch-link');
+                const centerLink = document.querySelector('.center-switch-link'); // Assurez-vous que cet élément existe ou ajustez le sélecteur
 
-                centerLink.classList.add('disabled');
-                loadingSpinner.classList.remove('d-none');
+                // Si centerLink est le dropdown lui-même, il pourrait être mieux de cibler le bouton du dropdown
+                const dropdownButton = document.getElementById('centerSwitchDropdown'); // Ou un sélecteur plus précis pour le bouton visible
+
+                if (dropdownButton) dropdownButton.classList.add('disabled');
+                if (loadingSpinner) loadingSpinner.classList.remove('d-none');
 
                 try {
-                    const response = await fetch('@Url.Action("SwitchCenter", "Auth")', {
+                    // Préparer les données du formulaire
+                    const formData = new FormData();
+                    formData.append('centerId', centerId);
+
+                    // Récupérer le token anti-forgery
+                    const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                    const token = tokenInput ? tokenInput.value : '';
+
+                    if (!token) {
+                        console.error('Token anti-forgery non trouvé.');
+                        showToast('Erreur de sécurité. Veuillez rafraîchir la page.', 'error');
+                        return; // Arrêter si le token n'est pas trouvé
+                    }
+
+                    const response = await fetch('@Url.Action("SwitchCenter", "Auth")', { // URL sans query string pour centerId
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                            // 'Content-Type' n'est pas nécessaire avec FormData, le navigateur le définit correctement
+                            // avec la bonne 'boundary' pour 'multipart/form-data'
+                            // OU si vous voulez 'application/x-www-form-urlencoded', voir plus bas
+                            'RequestVerificationToken': token
                         },
-                        body: JSON.stringify({ centerId: centerId })
+                        body: formData // Envoyer centerId dans le corps
                     });
+
+                    // Si vous préférez 'application/x-www-form-urlencoded'
+                    // const response = await fetch('@Url.Action("SwitchCenter", "Auth")', {
+                    //     method: 'POST',
+                    //     headers: {
+                    //         'RequestVerificationToken': token,
+                    //         'Content-Type': 'application/x-www-form-urlencoded'
+                    //     },
+                    //     body: new URLSearchParams({
+                    //         'centerId': centerId
+                    //     })
+                    // });
+
+
+                    if (!response.ok) { // Vérifier si la réponse HTTP elle-même est une erreur
+                        let errorMessage = `Erreur HTTP ${response.status}: ${response.statusText}`;
+                        try {
+                             const errorResult = await response.json(); // Essayer de lire le corps de l'erreur JSON
+                             errorMessage = errorResult.message || errorMessage;
+                        } catch(e) {
+                            // Pas de JSON dans la réponse d'erreur, ou erreur de parsing
+                        }
+                        console.error('Erreur lors du changement de centre:', errorMessage);
+                        showToast(errorMessage, 'error');
+                        return; // Arrêter ici
+                    }
 
                     const result = await response.json();
 
                     if (result.success) {
                         // Mettre à jour l'affichage du centre actuel
-                        document.getElementById('current-center-name').textContent = result.centerName || '';
-                        document.getElementById('current-role').textContent = result.role || '';
+                        const currentCenterNameEl = document.getElementById('current-center-name');
+                        const currentRoleEl = document.getElementById('current-role');
+
+                        if (currentCenterNameEl) currentCenterNameEl.textContent = result.centerName || '';
+                        if (currentRoleEl) currentRoleEl.textContent = result.role || '';
+
 
                         // Mettre à jour la variable globale
-                        currentCenterId = centerId;
+                        currentCenterId = parseInt(centerId, 10); // Assurez-vous que c'est un nombre
 
                         // Afficher un message de succès
                         showToast(`Centre changé vers ${result.centerName}`, 'success');
@@ -344,12 +394,12 @@
                         showToast(result.message || 'Erreur lors du changement de centre', 'error');
                     }
                 } catch (error) {
-                    console.error('Erreur lors du changement de centre:', error);
-                    showToast('Erreur lors du changement de centre', 'error');
+                    console.error('Erreur lors du changement de centre (catch):', error);
+                    showToast('Une erreur technique est survenue lors du changement de centre.', 'error');
                 } finally {
                     // Masquer l'indicateur de chargement
-                    centerLink.classList.remove('disabled');
-                    loadingSpinner.classList.add('d-none');
+                    if (dropdownButton) dropdownButton.classList.remove('disabled');
+                    if (loadingSpinner) loadingSpinner.classList.add('d-none');
                 }
             }
 

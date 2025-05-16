@@ -5,6 +5,18 @@ VisualStudioVersion = 17.14.36109.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HManagSys", "HManagSys\HManagSys.csproj", "{27BC2D8B-55EC-4BC6-BDB3-D9ACF8B40AF8}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Script", "Script", "{0BB39A05-1926-C2B2-7003-8EB281EB5439}"
+	ProjectSection(SolutionItems) = preProject
+		Script\script.sql = Script\script.sql
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{208BA388-4CEE-2CBF-559C-5607C099C1F8}"
+	ProjectSection(SolutionItems) = preProject
+		Docs\Documentation - Système d'Authentification et Attributs.md = Docs\Documentation - Système d'Authentification et Attributs.md
+		Docs\Documentation Base de Données - Système Hospitalier.md = Docs\Documentation Base de Données - Système Hospitalier.md
+		Docs\Planification Complète du Projet.md = Docs\Planification Complète du Projet.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

@@ -129,24 +129,6 @@ namespace HManagSys.Services.Interfaces
         /// </summary>
         Task<bool> ForcePasswordChangeAsync(int userId, int forcedBy);
 
-        // ===== SÉCURITÉ ET PERMISSIONS =====
-
-        /// <summary>
-        /// Vérifie si un utilisateur a une permission spécifique
-        /// Dans un centre donné avec un rôle particulier
-        /// Système de permissions granulaire
-        /// </summary>
-        Task<bool> HasPermissionAsync(
-            int userId,
-            string permission,
-            int? hospitalCenterId = null);
-
-        /// <summary>
-        /// Récupère toutes les permissions d'un utilisateur
-        /// Pour un centre spécifique ou global
-        /// </summary>
-        Task<List<string>> GetUserPermissionsAsync(int userId, int? hospitalCenterId = null);
-
         /// <summary>
         /// Vérifie si un utilisateur est actif et autorisé
         /// Contrôle global de l'état du compte

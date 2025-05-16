@@ -1,4 +1,5 @@
-﻿using HManagSys.Data.Repositories.Interfaces;
+﻿using HManagSys.Attributes;
+using HManagSys.Data.Repositories.Interfaces;
 using HManagSys.Models.ViewModels;
 using HManagSys.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ namespace HManagSys.Controllers
     /// Contrôleur de tableau de bord pour le Personnel Soignant
     /// Interface principale pour les opérations quotidiennes
     /// </summary>
+    [RequireAuthentication]
     public class DashboardController : Controller
     {
         private readonly IApplicationLogger _appLogger;
@@ -92,10 +94,6 @@ namespace HManagSys.Controllers
             try
             {
                 var sessionToken = HttpContext.Session.GetString("SessionToken");
-                if (string.IsNullOrEmpty(sessionToken))
-                {
-                    return Json(new { success = false, message = "Session expirée" });
-                }
 
                 var success = await _authService.SwitchCenterAsync(sessionToken, centerId);
 

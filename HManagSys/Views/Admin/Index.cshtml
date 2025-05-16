@@ -1,6 +1,22 @@
 ﻿@model HManagSys.Models.ViewModels.AdminDashboardViewModel
+
+
 @{
     ViewData["Title"] = "Tableau de Bord Administrateur";
+    var currentRole = Context.Session.GetString("CurrentRole");
+    var isSuperAdmin = currentRole == "SuperAdmin";
+}
+
+@if (!isSuperAdmin)
+{
+    <div class="alert alert-danger">
+        <h4>Accès refusé</h4>
+        <p>Cette page nécessite des droits SuperAdmin.</p>
+        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-primary">
+            Retour au tableau de bord
+        </a>
+    </div>
+    return;
 }
 
 <div class="container-fluid">
@@ -241,9 +257,9 @@
                                 <td>
                                     <div class="btn-group" role="group">
                                         <!-- Modifier -->
-                                        <a asp-action="EditUser" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary" title="Modifier l'utilisateur">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
+                                      <a asp-action="EditUser" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-edit"></i>
+            </a>
                                         
                                         <!-- Réinitialiser mot de passe -->
                                         <button class="btn btn-sm btn-outline-warning" 
@@ -253,11 +269,13 @@
                                         </button>
                                         
                                         <!-- Activer/Désactiver -->
-                                        <button class="btn btn-sm btn-outline-@(user.IsActive ? "danger" : "success")" 
-                                                onclick="toggleUserStatus(@user.Id, @user.IsActive.ToString().ToLower(), '@user.FullName')"
-                                                title="@(user.IsActive ? "Désactiver" : "Activer") le compte">
-                                            <i class="fas fa-@(user.IsActive ? "user-slash" : "user-check")"></i>
-                                        </button>
+                                        @if (user.Id != Context.Session.GetInt32("UserId"))
+                                        {
+                                            <button class="btn btn-sm btn-outline-@(user.IsActive ? "danger" : "success")"
+                                                    onclick="toggleUserStatus(@user.Id, @user.IsActive.ToString().ToLower(), '@user.FullName')">
+                                                <i class="fas fa-@(user.IsActive ? "user-slash" : "user-check")"></i>
+                                            </button>
+                                        }
                                         
                                         <!-- Forcer déconnexion -->
                                         @if (user.ActiveSessionsCount > 0)
@@ -284,7 +302,7 @@
             </div>
         </div>
         
-        <!-- Pagination -->
+        <!-- PaginaEditUsertion -->
         @if (Model.Pagination.TotalPages > 1)
         {
             <div class="card-footer">

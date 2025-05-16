@@ -1,4 +1,5 @@
-﻿using HManagSys.Models.Enums;
+﻿using HManagSys.Attributes;
+using HManagSys.Models.Enums;
 using HManagSys.Models.ViewModels;
 using HManagSys.Models.ViewModels.Users;
 using HManagSys.Services.Interfaces;
@@ -301,13 +302,11 @@ public class AuthController : Controller
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequireAuthentication]
+    [RequireCenterAccess("centerId")]
     public async Task<IActionResult> SwitchCenter(int centerId)
     {
         var sessionToken = HttpContext.Session.GetString("SessionToken");
-        if (string.IsNullOrEmpty(sessionToken))
-        {
-            return Json(new { success = false, message = "Session expirée", redirect = "/Auth/Login" });
-        }
 
         try
         {

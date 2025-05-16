@@ -1,4 +1,5 @@
-﻿using HManagSys.Data.Repositories.Interfaces;
+﻿using HManagSys.Attributes;
+using HManagSys.Data.Repositories.Interfaces;
 using HManagSys.Models.EfModels;
 using HManagSys.Models.ViewModels;
 using HManagSys.Models.ViewModels.Users;
@@ -11,7 +12,8 @@ namespace HManagSys.Controllers;
 /// Contrôleur administrateur pour la gestion des utilisateurs et du système
 /// Centre de contrôle pour les SuperAdmins
 /// </summary>
-public class AdminController : Controller
+[RequireAuthentication]
+public class AdminController : BaseController
 {
     private readonly IUserRepository _userRepository;
     private readonly IHospitalCenterRepository _hospitalCenterRepository;
@@ -44,6 +46,7 @@ public class AdminController : Controller
     /// </summary>
     public async Task<IActionResult> Index(UserManagementFilters? filters = null)
     {
+
         try
         {
             var currentUserId = HttpContext.Session.GetInt32("UserId");
@@ -62,8 +65,7 @@ public class AdminController : Controller
             if (currentCenterId.HasValue && !filters.HospitalCenterId.HasValue)
             {
                 // Vérifier si l'admin a une vision globale ou limitée à un centre
-                var hasGlobalAccess = await _authService.HasPermissionAsync(currentUserId.Value, "ViewAllCenters");
-                if (!hasGlobalAccess)
+                if (!IsSuperAdmin)
                 {
                     filters.HospitalCenterId = currentCenterId.Value;
                 }
@@ -121,10 +123,6 @@ public class AdminController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erreur lors du chargement du tableau de bord administrateur");
-            await _appLogger.LogErrorAsync("Admin", "DashboardError",
-                "Erreur lors du chargement du tableau de bord administrateur",
-                details: new { Error = ex.Message });
-
             TempData["ErrorMessage"] = "Erreur lors du chargement du tableau de bord";
             return RedirectToAction("Index", "Dashboard");
         }
@@ -133,24 +131,16 @@ public class AdminController : Controller
     /// <summary>
     /// Réinitialise le mot de passe d'un utilisateur
     /// </summary>
+    [SuperAdmin]
+    [PreventSelfAction]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResetPassword(int userId)
     {
+
         try
         {
             var currentUserId = HttpContext.Session.GetInt32("UserId");
-            if (!currentUserId.HasValue)
-            {
-                return Json(new { success = false, message = "Session expirée" });
-            }
-
-            // Vérifier les permissions
-            var hasPermission = await _authService.HasPermissionAsync(currentUserId.Value, "ResetUserPassword");
-            if (!hasPermission)
-            {
-                return Json(new { success = false, message = "Permissions insuffisantes" });
-            }
 
             // Réinitialiser le mot de passe
             var result = await _authService.ResetPasswordAsync(userId, currentUserId.Value);
@@ -187,48 +177,32 @@ public class AdminController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleUserStatus(int userId, bool isActive)
     {
+        if (!IsSuperAdmin)
+        {
+            return Json(new { success = false, message = "Accès refusé" });
+        }
+
+        // Empêcher de modifier son propre statut
+        if (userId == CurrentUserId.Value)
+        {
+            return Json(new { success = false, message = "Vous ne pouvez pas modifier votre propre statut" });
+        }
+
         try
         {
-            var currentUserId = HttpContext.Session.GetInt32("UserId");
-            if (!currentUserId.HasValue)
-            {
-                return Json(new { success = false, message = "Session expirée" });
-            }
-
-            // Vérifier les permissions
-            var hasPermission = await _authService.HasPermissionAsync(currentUserId.Value, "ManageUsers");
-            if (!hasPermission)
-            {
-                return Json(new { success = false, message = "Permissions insuffisantes" });
-            }
-
-            // Ne pas permettre de désactiver son propre compte
-            if (userId == currentUserId.Value)
-            {
-                return Json(new { success = false, message = "Vous ne pouvez pas modifier votre propre statut" });
-            }
-
-            // Modifier le statut
-            var success = await _userRepository.SetUserActiveStatusAsync(userId, isActive, currentUserId.Value);
+            var success = await _userRepository.SetUserActiveStatusAsync(userId, isActive, CurrentUserId.Value);
 
             if (success)
             {
                 var action = isActive ? "activé" : "désactivé";
                 await _appLogger.LogInfoAsync("Admin", "UserStatusChanged",
                     $"Compte utilisateur {userId} {action}",
-                    currentUserId.Value);
+                    CurrentUserId.Value);
 
-                return Json(new
-                {
-                    success = true,
-                    message = $"Compte {action} avec succès",
-                    newStatus = isActive
-                });
+                return Json(new { success = true, message = $"Compte {action} avec succès" });
             }
-            else
-            {
-                return Json(new { success = false, message = "Erreur lors de la modification du statut" });
-            }
+
+            return Json(new { success = false, message = "Erreur lors de la modification" });
         }
         catch (Exception ex)
         {
@@ -253,8 +227,7 @@ public class AdminController : Controller
             }
 
             // Vérifier les permissions
-            var hasPermission = await _authService.HasPermissionAsync(currentUserId.Value, "ManageUserSessions");
-            if (!hasPermission)
+            if (!IsSuperAdmin)
             {
                 return Json(new { success = false, message = "Permissions insuffisantes" });
             }
@@ -410,21 +383,10 @@ public class AdminController : Controller
     [HttpGet]
     public async Task<IActionResult> CreateUser()
     {
+
         try
         {
-            var currentUserId = HttpContext.Session.GetInt32("UserId");
-            if (!currentUserId.HasValue)
-            {
-                return RedirectToAction("Login", "Auth");
-            }
-
-            // Vérifier les permissions
-            var hasPermission = await _authService.HasPermissionAsync(currentUserId.Value, "CreateUser");
-            if (!hasPermission)
-            {
-                TempData["ErrorMessage"] = "Permissions insuffisantes pour créer un utilisateur";
-                return RedirectToAction("Index");
-            }
+            
 
             // Récupérer tous les centres actifs
             var centers = await _hospitalCenterRepository.GetAllAsync(q => q.Where(c => c.IsActive));
@@ -448,6 +410,7 @@ public class AdminController : Controller
     /// <summary>
     /// Traite la création d'un nouvel utilisateur
     /// </summary>
+    [SuperAdmin]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateUser(CreateUserViewModel model)
@@ -455,18 +418,11 @@ public class AdminController : Controller
         try
         {
             var currentUserId = HttpContext.Session.GetInt32("UserId");
-            if (!currentUserId.HasValue)
-            {
-                return RedirectToAction("Login", "Auth");
-            }
+            //if (!currentUserId.HasValue)
+            //{
+            //    return RedirectToAction("Login", "Auth");
+            //}
 
-            // Vérifier les permissions
-            var hasPermission = await _authService.HasPermissionAsync(currentUserId.Value, "CreateUser");
-            if (!hasPermission)
-            {
-                TempData["ErrorMessage"] = "Permissions insuffisantes";
-                return RedirectToAction("Index");
-            }
 
             // Valider le modèle
             if (!ModelState.IsValid)
@@ -586,9 +542,8 @@ public class AdminController : Controller
                 return RedirectToAction("Login", "Auth");
             }
 
-            // Vérifier les permissions
-            var hasPermission = await _authService.HasPermissionAsync(currentUserId.Value, "ModifyUser");
-            if (!hasPermission)
+
+            if (!IsSuperAdmin)
             {
                 TempData["ErrorMessage"] = "Permissions insuffisantes";
                 return RedirectToAction("Index");
@@ -652,8 +607,7 @@ public class AdminController : Controller
             }
 
             // Vérifier les permissions
-            var hasPermission = await _authService.HasPermissionAsync(currentUserId.Value, "ModifyUser");
-            if (!hasPermission)
+            if (!IsSuperAdmin)
             {
                 TempData["ErrorMessage"] = "Permissions insuffisantes";
                 return RedirectToAction("Index");
@@ -696,9 +650,7 @@ public class AdminController : Controller
                 existingUser.ModifiedBy = currentUserId.Value;
                 existingUser.ModifiedAt = DateTime.UtcNow;
 
-                // L'email ne peut être modifié que par des SuperAdmins globaux
-                var canModifyEmail = await _authService.HasPermissionAsync(currentUserId.Value, "ModifyUserEmail");
-                if (canModifyEmail && existingUser.Email != model.Email)
+                if (IsSuperAdmin && existingUser.Email != model.Email)
                 {
                     // Vérifier que le nouvel email n'existe pas
                     var emailExists = await _userRepository.GetByEmailAsync(model.Email);
@@ -836,8 +788,8 @@ public class AdminController : Controller
                 User = user,
                 LoginHistory = loginHistory,
                 ActiveSessions = activeSessions,
-                CanEdit = await _authService.HasPermissionAsync(currentUserId.Value, "ModifyUser"),
-                CanResetPassword = await _authService.HasPermissionAsync(currentUserId.Value, "ResetUserPassword")
+                CanEdit = IsSuperAdmin,
+                CanResetPassword = IsSuperAdmin
             };
 
             return View(model);
