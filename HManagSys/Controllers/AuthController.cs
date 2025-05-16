@@ -303,7 +303,7 @@ public class AuthController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [RequireAuthentication]
-    [RequireCenterAccess("centerId")]
+    //[RequireCenterAccess("centerId")]
     public async Task<IActionResult> SwitchCenter(int centerId)
     {
         var sessionToken = HttpContext.Session.GetString("SessionToken");

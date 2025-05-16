@@ -489,8 +489,8 @@ namespace HManagSys.Services
                 if (session == null) return false;
 
                 //// Vérifier que l'utilisateur a accès au nouveau centre
-                //var hasAccess = await _userRepository.HasAccessToCenterAsync(session.UserId, newCenterId);
-                //if (!hasAccess) return false;
+                var hasAccess = await _userRepository.HasAccessToCenterAsync(session.UserId, newCenterId);
+                if (!hasAccess) return false;
 
                 var oldCenterId = session.CurrentHospitalCenterId;
                 session.CurrentHospitalCenterId = newCenterId;
