@@ -1,0 +1,1111 @@
+﻿@{
+    ViewData["Title"] = "Aide - Gestion des Stocks";
+}
+
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body text-center">
+                    <h1 class="h2 mb-3">
+                        <i class="fas fa-question-circle"></i>
+                        Centre d'Aide - Gestion des Stocks
+                    </h1>
+                    <p class="lead mb-0">
+                        Guide complet pour utiliser efficacement le module de gestion des stocks
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Navigation latérale -->
+        <div class="col-lg-3 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list"></i>
+                        Sommaire
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <a href="#introduction" class="list-group-item list-group-item-action active" data-nav-link>
+                            <i class="fas fa-home"></i>
+                            Introduction
+                        </a>
+                        <a href="#getting-started" class="list-group-item list-group-item-action" data-nav-link>
+                            <i class="fas fa-play"></i>
+                            Premiers Pas
+                        </a>
+                        <a href="#product-management" class="list-group-item list-group-item-action" data-nav-link>
+                            <i class="fas fa-boxes"></i>
+                            Gestion des Produits
+                        </a>
+                        <a href="#stock-operations" class="list-group-item list-group-item-action" data-nav-link>
+                            <i class="fas fa-warehouse"></i>
+                            Opérations de Stock
+                        </a>
+                        <a href="#alerts-monitoring" class="list-group-item list-group-item-action" data-nav-link>
+                            <i class="fas fa-bell"></i>
+                            Alertes et Surveillance
+                        </a>
+                        <a href="#reports-exports" class="list-group-item list-group-item-action" data-nav-link>
+                            <i class="fas fa-chart-bar"></i>
+                            Rapports et Exports
+                        </a>
+                        <a href="#roles-permissions" class="list-group-item list-group-item-action" data-nav-link>
+                            <i class="fas fa-shield-alt"></i>
+                            Rôles et Permissions
+                        </a>
+                        <a href="#faq" class="list-group-item list-group-item-action" data-nav-link>
+                            <i class="fas fa-question"></i>
+                            FAQ
+                        </a>
+                        <a href="#troubleshooting" class="list-group-item list-group-item-action" data-nav-link>
+                            <i class="fas fa-tools"></i>
+                            Dépannage
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact -->
+            <div class="card mt-3">
+                <div class="card-header bg-success text-white">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-headset"></i>
+                        Besoin d'aide ?
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-3">
+                        Si vous ne trouvez pas la réponse à votre question, contactez le support technique.
+                    </p>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-success btn-sm" onclick="contactSupport()">
+                            <i class="fas fa-envelope"></i>
+                            Contacter le support
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" onclick="requestFeature()">
+                            <i class="fas fa-lightbulb"></i>
+                            Suggérer une amélioration
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenu principal -->
+        <div class="col-lg-9">
+            <div class="help-content">
+
+                <!-- Introduction -->
+                <section id="introduction" class="help-section">
+                    <div class="card">
+                        <div class="card-body">
+                            <h2 class="h4 text-primary">
+                                <i class="fas fa-home"></i>
+                                Introduction
+                            </h2>
+                            <p class="lead">
+                                Le module de gestion des stocks vous permet de suivre et contrôler l'inventaire de tous vos produits médicaux et consommables.
+                            </p>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Fonctionnalités principales :</h5>
+                                    <ul>
+                                        <li>Suivi en temps réel des quantités</li>
+                                        <li>Alertes automatiques de stock bas</li>
+                                        <li>Gestion multi-centres</li>
+                                        <li>Traçabilité complète des mouvements</li>
+                                        <li>Rapports détaillés</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Avantages :</h5>
+                                    <ul>
+                                        <li>Éviter les ruptures de stock</li>
+                                        <li>Optimiser les commandes</li>
+                                        <li>Réduire les pertes et gaspillages</li>
+                                        <li>Améliorer la traçabilité</li>
+                                        <li>Simplifier la gestion quotidienne</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-lightbulb"></i>
+                                <strong>Conseil :</strong> Commencez par vous familiariser avec les concepts de base avant de configurer votre stock initial.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Premiers Pas -->
+                <section id="getting-started" class="help-section">
+                    <div class="card">
+                        <div class="card-body">
+                            <h2 class="h4 text-primary">
+                                <i class="fas fa-play"></i>
+                                Premiers Pas
+                            </h2>
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <h5>Étape 1 : Créer les catégories de produits</h5>
+                                    <p>Organisez vos produits en catégories logiques (Médicaments, Consommables, Équipements, etc.)</p>
+                                    <div class="alert alert-light">
+                                        <strong>Navigation :</strong> Menu → Stocks → Catégories → <button class="btn btn-sm btn-success">Nouvelle catégorie</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h5>Étape 2 : Ajouter vos produits</h5>
+                                    <p>Créez vos produits en associant chacun à une catégorie et en définissant son prix de vente.</p>
+                                    <div class="alert alert-light">
+                                        <strong>Navigation :</strong> Menu → Stocks → Produits → <button class="btn btn-sm btn-success">Nouveau produit</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h5>Étape 3 : Configuration du stock initial</h5>
+                                    <p>Définissez les quantités de départ et les seuils d'alerte pour chaque produit dans votre centre.</p>
+                                    <div class="alert alert-light">
+                                        <strong>Navigation :</strong> Menu → Stocks → <button class="btn btn-sm btn-warning">Configuration initiale</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h5>Étape 4 : Commencer à utiliser</h5>
+                                    <p>Une fois configuré, le stock se met à jour automatiquement lors des ventes et des soins.</p>
+                                    <div class="list-group">
+                                        <div class="list-group-item">
+                                            <i class="fas fa-shopping-cart text-primary"></i>
+                                            <strong>Ventes :</strong> Décrémentent automatiquement le stock
+                                        </div>
+                                        <div class="list-group-item">
+                                            <i class="fas fa-user-md text-success"></i>
+                                            <strong>Soins :</strong> Utilisent les produits et mettent à jour le stock
+                                        </div>
+                                        <div class="list-group-item">
+                                            <i class="fas fa-adjust text-warning"></i>
+                                            <strong>Ajustements :</strong> Pour les corrections manuelles (SuperAdmin)
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Gestion des Produits -->
+                <section id="product-management" class="help-section">
+                    <div class="card">
+                        <div class="card-body">
+                            <h2 class="h4 text-primary">
+                                <i class="fas fa-boxes"></i>
+                                Gestion des Produits
+                            </h2>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5>Création d'un produit</h5>
+                                    <p>Informations requises :</p>
+                                    <ul>
+                                        <li><strong>Nom :</strong> Descriptif et unique</li>
+                                        <li><strong>Catégorie :</strong> Pour l'organisation</li>
+                                        <li><strong>Unité de mesure :</strong> Pièce, boîte, ml, etc.</li>
+                                        <li><strong>Prix de vente :</strong> Prix unitaire en FCFA</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5>Bonnes pratiques</h5>
+                                    <ul>
+                                        <li>Utilisez des noms précis (ex: "Paracétamol 500mg" au lieu de "Paracétamol")</li>
+                                        <li>Choisissez l'unité la plus pratique pour le comptage</li>
+                                        <li>Ajoutez une description pour éviter les confusions</li>
+                                        <li>Vérifiez le prix avant validation</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-warning mt-3">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Important :</strong> Une fois qu'un produit a des mouvements de stock, évitez de modifier son unité de mesure car cela peut créer des confusions dans l'historique.
+                            </div>
+
+                            <h5 class="mt-4">Actions disponibles</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Action</th>
+                                            <th>Description</th>
+                                            <th>Qui peut le faire</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><i class="fas fa-eye text-primary"></i> Consulter</td>
+                                            <td>Voir les détails et l'historique</td>
+                                            <td>Tous les utilisateurs</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-edit text-warning"></i> Modifier</td>
+                                            <td>Changer les informations du produit</td>
+                                            <td>SuperAdmin uniquement</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-toggle-on text-success"></i> Activer/Désactiver</td>
+                                            <td>Rendre disponible ou non pour vente/soins</td>
+                                            <td>SuperAdmin uniquement</td>
+                                        </tr>
+                                        <tr>
+                                            <td><i class="fas fa-trash text-danger"></i> Supprimer</td>
+                                            <td>Supprimer (si aucun mouvement)</td>
+                                            <td>SuperAdmin uniquement</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Opérations de Stock -->
+                <section id="stock-operations" class="help-section">
+                    <div class="card">
+                        <div class="card-body">
+                            <h2 class="h4 text-primary">
+                                <i class="fas fa-warehouse"></i>
+                                Opérations de Stock
+                            </h2>
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <h5>Types de mouvements de stock</h5>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card bg-light">
+                                                <div class="card-body">
+                                                    <h6><i class="fas fa-plus-circle text-success"></i> Entrées de stock</h6>
+                                                    <ul class="mb-0 small">
+                                                        <li><strong>Initial :</strong> Configuration de départ</li>
+                                                        <li><strong>Entry :</strong> Nouveaux achats/livraisons</li>
+                                                        <li><strong>Adjustment :</strong> Corrections manuelles (ajout)</li>
+                                                        <li><strong>Transfer :</strong> Réception d'un autre centre</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card bg-light">
+                                                <div class="card-body">
+                                                    <h6><i class="fas fa-minus-circle text-danger"></i> Sorties de stock</h6>
+                                                    <ul class="mb-0 small">
+                                                        <li><strong>Sale :</strong> Ventes directes</li>
+                                                        <li><strong>Care :</strong> Utilisation dans les soins</li>
+                                                        <li><strong>Adjustment :</strong> Corrections manuelles (retrait)</li>
+                                                        <li><strong>Transfer :</strong> Envoi vers un autre centre</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h5 class="mt-4">Configuration des seuils</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Seuil minimum</h6>
+                                    <p>Niveau en dessous duquel une alerte de stock bas est émise. Recommandation : 15-20% du stock normal.</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Seuil maximum</h6>
+                                    <p>Niveau optimal pour éviter le sur-stockage. Recommandation : 150-200% du stock normal.</p>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <i class="fas fa-lightbulb"></i>
+                                <strong>Astuce :</strong> Les seuils peuvent être ajustés en fonction de la fréquence d'utilisation et des délais de réapprovisionnement de chaque produit.
+                            </div>
+
+                            <h5 class="mt-4">Ajustements manuels (SuperAdmin)</h5>
+                            <p>Utilisés pour :</p>
+                            <ul>
+                                <li>Corriger des erreurs de saisie</li>
+                                <li>Comptabiliser des pertes (expiration, casse)</li>
+                                <li>Intégrer des dons ou retours</li>
+                                <li>Ajuster après inventaire physique</li>
+                            </ul>
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Important :</strong> Toujours indiquer une raison claire lors d'un ajustement pour maintenir la traçabilité.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Alertes et Surveillance -->
+                <section id="alerts-monitoring" class="help-section">
+                    <div class="card">
+                        <div class="card-body">
+                            <h2 class="h4 text-primary">
+                                <i class="fas fa-bell"></i>
+                                Alertes et Surveillance
+                            </h2>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card border-success">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-check-circle text-success fa-3x"></i>
+                                            <h5 class="mt-2">Stock Normal</h5>
+                                            <p class="small">Entre les seuils min et max</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-warning">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-exclamation-triangle text-warning fa-3x"></i>
+                                            <h5 class="mt-2">Stock Bas</h5>
+                                            <p class="small">En dessous du seuil minimum</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-danger">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-exclamation-circle text-danger fa-3x"></i>
+                                            <h5 class="mt-2">Stock Critique</h5>
+                                            <p class="small">Stock nul ou très bas</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h5 class="mt-4">Tableau de bord des alertes</h5>
+                            <p>Le tableau de bord des stocks affiche :</p>
+                            <ul>
+                                <li>Nombre de produits en stock normal</li>
+                                <li>Nombre d'alertes de stock bas</li>
+                                <li>Nombre d'alertes critiques</li>
+                                <li>Valeur totale du stock</li>
+                            </ul>
+
+                            <h5 class="mt-4">Actions recommandées</h5>
+                            <div class="table-responsive">
+                                <table class="table table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Type d'alerte</th>
+                                            <th>Action recommandée</th>
+                                            <th>Priorité</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="table-warning">
+                                            <td>Stock bas</td>
+                                            <td>Planifier le réapprovisionnement</td>
+                                            <td>Moyenne</td>
+                                        </tr>
+                                        <tr class="table-danger">
+                                            <td>Stock critique</td>
+                                            <td>Réapprovisionnement urgent ou transfert inter-centres</td>
+                                            <td>Haute</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Rapports et Exports -->
+                <section id="reports-exports" class="help-section">
+                    <div class="card">
+                        <div class="card-body">
+                            <h2 class="h4 text-primary">
+                                <i class="fas fa-chart-bar"></i>
+                                Rapports et Exports
+                            </h2>
+
+                            <h5>Types de rapports disponibles</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="list-group">
+                                        <div class="list-group-item">
+                                            <i class="fas fa-warehouse text-primary"></i>
+                                            <strong>Rapport de stock</strong>
+                                            <p class="mb-0 small">État actuel du stock par produit et centre</p>
+                                        </div>
+                                        <div class="list-group-item">
+                                            <i class="fas fa-history text-info"></i>
+                                            <strong>Historique des mouvements</strong>
+                                            <p class="mb-0 small">Détail de tous les mouvements par période</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="list-group">
+                                        <div class="list-group-item">
+                                            <i class="fas fa-exclamation-triangle text-warning"></i>
+                                            <strong>Rapport d'alertes</strong>
+                                            <p class="mb-0 small">Produits en stock bas ou critique</p>
+                                        </div>
+                                        <div class="list-group-item">
+                                            <i class="fas fa-money-bill-wave text-success"></i>
+                                            <strong>Valorisation du stock</strong>
+                                            <p class="mb-0 small">Valeur financière du stock par catégorie</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h5 class="mt-4">Formats d'export</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <i class="fas fa-file-excel text-success fa-2x"></i>
+                                            <h6 class="mt-2">Excel (.xlsx)</h6>
+                                            <p class="small mb-0">Pour analyse avancée et manipulation des données</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <i class="fas fa-file-pdf text-danger fa-2x"></i>
+                                            <h6 class="mt-2">PDF</h6>
+                                            <p class="small mb-0">Pour impression et archivage</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-clock"></i>
+                                <strong>Fréquence suggérée :</strong> Exportez un rapport de stock complet au moins une fois par mois pour vos archives.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Rôles et Permissions -->
+                <section id="roles-permissions" class="help-section">
+                    <div class="card">
+                        <div class="card-body">
+                            <h2 class="h4 text-primary">
+                                <i class="fas fa-shield-alt"></i>
+                                Rôles et Permissions
+                            </h2>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card border-warning">
+                                        <div class="card-header bg-warning text-dark">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-crown"></i>
+                                                SuperAdmin
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <h6>Permissions complètes :</h6>
+                                            <ul class="small">
+                                                <li>Créer/modifier/supprimer produits et catégories</li>
+                                                <li>Configuration stock initial</li>
+                                                <li>Ajustements manuels de stock</li>
+                                                <li>Modifier les seuils</li>
+                                                <li>Export de tous les rapports</li>
+                                                <li>Transferts inter-centres</li>
+                                                <li>Accès à tous les centres</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card border-primary">
+                                        <div class="card-header bg-primary text-white">
+                                            <h5 class="mb-0">
+                                                <i class="fas fa-user-md"></i>
+                                                Personnel Soignant
+                                            </h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <h6>Permissions limitées :</h6>
+                                            <ul class="small">
+                                                <li>Consulter les produits et stocks</li>
+                                                <li>Voir l'historique des mouvements</li>
+                                                <li>Utiliser les produits (ventes/soins)</li>
+                                                <li>Export des rapports de base</li>
+                                                <li>Accès au centre assigné uniquement</li>
+                                                <li><strong>Pas d'ajustements manuels</strong></li>
+                                                <li><strong>Pas de modification des produits</strong></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-light mt-3">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Remarque :</strong> Le personnel soignant peut "consommer" du stock via les ventes et les soins, ce qui met automatiquement à jour les quantités.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- FAQ -->
+                <section id="faq" class="help-section">
+                    <div class="card">
+                        <div class="card-body">
+                            <h2 class="h4 text-primary">
+                                <i class="fas fa-question"></i>
+                                Foire Aux Questions (FAQ)
+                            </h2>
+
+                            <div class="accordion" id="faqAccordion">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                            Pourquoi mon stock ne se met-il pas à jour automatiquement ?
+                                        </button>
+                                    </h2>
+                                    <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            <p>Le stock se met à jour automatiquement lors des :</p>
+                                            <ul>
+                                                <li><strong>Ventes</strong> : Décrémentation automatique</li>
+                                                <li><strong>Soins</strong> : Utilisation des produits associés</li>
+                                                <li><strong>Ajustements manuels</strong> : Par les SuperAdmin</li>
+                                                <li><strong>Transferts inter-centres</strong> : Envoi et réception</li>
+                                            </ul>
+                                            <p>Si le stock ne se met pas à jour, vérifiez que le produit est bien associé à la vente ou au soin.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                            Comment corriger une erreur de stock ?
+                                        </button>
+                                    </h2>
+                                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            <p>En tant que SuperAdmin, vous pouvez :</p>
+                                            <ol>
+                                                <li>Aller sur la page des stocks</li>
+                                                <li>Cliquer sur <span class="badge bg-primary">Ajuster stock</span> pour le produit concerné</li>
+                                                <li>Entrer la correction (positive ou négative)</li>
+                                                <li>Indiquer obligatoirement la raison de l'ajustement</li>
+                                                <li>Valider l'ajustement</li>
+                                            </ol>
+                                            <div class="alert alert-warning small">
+                                                <strong>Important :</strong> Documentez toujours la raison pour maintenir la traçabilité.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                            Puis-je modifier un produit qui a déjà des mouvements ?
+                                        </button>
+                                    </h2>
+                                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            <p>Vous pouvez modifier certaines informations :</p>
+                                            <ul>
+                                                <li><strong>✅ Autorisé :</strong> Nom, description, prix, statut actif/inactif</li>
+                                                <li><strong>⚠️ Attention :</strong> Unité de mesure (peut créer des confusions)</li>
+                                                <li><strong>❌ Éviter :</strong> Changer de catégorie si beaucoup de mouvements</li>
+                                            </ul>
+                                            <div class="alert alert-info small">
+                                                Le système vous avertira si des mouvements existent avant la modification.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                            Comment fonctionnent les seuils d'alerte ?
+                                        </button>
+                                    </h2>
+                                    <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            <p>Les seuils sont définis par produit et par centre :</p>
+                                            <ul>
+                                                <li><strong>Seuil minimum :</strong> Déclenche une alerte "Stock bas" quand le stock passe en dessous</li>
+                                                <li><strong>Seuil maximum :</strong> Indique le niveau optimal pour éviter le sur-stockage</li>
+                                            </ul>
+                                            <p>Exemples pratiques :</p>
+                                            <ul>
+                                                <li>Stock actuel : 50, Seuil min : 20 → <span class="badge bg-success">Normal</span></li>
+                                                <li>Stock actuel : 15, Seuil min : 20 → <span class="badge bg-warning">Stock bas</span></li>
+                                                <li>Stock actuel : 0 → <span class="badge bg-danger">Stock critique</span></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                                            Comment transférer du stock entre centres ?
+                                        </button>
+                                    </h2>
+                                    <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            <p>Les transferts inter-centres sont disponibles pour les SuperAdmin :</p>
+                                            <ol>
+                                                <li>Aller dans la page des stocks</li>
+                                                <li>Cliquer sur <span class="badge bg-info">Demander transfert</span></li>
+                                                <li>Sélectionner le centre destinataire</li>
+                                                <li>Indiquer la quantité et la raison</li>
+                                                <li>Valider la demande</li>
+                                            </ol>
+                                            <div class="alert alert-info small">
+                                                <strong>Note :</strong> Les transferts suivent un workflow d'approbation pour garantir la traçabilité.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Dépannage -->
+                <section id="troubleshooting" class="help-section">
+                    <div class="card">
+                        <div class="card-body">
+                            <h2 class="h4 text-primary">
+                                <i class="fas fa-tools"></i>
+                                Dépannage
+                            </h2>
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <h5>Problèmes courants et solutions</h5>
+
+                                    <div class="accordion" id="troubleshootingAccordion">
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#trouble1">
+                                                    Je ne peux pas voir certains produits
+                                                </button>
+                                            </h2>
+                                            <div id="trouble1" class="accordion-collapse collapse show" data-bs-parent="#troubleshootingAccordion">
+                                                <div class="accordion-body">
+                                                    <p><strong>Causes possibles :</strong></p>
+                                                    <ul>
+                                                        <li>Produits désactivés (vérifiez les filtres)</li>
+                                                        <li>Filtres de recherche trop restrictifs</li>
+                                                        <li>Produits d'autres centres (selon vos permissions)</li>
+                                                    </ul>
+                                                    <p><strong>Solutions :</strong></p>
+                                                    <ul>
+                                                        <li>Cliquez sur "Effacer les filtres"</li>
+                                                        <li>Changez le filtre de statut sur "Tous"</li>
+                                                        <li>Vérifiez votre centre de connexion</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#trouble2">
+                                                    Le stock ne se met pas à jour après une vente
+                                                </button>
+                                            </h2>
+                                            <div id="trouble2" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                                <div class="accordion-body">
+                                                    <p><strong>Causes possibles :</strong></p>
+                                                    <ul>
+                                                        <li>Vente créée sans finaliser le paiement</li>
+                                                        <li>Produit non associé correctement à la vente</li>
+                                                        <li>Problème de synchronisation</li>
+                                                    </ul>
+                                                    <p><strong>Solutions :</strong></p>
+                                                    <ul>
+                                                        <li>Actualisez la page</li>
+                                                        <li>Vérifiez que la vente est bien finalisée</li>
+                                                        <li>Contactez le SuperAdmin pour un ajustement si nécessaire</li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="accordion-item">
+                                            <h2 class="accordion-header">
+                                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#trouble3">
+                                                    Erreur lors de l'export de rapport
+                                                </button>
+                                            </h2>
+                                            <div id="trouble3" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+                                                <div class="accordion-body">
+                                                    <p><strong>Solutions :</strong></p>
+                                                    <ul>
+                                                        <li>Réessayez après quelques secondes</li>
+                                                        <li>Vérifiez votre connexion internet</li>
+                                                        <li>Essayez un format d'export différent</li>
+                                                        <li>Réduisez la période du rapport si très large</li>
+                                                    </ul>
+                                                    <div class="alert alert-info small">
+                                                        Si le problème persiste, contactez le support technique.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-light mt-4">
+                                <h6>
+                                    <i class="fas fa-life-ring"></i>
+                                    Besoin d'aide supplémentaire ?
+                                </h6>
+                                <p class="mb-2">Si votre problème persiste :</p>
+                                <ol class="mb-2">
+                                    <li>Notez l'heure exacte du problème</li>
+                                    <li>Décrivez les étapes qui ont mené au problème</li>
+                                    <li>Prenez une capture d'écran si possible</li>
+                                    <li>Contactez le support technique</li>
+                                </ol>
+                                <button class="btn btn-outline-primary btn-sm" onclick="contactSupport()">
+                                    <i class="fas fa-envelope"></i>
+                                    Contacter le support
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Navigation fluide dans l'aide
+        document.addEventListener('DOMContentLoaded', function() {
+            // Gestion des liens de navigation
+            const navLinks = document.querySelectorAll('[data-nav-link]');
+            const sections = document.querySelectorAll('.help-section');
+
+            // Smooth scroll et highlight
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetSection = document.getElementById(targetId);
+
+                    if (targetSection) {
+                        // Scroll vers la section
+                        targetSection.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+
+                        // Mettre à jour la navigation active
+                        navLinks.forEach(l => l.classList.remove('active'));
+                        this.classList.add('active');
+
+                        // Highlight temporaire de la section
+                        targetSection.style.backgroundColor = '#f8f9fa';
+                        setTimeout(() => {
+                            targetSection.style.backgroundColor = '';
+                        }, 1000);
+                    }
+                });
+            });
+
+            // Auto-highlighting pendant le scroll
+            const observerOptions = {
+                rootMargin: '-20% 0px -80% 0px',
+                threshold: 0.1
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const targetId = entry.target.id;
+                        const navLink = document.querySelector(`[href="#${targetId}"]`);
+
+                        if (navLink) {
+                            navLinks.forEach(l => l.classList.remove('active'));
+                            navLink.classList.add('active');
+                        }
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+
+            // Recherche dans l'aide
+            addSearchFunctionality();
+        });
+
+        // Ajouter fonctionnalité de recherche
+        function addSearchFunctionality() {
+            const searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.className = 'form-control mb-3';
+            searchInput.placeholder = 'Rechercher dans l\'aide...';
+            searchInput.id = 'helpSearch';
+
+            const breadcrumbNav = document.querySelector('nav[aria-label="breadcrumb"]');
+            if (breadcrumbNav) {
+                breadcrumbNav.parentNode.insertBefore(searchInput, breadcrumbNav.nextSibling);
+            }
+
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                const allTextElements = document.querySelectorAll('.help-content h2, .help-content h3, .help-content h4, .help-content h5, .help-content h6, .help-content p, .help-content li');
+
+                allTextElements.forEach(element => {
+                    const text = element.textContent.toLowerCase();
+                    const section = element.closest('.help-section');
+
+                    if (text.includes(searchTerm) || searchTerm === '') {
+                        element.style.backgroundColor = '';
+                        section.style.display = '';
+
+                        // Highlight du terme recherché
+                        if (searchTerm !== '' && text.includes(searchTerm)) {
+                            element.style.backgroundColor = '#fff3cd';
+                        }
+                    }
+                });
+
+                // Masquer/afficher les sections
+                const sections = document.querySelectorAll('.help-section');
+                if (searchTerm !== '') {
+                    sections.forEach(section => {
+                        const hasMatch = Array.from(section.querySelectorAll('*')).some(el =>
+                            el.textContent.toLowerCase().includes(searchTerm)
+                        );
+                        section.style.display = hasMatch ? '' : 'none';
+                    });
+                } else {
+                    sections.forEach(section => {
+                        section.style.display = '';
+                    });
+                }
+            });
+        }
+
+        // Fonctions de contact
+        function contactSupport() {
+            // Simuler l'envoi à l'équipe de support
+            showToast('Redirection vers le support technique...', 'info');
+            // En réalité, ceci pourrait ouvrir un formulaire de contact ou un email
+        }
+
+        function requestFeature() {
+            showToast('Formulaire de suggestions d\'améliorations - à implémenter', 'info');
+        }
+
+        // Fonction toast pour notifications
+        function showToast(message, type) {
+            const existingToasts = document.querySelectorAll('.toast-notification');
+            existingToasts.forEach(toast => toast.remove());
+
+            const alertClass = type === 'success' ? 'alert-success' :
+                             type === 'warning' ? 'alert-warning' :
+                             type === 'info' ? 'alert-info' : 'alert-danger';
+            const icon = type === 'success' ? 'fa-check-circle' :
+                        type === 'warning' ? 'fa-exclamation-triangle' :
+                        type === 'info' ? 'fa-info-circle' : 'fa-exclamation-circle';
+
+            const toast = document.createElement('div');
+            toast.className = `alert ${alertClass} alert-dismissible fade show position-fixed toast-notification`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 350px;';
+            toast.innerHTML = `
+                <i class="fas ${icon}"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+
+        // Fonction d'impression
+        function printHelp() {
+            window.print();
+        }
+
+        // Ajout d'un bouton d'impression
+        document.addEventListener('DOMContentLoaded', function() {
+            const printButton = document.createElement('button');
+            printButton.className = 'btn btn-outline-secondary btn-sm position-fixed';
+            printButton.style.cssText = 'bottom: 20px; right: 20px; z-index: 1000;';
+            printButton.innerHTML = '<i class="fas fa-print"></i> Imprimer';
+            printButton.onclick = printHelp;
+            document.body.appendChild(printButton);
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .help-section {
+            scroll-margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        .help-content {
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+            .help-content h2,
+            .help-content h3,
+            .help-content h4,
+            .help-content h5 {
+                margin-top: 2rem;
+                margin-bottom: 1rem;
+            }
+
+        .list-group-item.active {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            color: white;
+        }
+
+        .list-group-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            border-radius: 0.75rem 0.75rem 0 0 !important;
+        }
+
+        .accordion-button:focus {
+            box-shadow: none;
+            border-color: rgba(0,123,255,.25);
+        }
+
+        .accordion-button:not(.collapsed) {
+            background-color: #e7f1ff;
+            color: #0d6efd;
+        }
+
+        /* Style pour les badges dans le texte */
+        .badge {
+            font-size: 0.8em;
+        }
+
+        /* Style pour les liens de navigation */
+        .list-group-item {
+            border: none;
+            padding: 0.75rem 1rem;
+            transition: all 0.2s ease;
+        }
+
+            .list-group-item i {
+                width: 20px;
+                text-align: center;
+                margin-right: 0.5rem;
+            }
+
+        /* Style pour les tableaux */
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid #dee2e6;
+        }
+
+        /* Style pour les alertes dans les accordéons */
+        .accordion-body .alert {
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Style pour les codes/badges dans les instructions */
+        .accordion-body code,
+        .help-content code {
+            background-color: #f8f9fa;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            color: #e83e8c;
+        }
+
+        /* Style pour l'input de recherche */
+        #helpSearch {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='%23999' viewBox='0 0 16 16'%3e%3cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'%3e%3c/path%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+            padding-right: 2.5rem;
+        }
+
+        /* Responsive */
+        @@media (max-width: 768px) {
+            .help-content
+
+        {
+            font-size: 0.9rem;
+        }
+
+        .list-group-item {
+            font-size: 0.9rem;
+        }
+
+        }
+
+        /* Style pour l'impression */
+        @@media print {
+            .list-group, .btn, .alert .btn-close, .position-fixed
+
+        {
+            display: none !important;
+        }
+
+        .help-section {
+            page-break-inside: avoid;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            border: 1px solid #000;
+            box-shadow: none;
+        }
+
+        }
+    </style>
+}

@@ -33,6 +33,9 @@ namespace HManagSys.Models.ViewModels.Stock
         [Display(Name = "Date de modification")]
         public DateTime? ModifiedAt { get; set; }
 
+        public List<ProductViewModel>? Products { get; set; } = new List<ProductViewModel>();
+
+
         // Propriétés calculées pour l'affichage
         public string StatusText => IsActive ? "Actif" : "Inactif";
         public string StatusBadge => IsActive ? "badge bg-success" : "badge bg-secondary";

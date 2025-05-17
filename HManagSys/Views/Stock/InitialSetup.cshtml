@@ -1,0 +1,1072 @@
+﻿@model HManagSys.Models.ViewModels.Stock.InitializeStockViewModel
+@{
+    ViewData["Title"] = "Configuration du Stock Initial";
+}
+
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-controller="Stock" asp-action="Index">
+                    <i class="fas fa-boxes"></i>
+                    Stocks
+                </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Configuration initiale</li>
+        </ol>
+    </nav>
+
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-gradient-primary text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="h3 mb-2 text-white">
+                                <i class="fas fa-cogs"></i>
+                                Configuration du Stock Initial
+                            </h1>
+                            <p class="text-white-75 mb-0">
+                                <i class="fas fa-hospital"></i>
+                                Centre : <strong>@Model.HospitalCenterName</strong>
+                            </p>
+                            <p class="text-white-75 mb-3">
+                                Définissez les quantités initiales et les seuils d'alerte pour tous vos produits
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="text-white">
+                                <div class="h4 mb-1">@Model.Products.Count</div>
+                                <div>Produits à configurer</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info border-0 shadow-sm">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <i class="fas fa-info-circle fa-2x"></i>
+                    </div>
+                    <div class="col">
+                        <h6 class="alert-heading mb-1">Instructions pour la configuration</h6>
+                        <ul class="mb-0 small">
+                            <li><strong>Quantité initiale :</strong> Entrez le stock physique actuel pour chaque produit</li>
+                            <li><strong>Seuil minimum :</strong> Niveau en dessous duquel une alerte sera émise</li>
+                            <li><strong>Seuil maximum :</strong> Niveau optimal pour éviter le sur-stockage</li>
+                            <li><strong>Astuce :</strong> Utilisez les boutons d'actions en lot pour gagner du temps</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-list-check"></i>
+                                Configuration par Produit
+                            </h5>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <!-- Contrôles en lot -->
+                            <div class="btn-group me-2" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectAll()">
+                                    <i class="fas fa-check-double"></i>
+                                    Tout sélectionner
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="selectNone()">
+                                    <i class="fas fa-times"></i>
+                                    Tout désélectionner
+                                </button>
+                            </div>
+
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle"
+                                        data-bs-toggle="dropdown">
+                                    <i class="fas fa-magic"></i>
+                                    Actions en lot
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="showBulkQuantityModal()">
+                                            <i class="fas fa-layer-group"></i> Appliquer quantité
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="showBulkThresholdsModal()">
+                                            <i class="fas fa-sliders-h"></i> Appliquer seuils
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item" href="#" onclick="applyTemplateByCategory()">
+                                            <i class="fas fa-copy"></i> Modèles par catégorie
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    <form asp-action="InitialSetup" method="post" id="stockSetupForm">
+                        <input asp-for="HospitalCenterId" type="hidden" />
+                        <input asp-for="HospitalCenterName" type="hidden" />
+
+                        <!-- Filtres rapides -->
+                        <div class="p-3 bg-light border-bottom">
+                            <div class="row align-items-center">
+                                <div class="col-md-3">
+                                    <label class="form-label small">Filtrer par catégorie</label>
+                                    <select class="form-select form-select-sm" id="categoryFilter">
+                                        <option value="">Toutes les catégories</option>
+                                        @foreach (var category in Model.Products.GroupBy(p => p.CategoryName).Select(g => g.Key))
+                                        {
+                                            <option value="@category">@category</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">Rechercher produit</label>
+                                    <input type="text" class="form-control form-control-sm" id="productSearch"
+                                           placeholder="Nom du produit...">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">Afficher</label>
+                                    <select class="form-select form-select-sm" id="statusFilter">
+                                        <option value="all">Tous les produits</option>
+                                        <option value="configured">Déjà configurés</option>
+                                        <option value="not-configured">Non configurés</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">&nbsp;</label>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearFilters()">
+                                            <i class="fas fa-times"></i>
+                                            Effacer
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Table des produits -->
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th width="40">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="selectAllCheckbox">
+                                            </div>
+                                        </th>
+                                        <th>Produit</th>
+                                        <th>Catégorie</th>
+                                        <th>Prix unitaire</th>
+                                        <th width="120">Quantité initiale</th>
+                                        <th width="120">Seuil minimum</th>
+                                        <th width="120">Seuil maximum</th>
+                                        <th width="100">Statut</th>
+                                        <th width="80">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="productsTableBody">
+                                    @for (int i = 0; i < Model.Products.Count; i++)
+                                    {
+                                        var product = Model.Products[i];
+                                        <tr class="product-row" data-category="@product.CategoryName" data-product="@product.ProductName.ToLower()">
+                                            <td>
+                                                <div class="form-check">
+                                                    <input class="form-check-input product-checkbox" type="checkbox"
+                                                           data-product-id="@product.ProductId">
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <strong>@product.ProductName</strong>
+                                                    <div class="text-muted small">@product.UnitOfMeasure</div>
+                                                </div>
+                                                <input asp-for="Products[i].ProductId" type="hidden" />
+                                                <input asp-for="Products[i].ProductName" type="hidden" />
+                                                <input asp-for="Products[i].CategoryName" type="hidden" />
+                                                <input asp-for="Products[i].UnitOfMeasure" type="hidden" />
+                                                <input asp-for="Products[i].CurrentQuantity" type="hidden" />
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">@product.CategoryName</span>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold text-success">@product.CurrentQuantity.ToString("N0") F</span>
+                                            </td>
+                                            <td>
+                                                <div class="input-group input-group-sm">
+                                                    <input asp-for="Products[i].InitialQuantity"
+                                                           class="form-control text-center quantity-input"
+                                                           type="number" min="0" step="0.01"
+                                                           data-product-id="@product.ProductId">
+                                                    <span class="input-group-text">@product.UnitOfMeasure</span>
+                                                </div>
+                                                <span asp-validation-for="Products[i].InitialQuantity" class="text-danger small"></span>
+                                            </td>
+                                            <td>
+                                                <input asp-for="Products[i].MinimumThreshold"
+                                                       class="form-control form-control-sm text-center threshold-input"
+                                                       type="number" min="0" step="0.01"
+                                                       data-product-id="@product.ProductId">
+                                                <span asp-validation-for="Products[i].MinimumThreshold" class="text-danger small"></span>
+                                            </td>
+                                            <td>
+                                                <input asp-for="Products[i].MaximumThreshold"
+                                                       class="form-control form-control-sm text-center threshold-input"
+                                                       type="number" min="0" step="0.01"
+                                                       data-product-id="@product.ProductId">
+                                                <span asp-validation-for="Products[i].MaximumThreshold" class="text-danger small"></span>
+                                            </td>
+                                            <td>
+                                                <span class="status-indicator" data-product-id="@product.ProductId">
+                                                    <i class="fas fa-circle text-muted"></i>
+                                                    <small class="text-muted">Non configuré</small>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-xs btn-outline-primary"
+                                                            onclick="quickFill(@product.ProductId)"
+                                                            title="Configuration rapide">
+                                                        <i class="fas fa-magic"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-xs btn-outline-secondary"
+                                                            onclick="clearProduct(@product.ProductId)"
+                                                            title="Effacer">
+                                                        <i class="fas fa-eraser"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Progress bar -->
+                        <div class="card-footer">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-2">Configuration :</span>
+                                        <div class="progress flex-grow-1" style="height: 8px;">
+                                            <div class="progress-bar bg-success" id="configurationProgress"
+                                                 role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                        <span class="ms-2 small text-muted" id="progressText">0/@Model.Products.Count</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="previewConfiguration()">
+                                        <i class="fas fa-eye"></i>
+                                        Aperçu
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" onclick="resetAll()">
+                                        <i class="fas fa-undo"></i>
+                                        Réinitialiser
+                                    </button>
+                                    <button type="submit" class="btn btn-success" id="saveButton">
+                                        <span id="saveSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>
+                                        <i class="fas fa-save"></i>
+                                        Enregistrer la configuration
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Quantité en lot -->
+<div class="modal fade" id="bulkQuantityModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Appliquer une quantité en lot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Quantité à appliquer</label>
+                    <input type="number" class="form-control" id="bulkQuantityValue" min="0" step="0.01">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Appliquer à :</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="bulkQuantityTarget" id="bulkQuantitySelected" value="selected" checked>
+                        <label class="form-check-label" for="bulkQuantitySelected">
+                            Produits sélectionnés uniquement
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="bulkQuantityTarget" id="bulkQuantityAll" value="all">
+                        <label class="form-check-label" for="bulkQuantityAll">
+                            Tous les produits visibles
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="bulkQuantityTarget" id="bulkQuantityEmpty" value="empty">
+                        <label class="form-check-label" for="bulkQuantityEmpty">
+                            Uniquement les produits non configurés
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="applyBulkQuantity()">
+                    <i class="fas fa-check"></i>
+                    Appliquer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Seuils en lot -->
+<div class="modal fade" id="bulkThresholdsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Appliquer des seuils en lot</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Seuil minimum</label>
+                            <input type="number" class="form-control" id="bulkMinThreshold" min="0" step="0.01">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Seuil maximum</label>
+                            <input type="number" class="form-control" id="bulkMaxThreshold" min="0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Appliquer à :</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="bulkThresholdsTarget" id="bulkThresholdsSelected" value="selected" checked>
+                        <label class="form-check-label" for="bulkThresholdsSelected">
+                            Produits sélectionnés uniquement
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="bulkThresholdsTarget" id="bulkThresholdsAll" value="all">
+                        <label class="form-check-label" for="bulkThresholdsAll">
+                            Tous les produits visibles
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="applyBulkThresholds()">
+                    <i class="fas fa-check"></i>
+                    Appliquer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Configuration rapide -->
+<div class="modal fade" id="quickFillModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configuration rapide</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Produit</label>
+                    <input type="text" class="form-control" id="quickFillProductName" readonly>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Quantité</label>
+                            <input type="number" class="form-control" id="quickFillQuantity" min="0" step="0.01">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Min</label>
+                            <input type="number" class="form-control" id="quickFillMin" min="0" step="0.01">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Max</label>
+                            <input type="number" class="form-control" id="quickFillMax" min="0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-text">
+                    <i class="fas fa-lightbulb text-warning"></i>
+                    <strong>Suggestions :</strong> Min = 10% de la quantité, Max = 150% de la quantité
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-outline-info" onclick="applySuggestions()">
+                    <i class="fas fa-magic"></i>
+                    Appliquer suggestions
+                </button>
+                <button type="button" class="btn btn-primary" onclick="applyQuickFill()">
+                    <i class="fas fa-check"></i>
+                    Appliquer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Variables globales
+        let currentQuickFillProductId = null;
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            updateProgress();
+            attachEventListeners();
+        });
+
+        // Attachement des event listeners
+        function attachEventListeners() {
+            // Sélection globale
+            document.getElementById('selectAllCheckbox').addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.product-checkbox:not([style*="display: none"])');
+                checkboxes.forEach(cb => cb.checked = this.checked);
+            });
+
+            // Filtres
+            document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+            document.getElementById('productSearch').addEventListener('input', applyFilters);
+            document.getElementById('statusFilter').addEventListener('change', applyFilters);
+
+            // Mise à jour du statut en temps réel
+            document.querySelectorAll('.quantity-input, .threshold-input').forEach(input => {
+                input.addEventListener('input', function() {
+                    updateProductStatus(this.dataset.productId);
+                    updateProgress();
+                });
+
+                input.addEventListener('change', function() {
+                    updateProductStatus(this.dataset.productId);
+                    updateProgress();
+                });
+            });
+
+            // Validation des seuils
+            document.querySelectorAll('.threshold-input').forEach(input => {
+                input.addEventListener('blur', validateThresholds);
+            });
+        }
+
+        // Application des filtres
+        function applyFilters() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const productSearch = document.getElementById('productSearch').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            document.querySelectorAll('.product-row').forEach(row => {
+                const category = row.dataset.category;
+                const product = row.dataset.product;
+                const productId = row.querySelector('.product-checkbox').dataset.productId;
+                const isConfigured = isProductConfigured(productId);
+
+                let show = true;
+
+                // Filtre par catégorie
+                if (categoryFilter && category !== categoryFilter) {
+                    show = false;
+                }
+
+                // Filtre par recherche produit
+                if (productSearch && !product.includes(productSearch)) {
+                    show = false;
+                }
+
+                // Filtre par statut
+                if (statusFilter === 'configured' && !isConfigured) {
+                    show = false;
+                } else if (statusFilter === 'not-configured' && isConfigured) {
+                    show = false;
+                }
+
+                row.style.display = show ? '' : 'none';
+
+                // Cacher/afficher la checkbox correspondante
+                const checkbox = row.querySelector('.product-checkbox');
+                if (checkbox) {
+                    checkbox.style.display = show ? '' : 'none';
+                }
+            });
+
+            updateSelectAllState();
+        }
+
+        // Mise à jour de l'état "Sélectionner tout"
+        function updateSelectAllState() {
+            const visibleCheckboxes = document.querySelectorAll('.product-checkbox:not([style*="display: none"])');
+            const checkedCheckboxes = Array.from(visibleCheckboxes).filter(cb => cb.checked);
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+
+            if (visibleCheckboxes.length === 0) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = false;
+            } else if (checkedCheckboxes.length === visibleCheckboxes.length) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = true;
+            } else if (checkedCheckboxes.length > 0) {
+                selectAllCheckbox.indeterminate = true;
+                selectAllCheckbox.checked = false;
+            } else {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = false;
+            }
+        }
+
+        // Sélection/Désélection
+        function selectAll() {
+            document.querySelectorAll('.product-checkbox:not([style*="display: none"])').forEach(cb => cb.checked = true);
+            updateSelectAllState();
+        }
+
+        function selectNone() {
+            document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = false);
+            updateSelectAllState();
+        }
+
+        // Effacement des filtres
+        function clearFilters() {
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('productSearch').value = '';
+            document.getElementById('statusFilter').value = 'all';
+            applyFilters();
+        }
+
+        // Vérification si un produit est configuré
+        function isProductConfigured(productId) {
+            const quantityInput = document.querySelector(`input[data-product-id="${productId}"].quantity-input`);
+            return quantityInput && quantityInput.value && parseFloat(quantityInput.value) > 0;
+        }
+
+        // Mise à jour du statut d'un produit
+        function updateProductStatus(productId) {
+            const quantityInput = document.querySelector(`input[data-product-id="${productId}"].quantity-input`);
+            const minInput = document.querySelector(`input[data-product-id="${productId}"].threshold-input[name*="MinimumThreshold"]`);
+            const maxInput = document.querySelector(`input[data-product-id="${productId}"].threshold-input[name*="MaximumThreshold"]`);
+            const statusIndicator = document.querySelector(`.status-indicator[data-product-id="${productId}"]`);
+
+            const quantity = parseFloat(quantityInput.value) || 0;
+            const minThreshold = parseFloat(minInput.value) || null;
+            const maxThreshold = parseFloat(maxInput.value) || null;
+
+            let icon, text, color;
+
+            if (quantity > 0) {
+                if (minThreshold && maxThreshold) {
+                    icon = 'fa-check-circle';
+                    text = 'Complet';
+                    color = 'text-success';
+                } else if (minThreshold || maxThreshold) {
+                    icon = 'fa-exclamation-circle';
+                    text = 'Partiel';
+                    color = 'text-warning';
+                } else {
+                    icon = 'fa-info-circle';
+                    text = 'Basique';
+                    color = 'text-info';
+                }
+            } else {
+                icon = 'fa-circle';
+                text = 'Non configuré';
+                color = 'text-muted';
+            }
+
+            statusIndicator.innerHTML = `
+                <i class="fas ${icon} ${color}"></i>
+                <small class="${color}">${text}</small>
+            `;
+        }
+
+        // Validation des seuils
+        function validateThresholds(event) {
+            const productId = event.target.dataset.productId;
+            const minInput = document.querySelector(`input[data-product-id="${productId}"][name*="MinimumThreshold"]`);
+            const maxInput = document.querySelector(`input[data-product-id="${productId}"][name*="MaximumThreshold"]`);
+
+            const minValue = parseFloat(minInput.value) || 0;
+            const maxValue = parseFloat(maxInput.value) || 0;
+
+            if (minValue > 0 && maxValue > 0 && minValue >= maxValue) {
+                showToast('Le seuil minimum doit être inférieur au seuil maximum', 'warning');
+                event.target.style.borderColor = '#ffc107';
+            } else {
+                event.target.style.borderColor = '';
+            }
+        }
+
+        // Mise à jour de la progress bar
+        function updateProgress() {
+            const totalProducts = document.querySelectorAll('.product-row').length;
+            const configuredProducts = Array.from(document.querySelectorAll('.quantity-input'))
+                .filter(input => parseFloat(input.value) > 0).length;
+
+            const percentage = (configuredProducts / totalProducts) * 100;
+
+            document.getElementById('configurationProgress').style.width = `${percentage}%`;
+            document.getElementById('progressText').textContent = `${configuredProducts}/${totalProducts}`;
+        }
+
+        // Modal Quantité en lot
+        function showBulkQuantityModal() {
+            const modal = new bootstrap.Modal(document.getElementById('bulkQuantityModal'));
+            modal.show();
+        }
+
+        function applyBulkQuantity() {
+            const value = parseFloat(document.getElementById('bulkQuantityValue').value);
+            const target = document.querySelector('input[name="bulkQuantityTarget"]:checked').value;
+
+            if (!value || value < 0) {
+                showToast('Veuillez entrer une quantité valide', 'error');
+                return;
+            }
+
+            let inputs = [];
+
+            switch(target) {
+                case 'selected':
+                    const selectedIds = Array.from(document.querySelectorAll('.product-checkbox:checked'))
+                        .map(cb => cb.dataset.productId);
+                    inputs = Array.from(document.querySelectorAll('.quantity-input'))
+                        .filter(input => selectedIds.includes(input.dataset.productId));
+                    break;
+                case 'all':
+                    inputs = Array.from(document.querySelectorAll('.quantity-input'))
+                        .filter(input => {
+                            const row = input.closest('.product-row');
+                            return row.style.display !== 'none';
+                        });
+                    break;
+                case 'empty':
+                    inputs = Array.from(document.querySelectorAll('.quantity-input'))
+                        .filter(input => !input.value || parseFloat(input.value) === 0);
+                    break;
+            }
+
+            inputs.forEach(input => {
+                input.value = value;
+                updateProductStatus(input.dataset.productId);
+            });
+
+            updateProgress();
+            bootstrap.Modal.getInstance(document.getElementById('bulkQuantityModal')).hide();
+            showToast(`Quantité appliquée à ${inputs.length} produit(s)`, 'success');
+        }
+
+        // Modal Seuils en lot
+        function showBulkThresholdsModal() {
+            const modal = new bootstrap.Modal(document.getElementById('bulkThresholdsModal'));
+            modal.show();
+        }
+
+        function applyBulkThresholds() {
+            const minValue = parseFloat(document.getElementById('bulkMinThreshold').value) || null;
+            const maxValue = parseFloat(document.getElementById('bulkMaxThreshold').value) || null;
+            const target = document.querySelector('input[name="bulkThresholdsTarget"]:checked').value;
+
+            if (minValue && maxValue && minValue >= maxValue) {
+                showToast('Le seuil minimum doit être inférieur au seuil maximum', 'error');
+                return;
+            }
+
+            let productIds = [];
+
+            switch(target) {
+                case 'selected':
+                    productIds = Array.from(document.querySelectorAll('.product-checkbox:checked'))
+                        .map(cb => cb.dataset.productId);
+                    break;
+                case 'all':
+                    productIds = Array.from(document.querySelectorAll('.product-checkbox'))
+                        .filter(cb => {
+                            const row = cb.closest('.product-row');
+                            return row.style.display !== 'none';
+                        })
+                        .map(cb => cb.dataset.productId);
+                    break;
+            }
+
+            productIds.forEach(productId => {
+                if (minValue !== null) {
+                    const minInput = document.querySelector(`input[data-product-id="${productId}"][name*="MinimumThreshold"]`);
+                    minInput.value = minValue;
+                }
+                if (maxValue !== null) {
+                    const maxInput = document.querySelector(`input[data-product-id="${productId}"][name*="MaximumThreshold"]`);
+                    maxInput.value = maxValue;
+                }
+                updateProductStatus(productId);
+            });
+
+            updateProgress();
+            bootstrap.Modal.getInstance(document.getElementById('bulkThresholdsModal')).hide();
+            showToast(`Seuils appliqués à ${productIds.length} produit(s)`, 'success');
+        }
+
+        // Configuration rapide
+        function quickFill(productId) {
+            currentQuickFillProductId = productId;
+            const row = document.querySelector(`tr[data-product-id="${productId}"]`);
+            const productName = row.querySelector('strong').textContent;
+
+            document.getElementById('quickFillProductName').value = productName;
+            document.getElementById('quickFillQuantity').value = '';
+            document.getElementById('quickFillMin').value = '';
+            document.getElementById('quickFillMax').value = '';
+
+            const modal = new bootstrap.Modal(document.getElementById('quickFillModal'));
+            modal.show();
+        }
+
+        function applySuggestions() {
+            const quantity = parseFloat(document.getElementById('quickFillQuantity').value);
+
+            if (quantity > 0) {
+                const suggestedMin = Math.round(quantity * 0.1);
+                const suggestedMax = Math.round(quantity * 1.5);
+
+                document.getElementById('quickFillMin').value = suggestedMin;
+                document.getElementById('quickFillMax').value = suggestedMax;
+            }
+        }
+
+        function applyQuickFill() {
+            const quantity = parseFloat(document.getElementById('quickFillQuantity').value);
+            const minThreshold = parseFloat(document.getElementById('quickFillMin').value) || null;
+            const maxThreshold = parseFloat(document.getElementById('quickFillMax').value) || null;
+
+            if (!quantity || quantity < 0) {
+                showToast('Veuillez entrer une quantité valide', 'error');
+                return;
+            }
+
+            if (minThreshold !== null && maxThreshold !== null && minThreshold >= maxThreshold) {
+                showToast('Le seuil minimum doit être inférieur au seuil maximum', 'error');
+                return;
+            }
+
+            // Appliquer les valeurs
+            const quantityInput = document.querySelector(`input[data-product-id="${currentQuickFillProductId}"].quantity-input`);
+            const minInput = document.querySelector(`input[data-product-id="${currentQuickFillProductId}"][name*="MinimumThreshold"]`);
+            const maxInput = document.querySelector(`input[data-product-id="${currentQuickFillProductId}"][name*="MaximumThreshold"]`);
+
+            quantityInput.value = quantity;
+            if (minThreshold !== null) minInput.value = minThreshold;
+            if (maxThreshold !== null) maxInput.value = maxThreshold;
+
+            updateProductStatus(currentQuickFillProductId);
+            updateProgress();
+
+            bootstrap.Modal.getInstance(document.getElementById('quickFillModal')).hide();
+            showToast('Configuration appliquée avec succès', 'success');
+        }
+
+        // Effacement d'un produit
+        function clearProduct(productId) {
+            document.querySelector(`input[data-product-id="${productId}"].quantity-input`).value = '';
+            document.querySelector(`input[data-product-id="${productId}"][name*="MinimumThreshold"]`).value = '';
+            document.querySelector(`input[data-product-id="${productId}"][name*="MaximumThreshold"]`).value = '';
+
+            updateProductStatus(productId);
+            updateProgress();
+        }
+
+        // Réinitialisation complète
+        function resetAll() {
+            if (!confirm('Êtes-vous sûr de vouloir réinitialiser toute la configuration ?')) {
+                return;
+            }
+
+            document.querySelectorAll('.quantity-input, .threshold-input').forEach(input => {
+                input.value = '';
+            });
+
+            document.querySelectorAll('.product-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+
+            document.querySelectorAll('[data-product-id]').forEach(element => {
+                if (element.classList.contains('status-indicator')) {
+                    updateProductStatus(element.dataset.productId);
+                }
+            });
+
+            updateProgress();
+            updateSelectAllState();
+            showToast('Configuration réinitialisée', 'info');
+        }
+
+        // Aperçu de la configuration
+        function previewConfiguration() {
+            const configuredProducts = [];
+
+            document.querySelectorAll('.quantity-input').forEach(input => {
+                const value = parseFloat(input.value);
+                if (value > 0) {
+                    const productId = input.dataset.productId;
+                    const row = input.closest('tr');
+                    const productName = row.querySelector('strong').textContent;
+                    const minInput = document.querySelector(`input[data-product-id="${productId}"][name*="MinimumThreshold"]`);
+                    const maxInput = document.querySelector(`input[data-product-id="${productId}"][name*="MaximumThreshold"]`);
+
+                    configuredProducts.push({
+                        name: productName,
+                        quantity: value,
+                        min: parseFloat(minInput.value) || null,
+                        max: parseFloat(maxInput.value) || null
+                    });
+                }
+            });
+
+            if (configuredProducts.length === 0) {
+                showToast('Aucun produit configuré', 'warning');
+                return;
+            }
+
+            let preview = `Configuration pour ${configuredProducts.length} produit(s) :\n\n`;
+            configuredProducts.forEach(p => {
+                preview += `• ${p.name}: ${p.quantity}`;
+                if (p.min || p.max) {
+                    preview += ` (Min: ${p.min || 'Non défini'}, Max: ${p.max || 'Non défini'})`;
+                }
+                preview += '\n';
+            });
+
+            alert(preview);
+        }
+
+        // Soumission du formulaire
+        document.getElementById('stockSetupForm').addEventListener('submit', function(e) {
+            const saveButton = document.getElementById('saveButton');
+            const saveSpinner = document.getElementById('saveSpinner');
+
+            // Vérifier qu'au moins un produit est configuré
+            const configuredCount = Array.from(document.querySelectorAll('.quantity-input'))
+                .filter(input => parseFloat(input.value) > 0).length;
+
+            if (configuredCount === 0) {
+                e.preventDefault();
+                showToast('Veuillez configurer au moins un produit', 'warning');
+                return;
+            }
+
+            // Afficher le spinner
+            saveButton.disabled = true;
+            saveSpinner.classList.remove('d-none');
+            saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enregistrement en cours...';
+        });
+
+        // Modèles par catégorie
+        function applyTemplateByCategory() {
+            // À implémenter - modèles prédéfinis par catégorie
+            showToast('Fonction en cours de développement', 'info');
+        }
+
+        // Fonction toast
+        function showToast(message, type) {
+            const existingToasts = document.querySelectorAll('.toast-notification');
+            existingToasts.forEach(toast => toast.remove());
+
+            const alertClass = type === 'success' ? 'alert-success' :
+                             type === 'warning' ? 'alert-warning' :
+                             type === 'info' ? 'alert-info' : 'alert-danger';
+            const icon = type === 'success' ? 'fa-check-circle' :
+                        type === 'warning' ? 'fa-exclamation-triangle' :
+                        type === 'info' ? 'fa-info-circle' : 'fa-exclamation-circle';
+
+            const toast = document.createElement('div');
+            toast.className = `alert ${alertClass} alert-dismissible fade show position-fixed toast-notification`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 350px;';
+            toast.innerHTML = `
+                <i class="fas ${icon}"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .text-white-75 {
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .btn-xs {
+            padding: 0.25rem 0.4rem;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            border-radius: 0.2rem;
+        }
+
+        .table-sm th,
+        .table-sm td {
+            padding: 0.6rem;
+            vertical-align: middle;
+        }
+
+        .progress {
+            border-radius: 0.375rem;
+        }
+
+        .form-control-sm:focus,
+        .form-select-sm:focus {
+            border-color: #86b7fe;
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        .toast-notification {
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        @@keyframes slideInRight {
+            from
+
+        {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        }
+
+        /* Style pour les champs de quantité */
+        .quantity-input {
+            font-weight: 600;
+        }
+
+        .threshold-input {
+            font-size: 0.9rem;
+        }
+
+        /* Style pour les indicateurs de statut */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Amélioration des modales */
+        .modal-content {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header,
+        .modal-footer {
+            border: none;
+        }
+
+        /* Style pour les cartes */
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        .card-header {
+            border-radius: 0.75rem 0.75rem 0 0 !important;
+        }
+
+        /* Style pour l'alerte d'instructions */
+        .alert {
+            border: none;
+            border-radius: 0.75rem;
+        }
+
+        /* Amélioration des boutons de groupe */
+        .btn-group .btn {
+            border-radius: 0.375rem !important;
+            margin-right: 2px;
+        }
+
+            .btn-group .btn:last-child {
+                margin-right: 0;
+            }
+
+        /* Style pour les badges */
+        .badge {
+            font-size: 0.75em;
+        }
+
+        /* Style pour les en-têtes de table */
+        .table-dark th {
+            border: none;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Amélioration de la responsivité */
+        @@media (max-width: 768px) {
+            .table-responsive
+
+        {
+            font-size: 0.875rem;
+        }
+
+        .btn-xs {
+            padding: 0.2rem 0.3rem;
+            font-size: 0.7rem;
+        }
+
+        }
+    </style>
+}

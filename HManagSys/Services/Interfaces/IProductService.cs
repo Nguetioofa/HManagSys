@@ -220,9 +220,7 @@ namespace HManagSys.Services.Interfaces
         /// <summary>
         /// Récupère les alertes de stock pour un centre
         /// </summary>
-        Task<List<StockAlertViewModel>> GetStockAlertsAsync(
-            int centerId,
-            string? severity = null);
+        Task<List<StockAlertViewModel>> GetStockAlertsAsync(int? centerId = null, string? severity = null);
     }
 
     // ===== CLASSES SUPPORT POUR LES RAPPORTS =====

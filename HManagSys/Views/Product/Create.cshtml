@@ -1,0 +1,536 @@
+﻿@model HManagSys.Models.ViewModels.Stock.CreateProductViewModel
+@{
+    ViewData["Title"] = "Nouveau Produit";
+}
+
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-boxes"></i>
+                    Produits
+                </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Nouveau produit</li>
+        </ol>
+    </nav>
+
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="fas fa-plus-circle text-success"></i>
+                        Créer un Nouveau Produit
+                    </h1>
+                    <p class="text-muted mb-0">Ajoutez un nouveau produit au catalogue</p>
+                </div>
+                <div>
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Retour à la liste
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire de création -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i>
+                        Informations du produit
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post" novalidate id="createProductForm">
+
+                        <!-- Nom du produit -->
+                        <div class="mb-4">
+                            <label asp-for="Name" class="form-label required">
+                                <i class="fas fa-cube text-primary"></i>
+                                Nom du produit
+                            </label>
+                            <input asp-for="Name" class="form-control form-control-lg"
+                                   placeholder="Ex: Paracétamol 500mg, Compresses stériles..."
+                                   maxlength="200" id="productName">
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle text-info"></i>
+                                Nom descriptif et unique du produit (max 200 caractères)
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-4">
+                            <label asp-for="Description" class="form-label">
+                                <i class="fas fa-align-left text-secondary"></i>
+                                Description
+                            </label>
+                            <textarea asp-for="Description" class="form-control" rows="3"
+                                      placeholder="Description détaillée du produit, posologie, indications..."
+                                      maxlength="1000" id="productDescription"></textarea>
+                            <span asp-validation-for="Description" class="text-danger small"></span>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle text-info"></i>
+                                Description optionnelle pour donner plus de détails (max 1000 caractères)
+                            </div>
+                        </div>
+
+                        <!-- Catégorie -->
+                        <div class="mb-4">
+                            <label asp-for="ProductCategoryId" class="form-label required">
+                                <i class="fas fa-tags text-warning"></i>
+                                Catégorie
+                            </label>
+                            <div class="input-group">
+                                <select asp-for="ProductCategoryId" class="form-select">
+                                    <option value="">-- Sélectionner une catégorie --</option>
+                                    @foreach (var category in Model.AvailableCategories)
+                                    {
+                                        <option value="@category.Id">@category.Name</option>
+                                    }
+                                </select>
+                                <a asp-controller="ProductCategory" asp-action="Create" 
+                                   class="btn btn-outline-secondary" title="Nouvelle catégorie" target="_blank">
+                                    <i class="fas fa-plus"></i>
+                                </a>
+                            </div>
+                            <span asp-validation-for="ProductCategoryId" class="text-danger small"></span>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle text-info"></i>
+                                Choisissez la catégorie appropriée pour organiser le stock
+                            </div>
+                        </div>
+
+                        <!-- Unité de mesure -->
+                        <div class="mb-4">
+                            <label asp-for="UnitOfMeasure" class="form-label required">
+                                <i class="fas fa-balance-scale text-info"></i>
+                                Unité de mesure
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="UnitOfMeasure" class="form-control"
+                                       placeholder="Ex: pièce, boîte, flacon, tube..."
+                                       maxlength="50" list="unitSuggestions">
+                                <datalist id="unitSuggestions">
+@*                                     <option value="pièce">
+                                    <option value="boîte">
+                                    <option value="flacon">
+                                    <option value="tube">
+                                    <option value="ampoule">
+                                    <option value="sachet">
+                                    <option value="comprimé">
+                                    <option value="gélule">
+                                    <option value="ml">
+                                    <option value="litre">
+                                    <option value="gramme">
+                                    <option value="kilogramme"> *@
+                                </datalist>
+                                <span class="input-group-text">
+                                    <i class="fas fa-list" title="Unités communes"></i>
+                                </span>
+                            </div>
+                            <span asp-validation-for="UnitOfMeasure" class="text-danger small"></span>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle text-info"></i>
+                                Comment le produit est-il compté/mesuré ? (max 50 caractères)
+                            </div>
+                        </div>
+
+                        <!-- Prix de vente -->
+                        <div class="mb-4">
+                            <label asp-for="SellingPrice" class="form-label required">
+                                <i class="fas fa-tag text-success"></i>
+                                Prix de vente unitaire
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="SellingPrice" class="form-control" type="number" step="0.01" min="0"
+                                       placeholder="0.00" id="sellingPrice">
+                                <span class="input-group-text">FCFA</span>
+                            </div>
+                            <span asp-validation-for="SellingPrice" class="text-danger small"></span>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle text-info"></i>
+                                Prix de vente par unité en Francs CFA
+                            </div>
+                        </div>
+
+                        <!-- Statut -->
+                        <div class="mb-4">
+                            <div class="form-check form-switch">
+                                <input asp-for="IsActive" class="form-check-input" id="isActiveSwitch">
+                                <label asp-for="IsActive" class="form-check-label" for="isActiveSwitch">
+                                    <i id="statusIcon" class="fas fa-check-circle text-success"></i>
+                                    <span id="statusText">Produit actif</span>
+                                </label>
+                            </div>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle text-info"></i>
+                                Seuls les produits actifs sont disponibles pour la vente et les soins
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-times"></i>
+                                Annuler
+                            </a>
+                            <button type="submit" class="btn btn-success" id="submitButton">
+                                <span id="submitSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>
+                                <i class="fas fa-save"></i>
+                                Créer le produit
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aide contextuelle -->
+    <div class="row mt-4">
+        <div class="col-lg-8 col-xl-6 mx-auto">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="fas fa-lightbulb text-warning"></i>
+                        Conseils pour créer un produit
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="mb-0 small">
+                                <li><strong>Nom précis :</strong> Incluez la forme/dosage si pertinent</li>
+                                <li><strong>Catégorie :</strong> Aide à l'organisation et aux rapports</li>
+                                <li><strong>Unité :</strong> Choisissez l'unité la plus pratique pour le stock</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="mb-0 small">
+                                <li><strong>Prix :</strong> Prix de vente final (TTC si applicable)</li>
+                                <li><strong>Description :</strong> Utile pour éviter les confusions</li>
+                                <li><strong>Stock initial :</strong> À configurer après création</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @* Validation côté client *@
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // Auto-formatage du prix
+        document.getElementById('sellingPrice').addEventListener('blur', function() {
+            const value = parseFloat(this.value);
+            if (!isNaN(value)) {
+                this.value = value.toFixed(2);
+            }
+        });
+
+        // Gestion du switch actif/inactif avec feedback visuel
+        function updateStatusDisplay() {
+            const isActiveSwitch = document.getElementById('isActiveSwitch');
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+
+            if (isActiveSwitch.checked) {
+                statusIcon.className = 'fas fa-check-circle text-success';
+                statusText.textContent = 'Produit actif';
+                statusText.className = '';
+            } else {
+                statusIcon.className = 'fas fa-pause-circle text-warning';
+                statusText.textContent = 'Produit inactif';
+                statusText.className = 'text-warning';
+            }
+        }
+
+        // Initialiser l'affichage au chargement
+        updateStatusDisplay();
+
+        // Écouter les changements
+        document.getElementById('isActiveSwitch').addEventListener('change', updateStatusDisplay);
+
+        // Validation en temps réel du nom
+        document.getElementById('productName').addEventListener('blur', function() {
+            const value = this.value.trim();
+            if (value.length > 0 && value.length < 3) {
+                this.classList.add('is-invalid');
+                showFieldError(this, 'Le nom doit contenir au moins 3 caractères');
+            } else {
+                this.classList.remove('is-invalid');
+                hideFieldError(this);
+            }
+        });
+
+        // Auto-resize du textarea description
+        const description = document.getElementById('productDescription');
+        description.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+
+        // Compteur de caractères
+        function addCharacterCounter(fieldId, maxLength) {
+            const field = document.getElementById(fieldId);
+            const counter = document.createElement('div');
+            counter.className = 'text-muted small text-end mt-1';
+            counter.style.fontSize = '0.875em';
+            field.parentNode.appendChild(counter);
+
+            function updateCounter() {
+                const remaining = maxLength - field.value.length;
+                counter.textContent = `${field.value.length}/${maxLength} caractères`;
+
+                if (remaining < 50) {
+                    counter.classList.add('text-warning');
+                    counter.classList.remove('text-muted');
+                } else if (remaining < 0) {
+                    counter.classList.add('text-danger');
+                    counter.classList.remove('text-muted', 'text-warning');
+                } else {
+                    counter.classList.add('text-muted');
+                    counter.classList.remove('text-warning', 'text-danger');
+                }
+            }
+
+            field.addEventListener('input', updateCounter);
+            updateCounter(); // Initial call
+        }
+
+        // Ajouter compteurs pour nom et description
+        addCharacterCounter('productName', 200);
+        addCharacterCounter('productDescription', 1000);
+
+        // Validation du prix
+        document.getElementById('sellingPrice').addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            if (value < 0) {
+                this.classList.add('is-invalid');
+                showFieldError(this, 'Le prix doit être positif');
+            } else if (value > 1000000) {
+                this.classList.add('is-invalid');
+                showFieldError(this, 'Le prix semble trop élevé, veuillez vérifier');
+            } else {
+                this.classList.remove('is-invalid');
+                hideFieldError(this);
+            }
+        });
+
+        // Gestion du formulaire
+        document.getElementById('createProductForm').addEventListener('submit', function(e) {
+            const submitButton = document.getElementById('submitButton');
+            const spinner = document.getElementById('submitSpinner');
+
+            // Désactiver le bouton et afficher le spinner
+            submitButton.disabled = true;
+            spinner.classList.remove('d-none');
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Création en cours...';
+
+            // Validation finale
+            if (!validateForm()) {
+                e.preventDefault();
+                // Réactiver le bouton
+                submitButton.disabled = false;
+                spinner.classList.add('d-none');
+                submitButton.innerHTML = '<i class="fas fa-save"></i> Créer le produit';
+                return false;
+            }
+        });
+
+        // Fonction de validation complète
+        function validateForm() {
+            let isValid = true;
+            const fields = [
+                { id: 'productName', required: true, minLength: 3 },
+                { id: 'ProductCategoryId', required: true },
+                { id: 'UnitOfMeasure', required: true, minLength: 1 },
+                { id: 'sellingPrice', required: true, min: 0 }
+            ];
+
+            fields.forEach(field => {
+                const element = document.getElementById(field.id);
+                if (!element) return;
+
+                let fieldValid = true;
+                let errorMessage = '';
+
+                // Validation required
+                if (field.required && !element.value.trim()) {
+                    fieldValid = false;
+                    errorMessage = 'Ce champ est obligatoire';
+                }
+
+                // Validation minLength
+                if (fieldValid && field.minLength && element.value.trim().length < field.minLength) {
+                    fieldValid = false;
+                    errorMessage = `Minimum ${field.minLength} caractères`;
+                }
+
+                // Validation min pour les nombres
+                if (fieldValid && field.min !== undefined && parseFloat(element.value) < field.min) {
+                    fieldValid = false;
+                    errorMessage = `La valeur doit être supérieure ou égale à ${field.min}`;
+                }
+
+                if (!fieldValid) {
+                    element.classList.add('is-invalid');
+                    showFieldError(element, errorMessage);
+                    isValid = false;
+                } else {
+                    element.classList.remove('is-invalid');
+                    hideFieldError(element);
+                }
+            });
+
+            return isValid;
+        }
+
+        // Fonctions utilitaires pour les erreurs
+        function showFieldError(element, message) {
+            // Supprimer l'erreur existante
+            hideFieldError(element);
+
+            // Créer le message d'erreur
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'invalid-feedback';
+            errorDiv.textContent = message;
+            element.parentNode.appendChild(errorDiv);
+        }
+
+        function hideFieldError(element) {
+            const existingError = element.parentNode.querySelector('.invalid-feedback');
+            if (existingError) {
+                existingError.remove();
+            }
+        }
+
+        // Génération automatique de suggestions pour le nom
+        let debounceTimer;
+        document.getElementById('productName').addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                suggestSimilarProducts(this.value);
+            }, 500);
+        });
+
+        function suggestSimilarProducts(term) {
+            if (term.length < 3) return;
+
+            fetch(`@Url.Action("Search")?term=${encodeURIComponent(term)}`)
+                .then(response => response.json())
+                .then(products => {
+                    if (products.length > 0) {
+                        console.log('Produits similaires trouvés:', products);
+                        // Optionnel : Afficher une suggestion à l'utilisateur
+                    }
+                })
+                .catch(error => console.error('Erreur de recherche:', error));
+        }
+
+        // Amélioration UX : Focus sur le premier champ au chargement
+        window.addEventListener('load', function() {
+            document.getElementById('productName').focus();
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .required::after {
+            content: '*';
+            color: #dc3545;
+            margin-left: 4px;
+        }
+
+        .form-control-lg {
+            font-size: 1.125rem;
+            padding: 0.75rem 1rem;
+        }
+
+        .form-switch .form-check-input {
+            width: 3em;
+            height: 1.5em;
+        }
+
+        .card-header.bg-success {
+            background-color: #198754 !important;
+        }
+
+        .form-check-label {
+            font-weight: 500;
+        }
+
+        .form-text {
+            margin-top: 0.5rem;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: var(--bs-breadcrumb-divider, ">");
+        }
+
+        /* Animation pour les transitions de couleur du switch */
+        .form-check-label span {
+            transition: color 0.3s ease;
+        }
+
+        /* Amélioration des styles des champs invalides */
+        .form-control.is-invalid {
+            border-color: #dc3545;
+            padding-right: calc(1.5em + 0.75rem);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 3.6.7.7-1.4 1.4 1.4 1.4-.7.7L4.4 6l1.4-1.4z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+
+        .form-select.is-invalid {
+            border-color: #dc3545;
+        }
+
+        /* Style pour le datalist */
+        #unitSuggestions {
+            font-size: 0.875rem;
+        }
+
+        /* Animation du bouton de soumission */
+        .btn:disabled {
+            opacity: 0.65;
+        }
+
+        /* Style du compteur de caractères */
+        .text-muted.small {
+            font-size: 0.875em;
+        }
+
+        /* Amélioration des cartes */
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        .card-header {
+            border-radius: 0.75rem 0.75rem 0 0 !important;
+        }
+
+        /* Focus amélioré */
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #86b7fe;
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+    </style>
+}

@@ -1,0 +1,865 @@
+﻿ @model HManagSys.Models.ViewModels.Stock.ProductDetailsViewModel
+@{
+    ViewData["Title"] = $"Détails - {Model.Product.Name}";
+    var isSuperAdmin = ViewContext.HttpContext.Session.GetString("CurrentRole") == "SuperAdmin";
+    var currentCenterId = ViewContext.HttpContext.Session.GetInt32("CurrentCenterId");
+    var currentCenterName = ViewContext.HttpContext.Session.GetString("CurrentCenterName");
+}
+
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-boxes"></i>
+                    Produits
+                </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">@Model.Product.Name</li>
+        </ol>
+    </nav>
+
+    <!-- En-tête principal -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="h3 mb-2 text-white">
+                                <i class="fas fa-cube"></i>
+                                @Model.Product.Name
+                                <span class="@Model.Product.StatusBadge ms-3">@Model.Product.StatusText</span>
+                            </h1>
+                            @if (!string.IsNullOrEmpty(Model.Product.Description))
+                            {
+                                <p class="text-white-75 mb-3">@Model.Product.Description</p>
+                            }
+                            <div class="row text-center">
+                                <div class="col-sm-3">
+                                    <div class="mb-0">
+                                        <div class="h4 text-white">@Model.Product.CategoryName</div>
+                                        <small class="text-white-75">Catégorie</small>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="mb-0">
+                                        <div class="h4 text-white">@Model.Product.PriceText</div>
+                                        <small class="text-white-75">Prix unitaire</small>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="mb-0">
+                                        <div class="h4 text-white">@Model.Product.UnitOfMeasure</div>
+                                        <small class="text-white-75">Unité</small>
+                                    </div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="mb-0">
+                                        <div class="h4 text-white">@Model.Product.TotalCentersWithStock</div>
+                                        <small class="text-white-75">Centres avec stock</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="btn-group" role="group">
+                                @if (isSuperAdmin)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@Model.Product.Id" class="btn btn-outline-light">
+                                        <i class="fas fa-edit"></i>
+                                        Modifier
+                                    </a>
+                                    <button class="btn btn-outline-light"
+                                            onclick="toggleProductStatus(@Model.Product.Id, @Model.Product.IsActive.ToString().ToLower())">
+                                        <i class="fas fa-@(Model.Product.IsActive ? "pause" : "play")"></i>
+                                        @(Model.Product.IsActive ? "Désactiver" : "Activer")
+                                    </button>
+                                }
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" href="#stockByCenterSection">
+                                                <i class="fas fa-warehouse"></i> Stock par centre
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="#movementHistorySection">
+                                                <i class="fas fa-history"></i> Historique mouvements
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="#" onclick="exportProductReport(@Model.Product.Id)">
+                                                <i class="fas fa-file-excel"></i> Exporter rapport
+                                            </a>
+                                        </li>
+                                        @if (isSuperAdmin)
+                                        {
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item" asp-controller="Stock" asp-action="Index" asp-route-productId="@Model.Product.Id">
+                                                    <i class="fas fa-cog"></i> Gérer le stock
+                                                </a>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Colonne principale -->
+        <div class="col-lg-8 mb-4">
+            <!-- Stock par centre -->
+            <div class="card mb-4" id="stockByCenterSection">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-warehouse"></i>
+                        Stock par Centre Hospitalier
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.StockByCenter.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Centre</th>
+                                        <th>Stock actuel</th>
+                                        <th>Seuils configurés</th>
+                                        <th>Statut</th>
+                                        <th>Derniers mouvements</th>
+                                        @if (isSuperAdmin)
+                                        {
+                                            <th>Actions</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var stock in Model.StockByCenter)
+                                    {
+                                        <tr class="@(stock.IsCurrent ? "table-primary" : "") @(stock.IsCritical ? "table-danger" : stock.IsLow ? "table-warning" : "")">
+                                            <td>
+                                                <div>
+                                                    <strong>@stock.CenterName</strong>
+                                                    @if (stock.IsCurrent)
+                                                    {
+                                                        <span class="badge bg-primary ms-2">Centre actuel</span>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="@(stock.IsCritical ? "text-danger" : stock.IsLow ? "text-warning" : "text-success") fw-bold fs-5">
+                                                    @stock.CurrentQuantity.ToString("N0")
+                                                </span>
+                                                <div class="text-muted small">@Model.Product.UnitOfMeasure</div>
+                                            </td>
+                                            <td>
+                                                @if (stock.MinimumThreshold.HasValue || stock.MaximumThreshold.HasValue)
+                                                {
+                                                    <small class="text-muted">
+                                                        @if (stock.MinimumThreshold.HasValue)
+                                                        {
+                                                            <span>Min: @stock.MinimumThreshold.Value.ToString("N0")</span>
+                                                        }
+                                                        @if (stock.MinimumThreshold.HasValue && stock.MaximumThreshold.HasValue)
+                                                        {
+                                                            <br>
+                                                        }
+                                                        @if (stock.MaximumThreshold.HasValue)
+                                                        {
+                                                            <span>Max: @stock.MaximumThreshold.Value.ToString("N0")</span>
+                                                        }
+                                                    </small>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">Non configurés</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (stock.IsCritical)
+                                                {
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-exclamation-circle"></i>
+                                                        Critique
+                                                    </span>
+                                                }
+                                                else if (stock.IsLow)
+                                                {
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-exclamation-triangle"></i>
+                                                        Bas
+                                                    </span>
+                                                }
+                                                else if (stock.CurrentQuantity > 0)
+                                                {
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check-circle"></i>
+                                                        Normal
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">
+                                                        <i class="fas fa-times-circle"></i>
+                                                        Vide
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    @if (stock.LastMovementDate.HasValue)
+                                                    {
+                                                        @stock.LastMovementDate.Value.ToString("dd/MM/yyyy")
+                                            
+                                                        <br>
+                                                        <span class="@(Model.RecentMovements.Count > 0 ? "text-primary" : "")">
+                                                            @Model.RecentMovements.Count mvt/7j
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>Aucun mouvement</span>
+                                                    }
+                                                </small>
+                                            </td>
+                                            @if (isSuperAdmin)
+                                            {
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        @if (stock.IsCurrent)
+                                                        {
+                                                            <button class="btn btn-sm btn-outline-primary"
+                                                                    onclick="showAdjustStockModal(@stock.HospitalCenterId, '@stock.CenterName')"
+                                                                    title="Ajuster stock">
+                                                                <i class="fas fa-adjust"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-outline-secondary"
+                                                                    onclick="showThresholdsModal(@stock.HospitalCenterId, '@stock.CenterName')"
+                                                                    title="Modifier seuils">
+                                                                <i class="fas fa-sliders-h"></i>
+                                                            </button>
+                                                        }
+                                                        <button class="btn btn-sm btn-outline-info"
+                                                                onclick="viewCenterMovements(@stock.HospitalCenterId, '@stock.CenterName')"
+                                                                title="Voir mouvements">
+                                                            <i class="fas fa-list"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-warehouse fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Aucun stock configuré</h5>
+                            <p class="text-muted">Ce produit n'a pas encore de stock dans les centres.</p>
+                            @if (isSuperAdmin)
+                            {
+                                <button class="btn btn-primary" onclick="showQuickInitModal()">
+                                    <i class="fas fa-plus"></i>
+                                    Initialiser le stock
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Historique des mouvements -->
+            <div class="card" id="movementHistorySection">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history"></i>
+                        Historique des Mouvements Récents
+                        <span class="badge bg-secondary ms-2" id="movementCountBadge">30 derniers jours</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="movementHistoryContainer">
+                        <!-- Les mouvements seront chargés ici via AJAX -->
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Chargement...</span>
+                            </div>
+                            <div class="mt-2">Chargement de l'historique...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadMovements(7)" id="btn7days">
+                            7 jours
+                        </button>
+                        <button class="btn btn-sm btn-primary" onclick="loadMovements(30)" id="btn30days">
+                            30 jours
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadMovements(90)" id="btn90days">
+                            90 jours
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="exportMovements()">
+                            <i class="fas fa-download"></i>
+                            Exporter
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne latérale -->
+        <div class="col-lg-4">
+            <!-- Informations détaillées -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i>
+                        Informations du produit
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">ID Produit :</dt>
+                        <dd class="col-sm-7">#@Model.Product.Id</dd>
+
+                        <dt class="col-sm-5">Catégorie :</dt>
+                        <dd class="col-sm-7">
+                            <a asp-controller="ProductCategory" asp-action="Details" asp-route-id="@Model.Product.ProductCategoryId"
+                               class="text-decoration-none">
+                                <span class="badge bg-info">@Model.Product.CategoryName</span>
+                            </a>
+                        </dd>
+
+                        <dt class="col-sm-5">Prix unitaire :</dt>
+                        <dd class="col-sm-7">
+                            <span class="fw-bold text-success fs-5">@Model.Product.PriceText</span>
+                        </dd>
+
+                        <dt class="col-sm-5">Unité de mesure :</dt>
+                        <dd class="col-sm-7">
+                            <span class="badge bg-secondary">@Model.Product.UnitOfMeasure</span>
+                        </dd>
+
+                        <dt class="col-sm-5">Statut :</dt>
+                        <dd class="col-sm-7">
+                            <span class="@Model.Product.StatusBadge">@Model.Product.StatusText</span>
+                        </dd>
+
+                        <dt class="col-sm-5">Créé le :</dt>
+                        <dd class="col-sm-7">
+                            @Model.Product.CreatedAt.ToString("dd/MM/yyyy à HH:mm")<br>
+                            <small class="text-muted">par @Model.Product.CreatedByName</small>
+                        </dd>
+
+                        @if (Model.Product.ModifiedAt.HasValue)
+                        {
+                            <dt class="col-sm-5">Modifié le :</dt>
+                            <dd class="col-sm-7">
+                                @Model.Product.ModifiedAt.Value.ToString("dd/MM/yyyy à HH:mm")<br>
+                                <small class="text-muted">par @Model.Product.ModifiedByName</small>
+                            </dd>
+                        }
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Statistiques globales -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-chart-bar"></i>
+                        Statistiques globales
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="border-end">
+                                <div class="h5 mb-1 text-primary">@Model.Statistics.TotalStock.ToString("N0")</div>
+                                <small class="text-muted">Stock total</small>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="h5 mb-1 text-success">@Model.Statistics.TotalValue.ToString("N0") F</div>
+                            <small class="text-muted">Valeur stock</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="border-end">
+                                <div class="h5 mb-1 text-info">@Model.Statistics.TotalMovements30Days</div>
+                                <small class="text-muted">Mouvements/30j</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="h5 mb-1 text-warning">@Model.Statistics.CentersCriticalStock</div>
+                            <small class="text-muted">Centres en alerte</small>
+                        </div>
+                    </div>
+
+                    <!-- Graphique de distribution du stock -->
+                    <div class="mt-3">
+                        <canvas id="stockDistributionChart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions rapides -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-bolt"></i>
+                        Actions rapides
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        @if (isSuperAdmin)
+                        {
+                            <a asp-action="Edit" asp-route-id="@Model.Product.Id" class="btn btn-outline-warning">
+                                <i class="fas fa-edit"></i>
+                                Modifier le produit
+                            </a>
+                            @if (Model.Statistics?.TotalCenters <= (Model.Statistics?.CentersLowStock ?? 0))
+                            {
+                                <button class="btn btn-outline-primary" onclick="showAdjustStockModal(@currentCenterId, '@currentCenterName')">
+                                    <i class="fas fa-plus"></i>
+                                    Ajuster stock (@currentCenterName)
+                                </button>
+                            }
+                            <button class="btn btn-outline-info" onclick="showTransferModal()">
+                                <i class="fas fa-exchange-alt"></i>
+                                Demander transfert
+                            </button>
+                        }
+                        <button class="btn btn-outline-success" onclick="exportProductReport(@Model.Product.Id)">
+                            <i class="fas fa-file-excel"></i>
+                            Exporter rapport détaillé
+                        </button>
+                        <a asp-action="Index" asp-route-categoryId="@Model.Product.ProductCategoryId" class="btn btn-outline-secondary">
+                            <i class="fas fa-tags"></i>
+                            Autres produits de la catégorie
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alertes si stock critique/bas -->
+@*             @if (Model.CentersWithAlerts > 0)
+            {
+                <div class="card mt-4 border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Alertes Stock
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2">
+                            <strong>@* @Model.CentersWithAlerts  centre(s)</strong> ont des alertes pour ce produit.
+                        </p>
+                        <div class="d-grid">
+                            <button class="btn btn-warning" onclick="viewAllAlerts()">
+                                <i class="fas fa-eye"></i>
+                                Voir toutes les alertes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            } *@
+        </div>
+    </div>
+</div>
+
+<!-- CSRF Token -->
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <!-- Chart.js pour les graphiques -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // Variables globales
+        const productId = @Model.Product.Id;
+        const isSuperAdmin = @isSuperAdmin.ToString().ToLower();
+
+        // Fonction pour obtenir le token CSRF
+        function getAntiForgeryToken() {
+            return document.querySelector('input[name="__RequestVerificationToken"]').value;
+        }
+
+        // Chargement initial de l'historique
+        document.addEventListener('DOMContentLoaded', function() {
+            loadMovements(30);
+            initStockChart();
+        });
+
+        // Chargement des mouvements
+        function loadMovements(days) {
+            const container = document.getElementById('movementHistoryContainer');
+            const badge = document.getElementById('movementCountBadge');
+
+            // Mettre à jour l'UI
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Chargement...</span>
+                    </div>
+                    <div class="mt-2">Chargement de l'historique...</div>
+                </div>
+            `;
+
+            // Mettre à jour les boutons
+            document.querySelectorAll('[id^="btn"]').forEach(btn => {
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-outline-primary');
+            });
+            document.getElementById(`btn${days}days`).classList.remove('btn-outline-primary');
+            document.getElementById(`btn${days}days`).classList.add('btn-primary');
+
+            // Charger les données
+            fetch(`@Url.Action("MovementHistory")?id=${productId}&days=${days}`)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        displayMovements(result.movements);
+                        badge.textContent = `${result.movements.length} mouvements / ${days} jours`;
+                    } else {
+                        container.innerHTML = `
+                            <div class="text-center py-4 text-danger">
+                                <i class="fas fa-exclamation-circle fa-2x mb-2"></i>
+                                <div>Erreur lors du chargement</div>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    container.innerHTML = `
+                        <div class="text-center py-4 text-danger">
+                            <i class="fas fa-exclamation-circle fa-2x mb-2"></i>
+                            <div>Erreur lors du chargement</div>
+                        </div>
+                    `;
+                });
+        }
+
+        // Affichage des mouvements
+        function displayMovements(movements) {
+            const container = document.getElementById('movementHistoryContainer');
+
+            if (movements.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-clock fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Aucun mouvement</h5>
+                        <p class="text-muted">Aucun mouvement de stock pour cette période.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '<div class="table-responsive"><table class="table table-hover mb-0">';
+            html += `
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Quantité</th>
+                        <th>Centre</th>
+                        <th>Référence</th>
+                        <th>Notes</th>
+                        <th>Créé par</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+
+            movements.forEach(movement => {
+                html += `
+                    <tr>
+                        <td>
+                            <div class="fw-bold">${movement.date}</div>
+                            <small class="text-muted">${movement.time}</small>
+                        </td>
+                        <td>
+                            <i class="${movement.icon}"></i>
+                            ${movement.type}
+                        </td>
+                        <td>
+                            <span class="${movement.quantityClass} fw-bold">${movement.quantity}</span>
+                        </td>
+                        <td>${movement.center}</td>
+                        <td>
+                            ${movement.reference ? `#${movement.reference}` : '-'}
+                        </td>
+                        <td>
+                            ${movement.notes ? `<small class="text-muted">${movement.notes}</small>` : '-'}
+                        </td>
+                        <td>
+                            <small>${movement.createdBy}</small>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        @if (isSuperAdmin)
+        {
+                <text>
+                // Toggle statut produit
+                function toggleProductStatus(productId, isActive) {
+                    const action = isActive ? 'désactiver' : 'activer';
+
+                    if (!confirm(`Êtes-vous sûr de vouloir ${action} ce produit ?`)) {
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('id', productId);
+                    formData.append('isActive', !isActive);
+                    formData.append('__RequestVerificationToken', getAntiForgeryToken());
+
+                    fetch('@Url.Action("ToggleStatus")', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.success) {
+                            showToast(result.message, 'success');
+                            location.reload();
+                        } else {
+                            showToast(result.message || 'Erreur lors du changement de statut', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur:', error);
+                        showToast('Erreur lors du changement de statut', 'error');
+                    });
+                }
+
+                // Modal ajustement stock
+                function showAdjustStockModal(centerId, centerName) {
+                    // Rediriger vers la page de gestion des stocks
+                    window.location.href = `@Url.Action("Index", "Stock")?productId=${productId}&center=${centerId}`;
+                }
+
+                // Modal seuils
+                function showThresholdsModal(centerId, centerName) {
+                    // À implémenter - modal pour modifier les seuils
+                    showToast('Fonction en cours de développement', 'info');
+                }
+
+                // Modal transfert
+                function showTransferModal() {
+                    // À implémenter - modal pour demander un transfert
+                    showToast('Fonction de transfert en cours de développement', 'info');
+                }
+
+                // Modal init rapide
+                function showQuickInitModal() {
+                    // Rediriger vers la configuration initiale
+                    window.location.href = `@Url.Action("InitialSetup", "Stock")?productId=${productId}`;
+                }
+                </text>
+        }
+
+        // Voir mouvements d'un centre spécifique
+        function viewCenterMovements(centerId, centerName) {
+            // À implémenter - filtrer les mouvements par centre
+            showToast(`Mouvements pour ${centerName} - fonction en cours de développement`, 'info');
+        }
+
+        // Voir toutes les alertes
+        function viewAllAlerts() {
+            // À implémenter - modal avec toutes les alertes
+            showToast('Affichage des alertes - fonction en cours de développement', 'info');
+        }
+
+        // Export rapport produit
+        function exportProductReport(productId) {
+            window.open(`@Url.Action("ExportProductReport")?id=${productId}`, '_blank');
+            showToast('Export du rapport en cours...', 'info');
+        }
+
+        // Export mouvements
+        function exportMovements() {
+            window.open(`@Url.Action("ExportMovements")?id=${productId}`, '_blank');
+            showToast('Export des mouvements en cours...', 'info');
+        }
+
+        // Initialisation du graphique de distribution du stock
+        function initStockChart() {
+            const ctx = document.getElementById('stockDistributionChart').getContext('2d');
+
+            // Données simulées - à remplacer par des données réelles
+            const chartData = {
+                labels: [@Html.Raw(string.Join(",", Model.StockByCenter.Select(s => $"'{s.CenterName}'")))],
+                datasets: [{
+                    data: [@string.Join(",", Model.StockByCenter.Select(s => s.CurrentQuantity))],
+                    backgroundColor: [
+                        '#0d6efd', '#20c997', '#ffc107', '#dc3545', '#6f42c1', '#fd7e14'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                fontSize: 12
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Fonction toast
+        function showToast(message, type) {
+            const existingToasts = document.querySelectorAll('.toast-notification');
+            existingToasts.forEach(toast => toast.remove());
+
+            const alertClass = type === 'success' ? 'alert-success' :
+                             type === 'warning' ? 'alert-warning' :
+                             type === 'info' ? 'alert-info' : 'alert-danger';
+            const icon = type === 'success' ? 'fa-check-circle' :
+                        type === 'warning' ? 'fa-exclamation-triangle' :
+                        type === 'info' ? 'fa-info-circle' : 'fa-exclamation-circle';
+
+            const toast = document.createElement('div');
+            toast.className = `alert ${alertClass} alert-dismissible fade show position-fixed toast-notification`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 350px;';
+            toast.innerHTML = `
+                <i class="fas ${icon}"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .text-white-75 {
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .table-primary {
+            --bs-table-accent-bg: #cfe2ff;
+        }
+
+        .table-warning {
+            --bs-table-accent-bg: #fff3cd;
+        }
+
+        .table-danger {
+            --bs-table-accent-bg: #f8d7da;
+        }
+
+        .toast-notification {
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        @@keyframes slideInRight {
+            from
+
+        {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        }
+
+        .btn-group .btn {
+            border-radius: 0.25rem !important;
+            margin-right: 2px;
+        }
+
+            .btn-group .btn:last-child {
+                margin-right: 0;
+            }
+
+        /* Style pour les cartes */
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        .card-header {
+            border-radius: 0.75rem 0.75rem 0 0 !important;
+        }
+
+        /* Animation des boutons de période */
+        .btn-group .btn {
+            transition: all 0.2s ease-in-out;
+        }
+
+        /* Style pour le graphique */
+        #stockDistributionChart {
+            max-height: 200px;
+        }
+
+        /* Scroll smooth pour les liens d'ancre */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Highlight du centre actuel */
+        .table-primary td {
+            font-weight: 500;
+        }
+
+        /* Style pour les badges de statut */
+        .badge {
+            font-size: 0.75em;
+        }
+
+        /* Amélioration du spacing */
+        .card-body dl.row dt {
+            margin-bottom: 0.5rem;
+        }
+
+        .card-body dl.row dd {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+} 

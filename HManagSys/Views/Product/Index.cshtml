@@ -1,0 +1,785 @@
+﻿@model HManagSys.Models.ViewModels.Stock.ProductListViewModel
+@{
+    ViewData["Title"] = "Gestion des Produits";
+    var isSuperAdmin = ViewContext.HttpContext.Session.GetString("CurrentRole") == "SuperAdmin";
+}
+
+<div class="container-fluid">
+    <!-- En-tête avec titre et actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="fas fa-boxes text-primary"></i>
+                        Gestion des Produits
+                    </h1>
+                    <p class="text-muted mb-0">Catalogue et gestion des produits</p>
+                </div>
+                <div class="d-flex gap-2">
+                    @if (isSuperAdmin)
+                    {
+                        <a asp-action="Create" class="btn btn-success">
+                            <i class="fas fa-plus"></i>
+                            Nouveau produit
+                        </a>
+                        <a asp-action="Export" class="btn btn-outline-success">
+                            <i class="fas fa-file-excel"></i>
+                            Exporter
+                        </a>
+                    }
+                    <button type="button" class="btn btn-outline-primary" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i>
+                        Actualiser
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques rapides -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <p class="text-white-50 small mb-1">Total Produits</p>
+                            <h3 class="mb-0">@Model.Statistics.TotalProducts</h3>
+                            <small class="text-white-75">@Model.Statistics.CategoriesUsed catégories</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-cube fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <p class="text-white-50 small mb-1">Produits Actifs</p>
+                            <h3 class="mb-0">@Model.Statistics.ActiveProducts</h3>
+                            <small class="text-white-75">@Model.Statistics.ActivePercentage.ToString("F1")%</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <p class="text-dark-50 small mb-1">Stock Bas</p>
+                            <h3 class="mb-0">@Model.Statistics.ProductsWithLowStock</h3>
+                            <small class="text-dark-75">@Model.Statistics.LowStockPercentage.ToString("F1")%</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <p class="text-white-50 small mb-1">Stock Critique</p>
+                            <h3 class="mb-0">@Model.Statistics.ProductsWithCriticalStock</h3>
+                            <small class="text-white-75">Action requise</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-circle fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="@Url.Action("Index")" id="filtersForm">
+                <div class="row align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Recherche produit</label>
+                        <input type="text" class="form-control" name="searchTerm" 
+                               value="@Model.Filters.SearchTerm" placeholder="Nom, description...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Catégorie</label>
+                        <select class="form-select" name="categoryId">
+                            <option value="">Toutes</option>
+                            @foreach (var category in Model.AvailableCategories)
+                            {
+                                <option value="@category.Id" selected="@(Model.Filters.CategoryId == category.Id)">
+                                    @category.Name
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Statut produit</label>
+                        <select class="form-select" name="isActive">
+                            <option value="">Tous</option>
+                            <option value="true" selected="@(Model.Filters.IsActive == true)">Actifs</option>
+                            <option value="false" selected="@(Model.Filters.IsActive == false)">Inactifs</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Stock</label>
+                        <select class="form-select" name="stockFilter">
+@*                             <option value="">Tous</option>
+                            <option value="Critical" selected="@(Model.Filters.StockFilter == "Critical")">Critique</option>
+                            <option value="Low" selected="@(Model.Filters.StockFilter == "Low")">Bas</option>
+                            <option value="Normal" selected="@(Model.Filters.StockFilter == "Normal")">Normal</option>
+                            <option value="High" selected="@(Model.Filters.StockFilter == "High")">Élevé</option> *@
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Affichage</label>
+                        <select class="form-select" name="pageSize">
+                            <option value="10" selected="@(Model.Filters.PageSize == 10)">10</option>
+                            <option value="20" selected="@(Model.Filters.PageSize == 20)">20</option>
+                            <option value="50" selected="@(Model.Filters.PageSize == 50)">50</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearFilters()">
+                            <i class="fas fa-times"></i>
+                            Effacer les filtres
+                        </button>
+                        <div class="float-end">
+                            <div class="btn-group" role="group" aria-label="Vue">
+                                <input type="radio" class="btn-check" name="viewMode" id="tableView" autocomplete="off" checked>
+                                <label class="btn btn-outline-primary" for="tableView">
+                                    <i class="fas fa-list"></i>
+                                    Table
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="viewMode" id="cardView" autocomplete="off">
+                                <label class="btn btn-outline-primary" for="cardView">
+                                    <i class="fas fa-th-large"></i>
+                                    Cartes
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Vue Table (par défaut) -->
+    <div id="tableViewContainer" class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list"></i>
+                Liste des Produits
+                <span class="badge bg-secondary ms-2">@Model.Pagination.TotalCount</span>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Products.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Produit</th>
+                                <th>Catégorie</th>
+                                <th>Prix unitaire</th>
+                                <th>Stock actuel</th>
+                                <th>Statut stock</th>
+                                <th>Statut produit</th>
+                                <th>Dernière MAJ</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var product in Model.Products)
+                            {
+                                <tr id="product-@product.Id" class="@(product.HasCriticalStock ? "table-danger" : product.HasLowStock ? "table-warning" : "")">
+                                    <td>
+                                        <div>
+                                            <strong>@product.Name</strong>
+                                            @if (!string.IsNullOrEmpty(product.Description))
+                                            {
+                                                <div class="text-muted small" title="@product.Description">
+                                                    @(product.Description.Length > 50 ? product.Description.Substring(0, 50) + "..." : product.Description)
+                                                </div>
+                                            }
+                                            <div class="text-muted small">
+                                                <i class="fas fa-balance-scale"></i>
+                                                @product.UnitOfMeasure
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">@product.CategoryName</span>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold text-success">@product.PriceText</span>
+                                    </td>
+                                    <td>
+                                        <span class="@(product.HasCriticalStock ? "text-danger" : product.HasLowStock ? "text-warning" : "text-success") fw-bold">
+                                            @product.TotalWithStock.ToString("N0")
+                                        </span>
+                                        <div class="text-muted small">Centres @product.TotalCentersWithStock</div>
+                                    </td>
+                                    <td>
+                                        @if (product.HasCriticalStock)
+                                        {
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-exclamation-circle"></i>
+                                                Critique
+                                            </span>
+                                        }
+                                        else if (product.HasLowStock)
+                                        {
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                Bas
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle"></i>
+                                                Normal
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="@product.StatusBadge">@product.StatusText</span>
+                                    </td>
+                                    <td>
+                                        @if (product.ModifiedAt.HasValue)
+                                        {
+                                            <small>
+                                                @product.ModifiedAt.Value.ToString("dd/MM/yyyy")<br>
+                                                <span class="text-muted">@product.ModifiedByName</span>
+                                            </small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a asp-action="Details" asp-route-id="@product.Id" 
+                                               class="btn btn-sm btn-outline-primary" title="Détails">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            @if (isSuperAdmin)
+                                            {
+                                                <a asp-action="Edit" asp-route-id="@product.Id" 
+                                                   class="btn btn-sm btn-outline-warning" title="Modifier">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button class="btn btn-sm btn-outline-@(product.IsActive ? "secondary" : "success")"
+                                                        onclick="toggleProductStatus(@product.Id, @product.IsActive.ToString().ToLower())"
+                                                        title="@(product.IsActive ? "Désactiver" : "Activer")">
+                                                    <i class="fas fa-@(product.IsActive ? "pause" : "play")"></i>
+                                                </button>
+                                            }
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
+                                                        type="button" data-bs-toggle="dropdown" title="Plus d'actions">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li><a class="dropdown-item" href="#" onclick="showMovementHistory(@product.Id)">
+                                                        <i class="fas fa-history"></i> Historique mouvements
+                                                    </a></li>
+                                                    @if (product.HasLowStock || product.HasCriticalStock)
+                                                    {
+                                                        <li><a class="dropdown-item text-warning" asp-controller="Stock" asp-action="Index" asp-route-productId="@product.Id">
+                                                            <i class="fas fa-exclamation-triangle"></i> Gérer le stock
+                                                        </a></li>
+                                                    }
+                                                    @if (isSuperAdmin@*  && product.CanDelete *@)
+                                                    {
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteProduct(@product.Id, '@product.Name')">
+                                                            <i class="fas fa-trash"></i> Supprimer
+                                                        </a></li>
+                                                    }
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-cube fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Aucun produit trouvé</h5>
+                    <p class="text-muted">
+@*                         @if (Model.Filters.HasActiveFilters)
+                        {
+                            <text>Aucun produit ne correspond aux critères sélectionnés.</text>
+                        }
+                        else
+                        {
+                            <text>Commencez par créer votre premier produit.</text>
+                        } *@
+                                                    <text>Commencez par créer votre premier produit.</text>
+
+                    </p>
+                    @if (isSuperAdmin)
+                    {
+                        <a asp-action="Create" class="btn btn-primary">
+                            <i class="fas fa-plus"></i>
+                            Créer un produit
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        @if (Model.Pagination.TotalPages > 1)
+        {
+            <div class="card-footer">
+                <nav aria-label="Navigation des produits">
+                    <ul class="pagination justify-content-center mb-0">
+                        <li class="page-item @(!Model.Pagination.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link" href="@Url.Action("Index", new { 
+                                pageIndex = Model.Pagination.PreviousPage, 
+                                Model.Filters.SearchTerm, 
+                                Model.Filters.CategoryId,
+                                Model.Filters.IsActive, 
+                                //Model.Filters.StockFilter,
+                                Model.Filters.PageSize 
+                            })">
+                                <i class="fas fa-chevron-left"></i>
+                                Précédent
+                            </a>
+                        </li>
+                        
+                        @for (int i = Math.Max(1, Model.Pagination.CurrentPage - 2); 
+                              i <= Math.Min(Model.Pagination.TotalPages, Model.Pagination.CurrentPage + 2); 
+                              i++)
+                        {
+                            <li class="page-item @(i == Model.Pagination.CurrentPage ? "active" : "")">
+                                <a class="page-link" href="@Url.Action("Index", new { 
+                                    pageIndex = i, 
+                                    Model.Filters.SearchTerm, 
+                                    Model.Filters.CategoryId,
+                                    Model.Filters.IsActive, 
+                                    //Model.Filters.StockFilter,
+                                    Model.Filters.PageSize 
+                                })">
+                                    @i
+                                </a>
+                            </li>
+                        }
+                        
+                        <li class="page-item @(!Model.Pagination.HasNextPage ? "disabled" : "")">
+                            <a class="page-link" href="@Url.Action("Index", new { 
+                                pageIndex = Model.Pagination.NextPage, 
+                                Model.Filters.SearchTerm, 
+                                Model.Filters.CategoryId,
+                                Model.Filters.IsActive, 
+                                //Model.Filters.StockFilter,
+                                Model.Filters.PageSize 
+                            })">
+                                Suivant
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="text-center text-muted mt-2">
+                    Affichage de @((Model.Pagination.CurrentPage - 1) * Model.Pagination.PageSize + 1) à 
+                    @(Math.Min(Model.Pagination.CurrentPage * Model.Pagination.PageSize, Model.Pagination.TotalCount)) 
+                    sur @Model.Pagination.TotalCount produits
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Vue Cards (masquée par défaut) -->
+    <div id="cardViewContainer" class="row d-none">
+        @foreach (var product in Model.Products)
+        {
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="card h-100 @(product.HasCriticalStock ? "border-danger" : product.HasLowStock ? "border-warning" : "")">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0 flex-grow-1">@product.Name</h6>
+                            <span class="@product.StatusBadge">@product.StatusText</span>
+                        </div>
+                        
+                        <div class="card-text">
+                            <div class="mb-2">
+                                <span class="badge bg-info">@product.CategoryName</span>
+                            </div>
+                            
+                            @if (!string.IsNullOrEmpty(product.Description))
+                            {
+                                <p class="small text-muted mb-2">
+                                    @(product.Description.Length > 100 ? product.Description.Substring(0, 100) + "..." : product.Description)
+                                </p>
+                            }
+                            
+                            <div class="row text-center mb-3">
+                                <div class="col-6">
+                                    <div class="border-end">
+                                        <div class="fw-bold text-success">@product.PriceText</div>
+                                        <small class="text-muted">Prix</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="fw-bold @(product.HasCriticalStock ? "text-danger" : product.HasLowStock ? "text-warning" : "text-success")">
+                                        @product.TotalCentersWithStock.ToString("N0")
+                                    </div>
+                                    <small class="text-muted">Stock</small>
+                                </div>
+                            </div>
+                            
+                            @if (product.HasCriticalStock || product.HasLowStock)
+                            {
+                                <div class="alert alert-@(product.HasCriticalStock ? "danger" : "warning") py-2 mb-3">
+                                    <small>
+                                        <i class="fas fa-@(product.HasCriticalStock ? "exclamation-circle" : "exclamation-triangle")"></i>
+                                        Stock @(product.HasCriticalStock ? "critique" : "bas")
+                                    </small>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="btn-group w-100" role="group">
+                            <a asp-action="Details" asp-route-id="@product.Id" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            @if (isSuperAdmin)
+                            {
+                                <a asp-action="Edit" asp-route-id="@product.Id" 
+                                   class="btn btn-sm btn-outline-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-sm btn-outline-secondary"
+                                        onclick="toggleProductStatus(@product.Id, @product.IsActive.ToString().ToLower())">
+                                    <i class="fas fa-@(product.IsActive ? "pause" : "play")"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- CSRF Token -->
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        // Variables globales
+        const isSuperAdmin = @isSuperAdmin.ToString().ToLower();
+        
+        // Fonction pour obtenir le token CSRF
+        function getAntiForgeryToken() {
+            return document.querySelector('input[name="__RequestVerificationToken"]').value;
+        }
+
+        // Switch entre vue table et cartes
+        document.getElementById('tableView').addEventListener('change', function() {
+            if (this.checked) {
+                document.getElementById('tableViewContainer').classList.remove('d-none');
+                document.getElementById('cardViewContainer').classList.add('d-none');
+            }
+        });
+
+        document.getElementById('cardView').addEventListener('change', function() {
+            if (this.checked) {
+                document.getElementById('tableViewContainer').classList.add('d-none');
+                document.getElementById('cardViewContainer').classList.remove('d-none');
+            }
+        });
+
+        // Auto-soumission du formulaire de filtres
+        document.querySelectorAll('#filtersForm select').forEach(select => {
+            select.addEventListener('change', () => {
+                document.getElementById('filtersForm').submit();
+            });
+        });
+        
+        // Soumission sur Enter dans le champ de recherche
+        document.querySelector('input[name="searchTerm"]').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('filtersForm').submit();
+            }
+        });
+
+        // Effacer les filtres
+        function clearFilters() {
+            window.location.href = '@Url.Action("Index")';
+        }
+
+        // Actualiser les données
+        function refreshData() {
+            location.reload();
+        }
+
+        @if (isSuperAdmin)
+        {
+            <text>
+            // Toggle statut produit
+            function toggleProductStatus(productId, isActive) {
+                const action = isActive ? 'désactiver' : 'activer';
+                
+                if (!confirm(`Êtes-vous sûr de vouloir ${action} ce produit ?`)) {
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('id', productId);
+                formData.append('isActive', !isActive);
+                formData.append('__RequestVerificationToken', getAntiForgeryToken());
+
+                fetch('@Url.Action("ToggleStatus")', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        showToast(result.message, 'success');
+                        location.reload();
+                    } else {
+                        showToast(result.message || 'Erreur lors du changement de statut', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showToast('Erreur lors du changement de statut', 'error');
+                });
+            }
+
+            // Supprimer produit
+            function deleteProduct(productId, productName) {
+                if (!confirm(`Êtes-vous sûr de vouloir supprimer le produit "${productName}" ?\n\nCette action est irréversible.`)) {
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('id', productId);
+                formData.append('__RequestVerificationToken', getAntiForgeryToken());
+
+                fetch('@Url.Action("Delete")', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        showToast(result.message, 'success');
+                        location.reload();
+                    } else {
+                        showToast(result.message || 'Erreur lors de la suppression', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showToast('Erreur lors de la suppression', 'error');
+                });
+            }
+            </text>
+        }
+
+        // Afficher historique mouvements
+        function showMovementHistory(productId) {
+            fetch(`@Url.Action("MovementHistory")?id=${productId}`, {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    displayMovementHistory(result.product, result.movements);
+                } else {
+                    showToast(result.message || 'Erreur lors du chargement de l\'historique', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showToast('Erreur lors du chargement de l\'historique', 'error');
+            });
+        }
+
+        function displayMovementHistory(productName, movements) {
+            let html = `
+                <div class="modal fade" id="movementHistoryModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Historique des mouvements - ${productName}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Type</th>
+                                                <th>Quantité</th>
+                                                <th>Centre</th>
+                                                <th>Référence</th>
+                                                <th>Créé par</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+            `;
+
+            movements.forEach(movement => {
+                html += `
+                    <tr>
+                        <td>${movement.date}</td>
+                        <td>
+                            <i class="${movement.icon}"></i>
+                            ${movement.type}
+                        </td>
+                        <td>
+                            <span class="${movement.quantityClass}">${movement.quantity}</span>
+                        </td>
+                        <td>${movement.center}</td>
+                        <td>${movement.reference || '-'}</td>
+                        <td>${movement.createdBy}</td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Supprimer modal existant et créer nouveau
+            const existingModal = document.getElementById('movementHistoryModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            document.body.insertAdjacentHTML('beforeend', html);
+            const modal = new bootstrap.Modal(document.getElementById('movementHistoryModal'));
+            modal.show();
+        }
+
+        // Fonction toast
+        function showToast(message, type) {
+            const existingToasts = document.querySelectorAll('.toast-notification');
+            existingToasts.forEach(toast => toast.remove());
+            
+            const alertClass = type === 'success' ? 'alert-success' : 
+                             type === 'warning' ? 'alert-warning' :
+                             type === 'info' ? 'alert-info' : 'alert-danger';
+            const icon = type === 'success' ? 'fa-check-circle' : 
+                        type === 'warning' ? 'fa-exclamation-triangle' :
+                        type === 'info' ? 'fa-info-circle' : 'fa-exclamation-circle';
+            
+            const toast = document.createElement('div');
+            toast.className = `alert ${alertClass} alert-dismissible fade show position-fixed toast-notification`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 350px;';
+            toast.innerHTML = `
+                <i class="fas ${icon}"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .opacity-75 { opacity: 0.75; }
+        .text-white-50 { color: rgba(255, 255, 255, 0.75); }
+        .text-white-75 { color: rgba(255, 255, 255, 0.75); }
+        .text-dark-50 { color: rgba(0, 0, 0, 0.5); }
+        .text-dark-75 { color: rgba(0, 0, 0, 0.75); }
+        
+        .table-warning { --bs-table-accent-bg: #fff3cd; }
+        .table-danger { --bs-table-accent-bg: #f8d7da; }
+        
+        .table-hover tbody tr:hover {
+            background-color: rgba(0,123,255,0.1);
+        }
+        
+        .btn-group .btn {
+            border-radius: 0.25rem !important;
+            margin-right: 2px;
+        }
+        
+        .btn-group .btn:last-child {
+            margin-right: 0;
+        }
+        
+        .toast-notification {
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        @@keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .card.border-warning {
+            border-color: #ffc107 !important;
+        }
+        
+        .card.border-danger {
+            border-color: #dc3545 !important;
+        }
+        
+        .btn-check:checked + .btn-outline-primary {
+            color: #fff;
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+    </style>
+}

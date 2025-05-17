@@ -49,6 +49,7 @@ namespace HManagSys.Models.ViewModels.Stock
 
         // Informations de stock (pour la vue d'ensemble)
         public int TotalCentersWithStock { get; set; }
+        public decimal TotalWithStock { get; set; }
         public bool HasLowStock { get; set; }
         public bool HasCriticalStock { get; set; }
     }

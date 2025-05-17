@@ -49,102 +49,80 @@ namespace HManagSys.Services.Implementations
         {
             try
             {
-                // Construire la requête avec filtres
-                var query = await _productRepository.QueryListAsync<dynamic>(q =>
-                {
-                    var baseQuery = q.Include(p => p.ProductCategory)
-                                     .Include(p => p.StockInventories)
-                                     .AsQueryable();
+                var totalCount = 0;
 
-                    // Filtre par recherche
+                var products = await _productRepository.QueryListAsync(query =>
+                {
+                    query = query.Include(p => p.ProductCategory).AsQueryable();
+
                     if (!string.IsNullOrWhiteSpace(filters.SearchTerm))
                     {
                         var searchLower = filters.SearchTerm.ToLower();
-                        baseQuery = baseQuery.Where(p =>
+                        query = query.Where(p =>
                             p.Name.ToLower().Contains(searchLower) ||
                             p.ProductCategory.Name.ToLower().Contains(searchLower) ||
                             (p.Description != null && p.Description.ToLower().Contains(searchLower)));
                     }
 
-                    // Filtre par catégorie
                     if (filters.CategoryId.HasValue)
                     {
-                        baseQuery = baseQuery.Where(p => p.ProductCategoryId == filters.CategoryId.Value);
+                        query = query.Where(p => p.ProductCategoryId == filters.CategoryId.Value);
                     }
 
                     // Filtre par statut
                     if (filters.IsActive.HasValue)
                     {
-                        baseQuery = baseQuery.Where(p => p.IsActive == filters.IsActive.Value);
+                        query = query.Where(p => p.IsActive == filters.IsActive.Value);
                     }
 
                     // Filtre par prix
                     if (filters.MinPrice.HasValue)
                     {
-                        baseQuery = baseQuery.Where(p => p.SellingPrice >= filters.MinPrice.Value);
+                        query = query.Where(p => p.SellingPrice >= filters.MinPrice.Value);
                     }
                     if (filters.MaxPrice.HasValue)
                     {
-                        baseQuery = baseQuery.Where(p => p.SellingPrice <= filters.MaxPrice.Value);
+                        query = query.Where(p => p.SellingPrice <= filters.MaxPrice.Value);
                     }
 
                     // Filtre pour stock faible
                     if (filters.ShowLowStockOnly)
                     {
-                        baseQuery = baseQuery.Where(p =>
+                        query = query.Where(p =>
                             p.StockInventories.Any(si =>
                                 si.CurrentQuantity <= (si.MinimumThreshold ?? 0)));
                     }
 
-                    var totalCount = baseQuery.Count();
+                     totalCount = query.Count();
 
                     // Pagination et tri
-                    dynamic products = baseQuery
+                    query = query
                         .OrderBy(p => p.Name)
                         .Skip((filters.PageIndex - 1) * filters.PageSize)
-                        .Take(filters.PageSize)
-                        .Select(p => new
-                        {
-                            Product = p,
-                            TotalCount = totalCount
-                        })
-                        .ToList();
+                        .Take(filters.PageSize);
 
-                    return products;
+                    return query.Select(product => new ProductViewModel
+                    {
+                        Id = product.Id,
+                        Name = product.Name,
+                        Description = product.Description,
+                        CategoryName = product.ProductCategory.Name,
+                        ProductCategoryId = product.ProductCategoryId,
+                        UnitOfMeasure = product.UnitOfMeasure,
+                        SellingPrice = product.SellingPrice,
+                        IsActive = product.IsActive,
+                        CreatedAt = product.CreatedAt,
+                        ModifiedAt = product.ModifiedAt,
+                        TotalWithStock = product.StockInventories.First(x => x.ProductId == product.Id).CurrentQuantity,
+                        TotalCentersWithStock = product.StockInventories.Count(si => si.CurrentQuantity > 0),
+                        HasLowStock = product.StockInventories.Any(si =>
+                            si.CurrentQuantity <= (si.MinimumThreshold ?? 0) && si.CurrentQuantity > 0),
+                        HasCriticalStock = product.StockInventories.Any(si =>
+                            si.CurrentQuantity <= ((si.MinimumThreshold ?? 0) * 0.5m))
+                    });
                 });
 
-                var products = new List<ProductViewModel>();
-                var totalCount = query.FirstOrDefault()?.TotalCount ?? 0;
-
-                foreach (var item in query)
-                {
-                    var p = item.Product;
-                    var viewModel = new ProductViewModel
-                    {
-                        Id = p.Id,
-                        Name = p.Name,
-                        Description = p.Description,
-                        CategoryName = p.ProductCategory.Name,
-                        ProductCategoryId = p.ProductCategoryId,
-                        UnitOfMeasure = p.UnitOfMeasure,
-                        SellingPrice = p.SellingPrice,
-                        IsActive = p.IsActive,
-                        CreatedAt = p.CreatedAt,
-                        ModifiedAt = p.ModifiedAt,
-                        //TotalCentersWithStock = p.StockInventories.Count(si => si.CurrentQuantity > 0),
-                        //HasLowStock = p.StockInventories.Any(si =>
-                        //    si.CurrentQuantity <= (si.MinimumThreshold ?? 0) && si.CurrentQuantity > 0),
-                        //HasCriticalStock = p.StockInventories.Any(si =>
-                        //    si.CurrentQuantity <= ((si.MinimumThreshold ?? 0) * 0.5m))
-                    };
-
-                    products.Add(viewModel);
-                }
-
-                // Charger les noms des créateurs
-                await LoadCreatorNamesAsync(products);
-
-                return (products, totalCount);
+                return (products.ToList(), totalCount);
             }
             catch (Exception ex)
             {
@@ -159,37 +137,33 @@ namespace HManagSys.Services.Implementations
         {
             try
             {
-                var product = await _productRepository.QuerySingleAsync<Product>(q =>
-                    q.Where(p => p.Id == id)
-                     .Include(p => p.ProductCategory)
-                     .Include(p => p.StockInventories)
-                );
-
-                if (product == null) return null;
-
-                var viewModel = new ProductViewModel
+                return  await _productRepository.QuerySingleAsync(query =>
                 {
-                    Id = product.Id,
-                    Name = product.Name,
-                    Description = product.Description,
-                    CategoryName = product.ProductCategory.Name,
-                    ProductCategoryId = product.ProductCategoryId,
-                    UnitOfMeasure = product.UnitOfMeasure,
-                    SellingPrice = product.SellingPrice,
-                    IsActive = product.IsActive,
-                    CreatedAt = product.CreatedAt,
-                    ModifiedAt = product.ModifiedAt,
-                    TotalCentersWithStock = product.StockInventories.Count(si => si.CurrentQuantity > 0),
-                    HasLowStock = product.StockInventories.Any(si =>
-                        si.CurrentQuantity <= (si.MinimumThreshold ?? 0) && si.CurrentQuantity > 0),
-                    HasCriticalStock = product.StockInventories.Any(si =>
-                        si.CurrentQuantity <= ((si.MinimumThreshold ?? 0) * 0.5m))
-                };
+                    query = query.Where(p => p.Id == id)
+                     .Include(p => p.ProductCategory)
+                     .AsSplitQuery();
 
-                // Charger les noms des créateurs
-                await LoadCreatorNamesAsync(new List<ProductViewModel> { viewModel });
+                    return query.Select(p => new ProductViewModel
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        Description = p.Description,
+                        CategoryName = p.ProductCategory.Name,
+                        ProductCategoryId = p.ProductCategoryId,
+                        UnitOfMeasure = p.UnitOfMeasure,
+                        SellingPrice = p.SellingPrice,
+                        IsActive = p.IsActive,
+                        CreatedAt = p.CreatedAt,
+                        ModifiedAt = p.ModifiedAt,
+                        TotalWithStock = p.StockInventories.First(x => x.ProductId == id).CurrentQuantity,
+                        TotalCentersWithStock = p.StockInventories.Count(si => si.CurrentQuantity > 0),
+                        HasLowStock = p.StockInventories.Any(si =>
+                            si.CurrentQuantity <= (si.MinimumThreshold ?? 0) && si.CurrentQuantity > 0),
+                        HasCriticalStock = p.StockInventories.Any(si =>
+                            si.CurrentQuantity <= ((si.MinimumThreshold ?? 0) * 0.5m))
+                    });
+                });
 
-                return viewModel;
             }
             catch (Exception ex)
             {
@@ -843,7 +817,7 @@ namespace HManagSys.Services.Implementations
             return await GetStockAlertsAsync(centerId, "Critical");
         }
 
-        private async Task<List<StockAlertViewModel>> GetStockAlertsAsync(int? centerId = null, string? severity = null)
+        public async Task<List<StockAlertViewModel>> GetStockAlertsAsync(int? centerId = null, string? severity = null)
         {
             return (await _stockInventoryRepository.QueryListAsync<StockAlertViewModel>(q =>
             {
@@ -934,7 +908,7 @@ namespace HManagSys.Services.Implementations
                 };
 
                 // Charger les alertes critiques
-                //overview.CriticalAlerts = await GetStockAlertsAsync(centerId, "Critical");
+                overview.CriticalAlerts = await GetStockAlertsAsync(centerId, "Critical");
 
                 // Charger les mouvements récents
                 overview.RecentMovements = await GetRecentMovementsAsync(centerId, 10);
@@ -979,7 +953,7 @@ namespace HManagSys.Services.Implementations
 
         private async Task<List<ProductStockByCenterViewModel>> GetProductStockByCenterAsync(int productId)
         {
-            return (await _stockInventoryRepository.QueryListAsync<ProductStockByCenterViewModel>(q =>
+            var productStocks =  (await _stockInventoryRepository.QueryListAsync<ProductStockByCenterViewModel>(q =>
                 q.Include(si => si.HospitalCenter)
                  .Include(si => si.Product.StockMovements)
                  .Where(si => si.ProductId == productId)
@@ -991,11 +965,15 @@ namespace HManagSys.Services.Implementations
                      CurrentQuantity = si.CurrentQuantity,
                      MinimumThreshold = si.MinimumThreshold,
                      MaximumThreshold = si.MaximumThreshold,
-                     StockStatus = CalculateStockStatus(si.CurrentQuantity, si.MinimumThreshold, si.MaximumThreshold),
+                     //StockStatus = CalculateStockStatus(si.CurrentQuantity, si.MinimumThreshold, si.MaximumThreshold),
                      LastMovementDate = si.Product.StockMovements
                          .Where(sm => sm.HospitalCenterId == si.HospitalCenterId)
                          .Max(sm => (DateTime?)sm.MovementDate)
                  }))).ToList();
+
+            productStocks.ForEach(x => x.StockStatus = CalculateStockStatus(x.CurrentQuantity, x.MinimumThreshold, x.MaximumThreshold));
+
+            return productStocks;
         }
 
         private string CalculateStockStatus(decimal currentQuantity, decimal? minThreshold, decimal? maxThreshold)
@@ -1104,25 +1082,30 @@ namespace HManagSys.Services.Implementations
         public async Task<List<RecentMovementViewModel>> GetProductMovementHistoryAsync(int productId, int? centerId = null, int days = 30)
         {
             // Implémentation simplifiée pour l'instant
-            return (await _stockMovementRepository.QueryListAsync<RecentMovementViewModel>(q =>
-                q.Include(sm => sm.Product)
-                 .Include(sm => sm.HospitalCenter)
-                 //.Include(sm => sm.CreatedByNavigation)
-                 .Where(sm => sm.ProductId == productId &&
-                       (centerId == null || sm.HospitalCenterId == centerId) &&
-                       sm.MovementDate >= DateTime.Now.AddDays(-days))
-                 .OrderByDescending(sm => sm.MovementDate)
-                 .Select(sm => new RecentMovementViewModel
-                 {
-                     MovementDate = sm.MovementDate,
-                     MovementType = sm.MovementType,
-                     Quantity = sm.Quantity,
-                     CenterName = sm.HospitalCenter.Name,
-                     ReferenceType = sm.ReferenceType,
-                     ReferenceId = sm.ReferenceId,
-                     Notes = sm.Notes,
-                     //CreatedByName = sm.CreatedByNavigation.FirstName + " " + sm.CreatedByNavigation.LastName
-                 }))).ToList();
+            return (await _stockMovementRepository.QueryListAsync(query =>
+                    {
+                        query = query.Include(sm => sm.Product)
+                                     .Include(sm => sm.HospitalCenter);
+
+                        if (centerId.HasValue)
+                            query = query.Where(sm => sm.HospitalCenterId == centerId);
+
+                        query = query.Where(sm => sm.ProductId == productId &&
+                                                       sm.MovementDate >= DateTime.Now.AddDays(-days))
+                                     .OrderByDescending(sm => sm.Id);
+
+                        return query.Select(sm => new RecentMovementViewModel
+                        {
+                            MovementDate = sm.MovementDate,
+                            MovementType = sm.MovementType,
+                            Quantity = sm.Quantity,
+                            CenterName = sm.HospitalCenter.Name,
+                            ReferenceType = sm.ReferenceType,
+                            ReferenceId = sm.ReferenceId,
+                            Notes = sm.Notes,
+                        });
+                 
+                 })).ToList();
         }
 
         public async Task<ProductStatsByCenterViewModel> CalculateProductStatisticsAsync(int productId)
@@ -1147,6 +1130,24 @@ namespace HManagSys.Services.Implementations
 
         public async Task<ProductStatistics> GetProductStatisticsAsync(int? centerId = null)
         {
+            //var ttt = await _stockMovementRepository.QuerySingleAsync(query =>
+            //{
+            //    if(centerId.HasValue)
+            //        query = query.Where(x => x.HospitalCenterId == centerId.Value);
+
+
+            //    return query.Select(x=> new ProductStatistics
+            //    {
+            //        TotalProducts = x.pro.Count(),
+            //        ActiveProducts = x.StockInventories.Count(p => p..IsActive),
+            //        InactiveProducts = x.StockInventories.Count(p => !p.IsActive),
+            //        ProductsWithLowStock = 0, // À calculer
+            //        ProductsWithCriticalStock = 0, // À calculer
+            //        AveragePrice = 0, // À calculer
+            //        CategoriesUsed = 0 // À calculer
+            //    })
+
+            //});
             // Implémentation simplifiée
             return new ProductStatistics
             {
@@ -1185,8 +1186,41 @@ namespace HManagSys.Services.Implementations
 
         private async Task<(List<StockItemViewModel> Items, int TotalCount)> GetFilteredStockItemsAsync(int centerId, StockOverviewFilters filters)
         {
-            // Implémentation simplifiée
-            return (new List<StockItemViewModel>(), 0);
+            var  stockItemViews = (await  _stockInventoryRepository.QueryListAsync(query =>
+            {
+                 query = query.Include(si => si.Product)
+                                 .ThenInclude(p => p.ProductCategory)
+                                 .Where(si => si.HospitalCenterId == centerId);
+
+                if (filters.CategoryId.HasValue)
+                    query = query.Where(x => x.Product.ProductCategoryId == filters.CategoryId.Value);
+
+                if (!string.IsNullOrWhiteSpace(filters.SearchTerm))
+                    query = query.Where(x => x.Product.Name.Contains(filters.SearchTerm));
+
+
+                query = query.Skip((filters.PageIndex - 1) * filters.PageSize)
+                             .Take(filters.PageSize);
+
+                return query.Select(x => new StockItemViewModel
+                {
+                    ProductId = x.ProductId,
+                    ProductName = x.Product.Name,
+                    CategoryName = x.Product.ProductCategory.Name,
+                    UnitOfMeasure = x.Product.UnitOfMeasure,
+                    CurrentQuantity = x.CurrentQuantity,
+                    MinimumThreshold = x.MinimumThreshold,
+                    MaximumThreshold = x.MaximumThreshold,
+                    UnitPrice = x.Product.SellingPrice,
+                    MovementsLast30Days = x.Product.StockMovements.Where(x => x.MovementDate <= DateTime.Now && x.MovementDate > DateTime.Now.AddDays(-30)).Count(),
+                    LastMovementDate = x.Product.StockMovements.Where(x => x.MovementDate <= DateTime.Now && x.MovementDate > DateTime.Now.AddDays(-30)).OrderByDescending(x => x.Id).FirstOrDefault().CreatedAt,
+                });
+
+            })).ToList();
+
+            stockItemViews.ForEach(x => x.StockStatus = CalculateStockStatus(x.CurrentQuantity, x.MinimumThreshold, x.MaximumThreshold));
+
+            return (stockItemViews, stockItemViews.Count);
         }
 
         public async Task<List<RecentStockMovementViewModel>> GetRecentMovementsAsync(int centerId, int limit = 10)
@@ -1246,10 +1280,6 @@ namespace HManagSys.Services.Implementations
             throw new NotImplementedException("À implémenter dans la prochaine itération");
         }
 
-        public Task<List<StockAlertViewModel>> GetStockAlertsAsync(int centerId, string? severity = null)
-        {
-            return GetStockAlertsAsync(centerId, severity);
-        }
 
         public Task<List<ProductSelectViewModel>> SearchProductsAsync(string searchTerm, int? categoryId = null, int? centerId = null)
         {

@@ -13,6 +13,10 @@
         public string StockStatus { get; set; } = string.Empty;
         public DateTime? LastMovementDate { get; set; }
 
+        public bool IsCurrent = true;
+        public bool IsCritical => CurrentQuantity <= 0;
+        public bool IsLow => CurrentQuantity <= MinimumThreshold;
+
         // Propriétés calculées
         public string StatusBadge => StockStatus switch
         {

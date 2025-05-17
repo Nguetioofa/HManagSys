@@ -104,27 +104,46 @@ namespace HManagSys.Services.Implementations
         {
             try
             {
-                var category = await _categoryRepository.GetByIdAsync(id);
-                if (category == null) return null;
 
-                var viewModel = new ProductCategoryViewModel
+                var products = await _categoryRepository.QuerySingleAsync(query =>
                 {
-                    Id = category.Id,
-                    Name = category.Name,
-                    Description = category.Description,
-                    IsActive = category.IsActive,
-                    CreatedAt = category.CreatedAt,
-                    ModifiedAt = category.ModifiedAt
-                };
+                    query = query.Where(p => p.Id == id)
+                         .Include(p => p.Products)
+                         .AsSplitQuery();
 
-                // Compter les produits
-                viewModel.ProductCount = await _productRepository.CountAsync(q =>
-                    q.Where(p => p.ProductCategoryId == id && p.IsActive));
+                    return query.Select(x => new ProductCategoryViewModel
+                    {
+                        Id = x.Id,
+                        Name = x.Name,
+                        Description = x.Description,
+                        IsActive = x.IsActive,
+                        CreatedAt = x.CreatedAt,
+                        ModifiedAt = x.ModifiedAt,
+                        ProductCount = x.Products.Count(),
+                        Products = x.Products.Select(product => new ProductViewModel
+                        {
+                            Id = product.Id,
+                            Name = product.Name,
+                            Description = product.Description,
+                            CategoryName = product.ProductCategory.Name,
+                            ProductCategoryId = product.ProductCategoryId,
+                            UnitOfMeasure = product.UnitOfMeasure,
+                            SellingPrice = product.SellingPrice,
+                            IsActive = product.IsActive,
+                            CreatedAt = product.CreatedAt,
+                            ModifiedAt = product.ModifiedAt,
+                            TotalWithStock = product.StockInventories.First(x=>x.ProductId == product.Id).CurrentQuantity,
+                            TotalCentersWithStock = product.StockInventories.Count(si => si.CurrentQuantity > 0),
+                            HasLowStock = product.StockInventories.Any(si =>
+                                si.CurrentQuantity <= (si.MinimumThreshold ?? 0) && si.CurrentQuantity > 0),
+                            HasCriticalStock = product.StockInventories.Any(si =>
+                                si.CurrentQuantity <= ((si.MinimumThreshold ?? 0) * 0.5m))
+                        }).ToList()
+                    });
 
-                // Charger les noms des créateurs
-                await LoadCreatorNamesAsync(new List<ProductCategoryViewModel> { viewModel });
+                });
 
-                return viewModel;
+                return products;
             }
             catch (Exception ex)
             {
