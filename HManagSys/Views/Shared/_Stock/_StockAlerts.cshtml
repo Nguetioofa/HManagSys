@@ -1,0 +1,33 @@
+﻿@model List<HManagSys.Models.ViewModels.Stock.StockAlertViewModel>
+
+@if (Model.Any())
+{
+    @foreach (var alert in Model.Take(5))
+    {
+        <div class="alert-item p-3 border-bottom">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <strong>@alert.ProductName</strong>
+                    <span class="@alert.SeverityBadge">@alert.SeverityText</span>
+                    <div class="text-muted small">
+                        @alert.AlertMessage
+                    </div>
+                </div>
+                @if (Context.Session.GetString("CurrentRole") == "SuperAdmin" && alert.Severity == "Critical")
+                {
+                    <button class="btn btn-sm btn-outline-primary"
+                            onclick="showQuickInitModal(@alert.ProductId, '@alert.ProductName')">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                }
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="p-3 text-center text-muted">
+        <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
+        <div>Aucune alerte critique</div>
+    </div>
+}

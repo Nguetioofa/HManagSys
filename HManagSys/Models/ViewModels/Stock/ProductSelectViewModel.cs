@@ -11,7 +11,7 @@
         public string UnitOfMeasure { get; set; } = string.Empty;
         public decimal SellingPrice { get; set; }
         public bool IsActive { get; set; }
-
+        public decimal QuantityInStock { get; set; }
         public string DisplayText => $"{Name} ({UnitOfMeasure})";
         public string PriceText => $"{SellingPrice:N0} FCFA";
     }

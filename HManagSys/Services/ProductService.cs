@@ -53,7 +53,7 @@ namespace HManagSys.Services.Implementations
 
                 var products = await _productRepository.QueryListAsync(query =>
                 {
-                    query = query.Include(p => p.ProductCategory).AsQueryable();
+                    query = query.Include(p => p.ProductCategory).AsSplitQuery();
 
                     if (!string.IsNullOrWhiteSpace(filters.SearchTerm))
                     {
@@ -1281,9 +1281,76 @@ namespace HManagSys.Services.Implementations
         }
 
 
-        public Task<List<ProductSelectViewModel>> SearchProductsAsync(string searchTerm, int? categoryId = null, int? centerId = null)
+        public async Task<List<ProductSelectViewModel>> SearchProductsAsync(string searchTerm, int? categoryId = null, int? centerId = null)
         {
-            throw new NotImplementedException("À implémenter dans la prochaine itération");
+            try
+            {
+                var searchTermLower = searchTerm.ToLower().Trim();
+
+                return (await _productRepository.QueryListAsync<ProductSelectViewModel>(q =>
+                {
+                    var query = q.Include(p => p.ProductCategory)
+                                 .Where(p => p.IsActive);
+
+                    // Recherche par nom, catégorie ou description
+                    if (!string.IsNullOrEmpty(searchTermLower))
+                    {
+                        query = query.Where(p =>
+                            p.Name.ToLower().Contains(searchTermLower) ||
+                            p.ProductCategory.Name.ToLower().Contains(searchTermLower) ||
+                            (p.Description != null && p.Description.ToLower().Contains(searchTermLower)));
+                    }
+
+                    // Filtrer par catégorie si spécifiée
+                    if (categoryId.HasValue)
+                    {
+                        query = query.Where(p => p.ProductCategoryId == categoryId.Value);
+                    }
+
+                    // Si un centre est spécifié, inclure les informations de stock pour ce centre
+                    IQueryable<ProductSelectViewModel> projection;
+
+                    if (centerId.HasValue)
+                    {
+                        projection = query.Select(p => new ProductSelectViewModel
+                        {
+                            Id = p.Id,
+                            Name = p.Name,
+                            CategoryName = p.ProductCategory.Name,
+                            UnitOfMeasure = p.UnitOfMeasure,
+                            SellingPrice = p.SellingPrice,
+                            IsActive = p.IsActive,
+                            QuantityInStock = p.StockInventories
+                                .Where(si => si.HospitalCenterId == centerId.Value)
+                                .Select(si => si.CurrentQuantity)
+                                .FirstOrDefault()
+                        });
+                    }
+                    else
+                    {
+                        projection = query.Select(p => new ProductSelectViewModel
+                        {
+                            Id = p.Id,
+                            Name = p.Name,
+                            CategoryName = p.ProductCategory.Name,
+                            UnitOfMeasure = p.UnitOfMeasure,
+                            SellingPrice = p.SellingPrice,
+                            IsActive = p.IsActive
+                        });
+                    }
+
+                    return projection.OrderBy(p => p.Name).Take(20); // Limiter à 20 résultats
+                })).ToList();
+            }
+            catch (Exception ex)
+            {
+                await _appLogger.LogErrorAsync("Product", "SearchProducts",
+                    "Erreur lors de la recherche de produits",
+                    details: new { SearchTerm = searchTerm, CategoryId = categoryId, CenterId = centerId, Error = ex.Message });
+
+                // Retourner une liste vide en cas d'erreur
+                return new List<ProductSelectViewModel>();
+            }
         }
         #endregion
     }

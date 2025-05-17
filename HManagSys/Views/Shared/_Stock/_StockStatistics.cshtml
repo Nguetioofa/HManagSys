@@ -1,0 +1,69 @@
+﻿@model HManagSys.Models.ViewModels.Stock.StockOverviewStatistics
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="card bg-primary text-white h-100">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col">
+                    <p class="text-white-50 small mb-1">Produits en stock</p>
+                    <h3 class="mb-0">@Model.ProductsInStock</h3>
+                    <small class="text-white-75">/@Model.TotalProducts total</small>
+                </div>
+                <div class="col-auto">
+                    <i class="fas fa-boxes fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="card bg-warning text-dark h-100">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col">
+                    <p class="text-dark-50 small mb-1">Alertes stock bas</p>
+                    <h3 class="mb-0">@Model.LowStockAlerts</h3>
+                    <small class="text-dark-75">à surveiller</small>
+                </div>
+                <div class="col-auto">
+                    <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="card bg-danger text-white h-100">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col">
+                    <p class="text-white-50 small mb-1">Stock critique</p>
+                    <h3 class="mb-0">@Model.CriticalStockAlerts</h3>
+                    <small class="text-white-75">action requise</small>
+                </div>
+                <div class="col-auto">
+                    <i class="fas fa-exclamation-circle fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-lg-3 col-md-6 mb-3">
+    <div class="card bg-success text-white h-100">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col">
+                    <p class="text-white-50 small mb-1">Valeur totale</p>
+                    <h3 class="mb-0">@Model.TotalStockValue.ToString("N0") FCFA</h3>
+                    <small class="text-white-75">@Model.MovementsToday mouv./jour</small>
+                </div>
+                <div class="col-auto">
+                    <i class="fas fa-coins fa-2x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

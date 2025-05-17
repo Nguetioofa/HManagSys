@@ -46,6 +46,745 @@
 
     <!-- Statistiques rapides -->
     <div class="row mb-4">
+        <partial name="~/Views/Shared/_Stock/_StockStatistics.cshtml" model="Model.Statistics" />
+    </div>
+
+    <div class="row">
+        <!-- Section principale : Stocks -->
+        <div class="col-lg-8 mb-4">
+            <!-- Filtres -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form method="get" action="@Url.Action("Index")" id="filtersForm">
+                        <div class="row align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label">Recherche produit</label>
+                                <input type="text" class="form-control" name="searchTerm" 
+                                       value="@Model.Filters.SearchTerm" placeholder="Nom du produit...">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Catégorie</label>
+                                <select class="form-select" name="categoryId">
+                                    <option value="">Toutes les catégories</option>
+                                    @foreach (var category in Model.AvailableCategories)
+                                    {
+                                        <option value="@category.Id" selected="@(Model.Filters.CategoryId == category.Id)">
+                                            @category.Name
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Statut du stock</label>
+                                <select class="form-select" name="stockStatus">
+                                    <option value="">Tous</option>
+                                    <option value="Critical" selected="@(Model.Filters.StockStatus == "Critical")">Stock critique</option>
+                                    <option value="Low" selected="@(Model.Filters.StockStatus == "Low")">Stock bas</option>
+                                    <option value="Normal" selected="@(Model.Filters.StockStatus == "Normal")">Stock normal</option>
+                                    <option value="High" selected="@(Model.Filters.StockStatus == "High")">Stock élevé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-primary me-2">
+                                    <i class="fas fa-search"></i>
+                                    Filtrer
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Liste des stocks -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list"></i>
+                        État des Stocks
+                        <span class="badge bg-secondary ms-2">@(Model.StockItems?.Count ?? 0)</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.StockItems != null && Model.StockItems.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Produit</th>
+                                        <th>Stock actuel</th>
+                                        <th>Seuils</th>
+                                        <th>Statut</th>
+                                        <th>Valeur</th>
+                                        <th>Derniers mouvements</th>
+                                        @if (isSuperAdmin)
+                                        {
+                                            <th>Actions</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.StockItems)
+                                    {
+                                        <tr id="stock-@item.ProductId" class="@(item.NeedsAttention ? "table-warning" : "")">
+                                            <td>
+                                                <div>
+                                                    <strong>@item.ProductName</strong>
+                                                    <small class="text-muted d-block">@item.CategoryName</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold">@item.QuantityText</span>
+                                                @if (item.NeedsAttention)
+                                                {
+                                                    <i class="@item.StatusIcon ms-1" title="@item.StatusText"></i>
+                                                }
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">@item.ThresholdText</small>
+                                            </td>
+                                            <td>
+                                                <span class="@item.StatusBadge">@item.StatusText</span>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold">@item.TotalValueText</span>
+                                                <small class="text-muted d-block">@item.UnitPrice.ToString("N0") FCFA/unité</small>
+                                            </td>
+                                            <td>
+                                                <small>
+                                                    @item.LastMovementText<br>
+                                                    <span class="text-muted">@item.MovementsLast30Days mvt/30j</span>
+                                                </small>
+                                            </td>
+                                            @if (isSuperAdmin)
+                                            {
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <button class="btn btn-sm btn-outline-primary" 
+                                                                onclick="showAdjustStockModal(@item.ProductId, '@item.ProductName', '@item.UnitOfMeasure')"
+                                                                title="Ajuster le stock">
+                                                            <i class="fas fa-adjust"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-secondary" 
+                                                                onclick="showUpdateThresholdsModal(@item.ProductId, '@item.ProductName', '@item.UnitOfMeasure', @(item.MinimumThreshold ?? 0), @(item.MaximumThreshold ?? 0))"
+                                                                title="Modifier les seuils">
+                                                            <i class="fas fa-sliders-h"></i>
+                                                        </button>
+                                                        @if (item.CanRequestTransfer)
+                                                        {
+                                                            <button class="btn btn-sm btn-outline-info" 
+                                                                    onclick="requestTransfer(@item.ProductId, '@item.ProductName')"
+                                                                    title="Demander un transfert">
+                                                                <i class="fas fa-exchange-alt"></i>
+                                                            </button>
+                                                        }
+                                                    </div>
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination if needed -->
+                        @if (Model.Pagination.TotalPages > 1)
+                        {
+                            <div class="card-footer">
+                                <nav aria-label="Navigation des stocks">
+                                    <ul class="pagination justify-content-center mb-0">
+                                        <!-- Pagination similaire aux autres vues -->
+                                    </ul>
+                                </nav>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Aucun stock trouvé</h5>
+                            <p class="text-muted">Aucun produit ne correspond aux critères sélectionnés.</p>
+                            @if (isSuperAdmin)
+                            {
+                                <a asp-action="InitialSetup" class="btn btn-primary">
+                                    <i class="fas fa-cog"></i>
+                                    Configurer le stock initial
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne latérale : Alertes et activités -->
+        <div class="col-lg-4">
+            <!-- Alertes critiques -->
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Alertes Critiques
+                        <span class="badge bg-light text-dark ms-2" id="criticalAlertsCount">@Model.CriticalAlerts.Count</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="criticalAlertsList">
+                        <partial name="~/Views/Shared/_Stock/_StockAlerts.cshtml" model="Model.CriticalAlerts" />
+                        
+                        @if (Model.CriticalAlerts.Count > 5)
+                        {
+                            <div class="p-3 text-center">
+                                <button class="btn btn-sm btn-outline-danger" onclick="showAllAlerts()">
+                                    Voir toutes les alertes (@Model.CriticalAlerts.Count)
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mouvements récents -->
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history"></i>
+                        Mouvements Récents
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div id="recentMovementsList">
+                        <partial name="~/Views/Shared/_Stock/_RecentMovements.cshtml" model="Model.RecentMovements" />
+                    </div>
+                </div>
+                <div class="card-footer text-center">
+                    <button class="btn btn-sm btn-outline-info" onclick="loadMoreMovements()">
+                        <i class="fas fa-plus"></i>
+                        Charger plus
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Token CSRF pour les requêtes AJAX -->
+@Html.AntiForgeryToken()
+
+<!-- Modals -->
+@if (isSuperAdmin)
+{
+    <partial name="~/Views/Shared/_Stock/_AdjustStockModal.cshtml" />
+    <partial name="~/Views/Shared/_Stock/_UpdateThresholdsModal.cshtml" />
+    
+    <!-- Modal d'initialisation rapide -->
+    <div class="modal fade" id="quickInitModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Initialisation rapide</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="quickInitForm">
+                        <input type="hidden" id="quickInitProductId">
+                        <div class="mb-3">
+                            <label class="form-label">Produit</label>
+                            <input type="text" class="form-control" id="quickInitProductName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Quantité initiale</label>
+                            <input type="number" class="form-control" id="quickInitQuantity" min="0" step="0.01" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Seuil minimum</label>
+                                    <input type="number" class="form-control" id="quickInitMinThreshold" min="0" step="0.01">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Seuil maximum</label>
+                                    <input type="number" class="form-control" id="quickInitMaxThreshold" min="0" step="0.01">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-success" onclick="executeQuickInit()">
+                        <i class="fas fa-check"></i>
+                        Initialiser
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Variables globales
+        const isSuperAdmin = @isSuperAdmin.ToString().ToLower();
+        
+        // Fonction pour obtenir le token CSRF
+        function getAntiForgeryToken() {
+            return document.querySelector('input[name="__RequestVerificationToken"]').value;
+        }
+
+        // Actualiser les données
+        function refreshData() {
+            showLoadingSpinner();
+            location.reload();
+        }
+
+        // Effacer les filtres
+        function clearFilters() {
+            window.location.href = '@Url.Action("Index")';
+        }
+
+        // Auto-soumission du formulaire de filtres
+        document.querySelectorAll('#filtersForm select, #filtersForm input[type="checkbox"]').forEach(element => {
+            element.addEventListener('change', () => {
+                document.getElementById('filtersForm').submit();
+            });
+        });
+
+        // Soumission sur Enter dans le champ de recherche
+        document.querySelector('input[name="searchTerm"]').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('filtersForm').submit();
+            }
+        });
+
+        @if (isSuperAdmin)
+        {
+            <text>
+            // Fonctions SuperAdmin
+            function showAdjustStockModal(productId, productName, unitOfMeasure) {
+                document.getElementById('adjustProductId').value = productId;
+                document.getElementById('adjustProductName').value = productName;
+                document.getElementById('adjustUnitOfMeasure').textContent = unitOfMeasure;
+                document.getElementById('adjustQuantity').value = '';
+                document.getElementById('adjustReason').value = '';
+                
+                const modal = new bootstrap.Modal(document.getElementById('adjustStockModal'));
+                modal.show();
+            }
+
+            function submitAdjustStock() {
+                const productId = document.getElementById('adjustProductId').value;
+                const quantity = parseFloat(document.getElementById('adjustQuantity').value) || 0;
+                const reason = document.getElementById('adjustReason').value.trim();
+                
+                if (quantity === 0) {
+                    showToast('Veuillez spécifier une quantité non nulle', 'error');
+                    return;
+                }
+                
+                if (!reason) {
+                    showToast('Une raison d\'ajustement est requise', 'error');
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('productId', productId);
+                formData.append('quantity', quantity);
+                formData.append('reason', reason);
+                formData.append('__RequestVerificationToken', getAntiForgeryToken());
+                
+                fetch('@Url.Action("AdjustStock")', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        showToast(result.message, 'success');
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('adjustStockModal'));
+                        modal.hide();
+                        
+                        // Rafraîchir la page après un court délai
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        showToast(result.message || 'Erreur lors de l\'ajustement', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showToast('Erreur lors de l\'ajustement du stock', 'error');
+                });
+            }
+
+            function showUpdateThresholdsModal(productId, productName, unitOfMeasure, minThreshold, maxThreshold) {
+                document.getElementById('thresholdProductId').value = productId;
+                document.getElementById('thresholdProductName').value = productName;
+                document.getElementById('thresholdUnitOfMeasure').textContent = unitOfMeasure;
+                document.getElementById('thresholdUnitOfMeasure2').textContent = unitOfMeasure;
+                document.getElementById('minThreshold').value = minThreshold || '';
+                document.getElementById('maxThreshold').value = maxThreshold || '';
+                
+                const modal = new bootstrap.Modal(document.getElementById('updateThresholdsModal'));
+                modal.show();
+            }
+
+            function submitUpdateThresholds() {
+                const productId = document.getElementById('thresholdProductId').value;
+                const minThreshold = document.getElementById('minThreshold').value.trim() ? 
+                                    parseFloat(document.getElementById('minThreshold').value) : null;
+                const maxThreshold = document.getElementById('maxThreshold').value.trim() ? 
+                                    parseFloat(document.getElementById('maxThreshold').value) : null;
+                
+                if (minThreshold !== null && maxThreshold !== null && minThreshold >= maxThreshold) {
+                    showToast('Le seuil minimum doit être inférieur au seuil maximum', 'error');
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('productId', productId);
+                if (minThreshold !== null) formData.append('minThreshold', minThreshold);
+                if (maxThreshold !== null) formData.append('maxThreshold', maxThreshold);
+                formData.append('__RequestVerificationToken', getAntiForgeryToken());
+                
+                fetch('@Url.Action("UpdateThresholds")', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        showToast(result.message, 'success');
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('updateThresholdsModal'));
+                        modal.hide();
+                        
+                        // Rafraîchir la page après un court délai
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        showToast(result.message || 'Erreur lors de la mise à jour', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showToast('Erreur lors de la mise à jour des seuils', 'error');
+                });
+            }
+
+            function executeQuickInit() {
+                const productId = document.getElementById('quickInitProductId').value;
+                const quantity = parseFloat(document.getElementById('quickInitQuantity').value);
+                const minThreshold = document.getElementById('quickInitMinThreshold').value || null;
+                const maxThreshold = document.getElementById('quickInitMaxThreshold').value || null;
+
+                if (!quantity || quantity < 0) {
+                    showToast('Veuillez entrer une quantité valide', 'error');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('productId', productId);
+                formData.append('quantity', quantity);
+                if (minThreshold) formData.append('minThreshold', minThreshold);
+                if (maxThreshold) formData.append('maxThreshold', maxThreshold);
+                formData.append('__RequestVerificationToken', getAntiForgeryToken());
+
+                fetch('@Url.Action("QuickInitialize")', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        showToast(result.message, 'success');
+                        bootstrap.Modal.getInstance(document.getElementById('quickInitModal')).hide();
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showToast(result.message || 'Erreur lors de l\'initialisation', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showToast('Erreur lors de l\'initialisation', 'error');
+                });
+            }
+
+            function requestTransfer(productId, productName) {
+                // Rediriger vers la page de demande de transfert (à implémenter)
+                showToast('Fonctionnalité de transfert à implémenter', 'info');
+            }
+            </text>
+        }
+
+        // Afficher toutes les alertes
+        function showAllAlerts() {
+            fetch('@Url.Action("Alerts")', {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    displayAllAlerts(result.alerts);
+                } else {
+                    showToast('Erreur lors du chargement des alertes', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showToast('Erreur lors du chargement des alertes', 'error');
+            });
+        }
+
+        function displayAllAlerts(alerts) {
+            let html = '';
+            alerts.forEach(alert => {
+                html += `
+                    <div class="alert-item p-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>${alert.productName}</strong>
+                                <span class="${alert.severityBadge}">${alert.severity}</span>
+                                <div class="text-muted small">${alert.message}</div>
+                                <div class="text-muted small">Catégorie: ${alert.category}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('criticalAlertsList').innerHTML = html;
+            document.getElementById('criticalAlertsCount').textContent = alerts.length;
+        }
+
+        // Charger plus de mouvements
+        function loadMoreMovements() {
+            fetch('@Url.Action("RecentMovements")?limit=50', {
+                method: 'GET'
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    displayRecentMovements(result.movements);
+                } else {
+                    showToast('Erreur lors du chargement des mouvements', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showToast('Erreur lors du chargement des mouvements', 'error');
+            });
+        }
+
+        function displayRecentMovements(movements) {
+            let html = '';
+            movements.forEach(movement => {
+                html += `
+                    <div class="movement-item p-3 border-bottom">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="${movement.icon} fa-lg"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-bold">${movement.product}</div>
+                                <div class="small text-muted">
+                                    ${movement.type}
+                                    <span class="${movement.quantityClass}">${movement.quantity}</span>
+                                </div>
+                                <div class="small text-muted">
+                                    ${movement.date} ${movement.time}
+                                    ${movement.createdBy ? '• ' + movement.createdBy : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('recentMovementsList').innerHTML = html;
+        }
+
+        // Fonction utilitaire pour les notifications
+        function showToast(message, type) {
+            // Implementation similaire aux autres vues
+            const existingToasts = document.querySelectorAll('.toast-notification');
+            existingToasts.forEach(toast => toast.remove());
+            
+            const alertClass = type === 'success' ? 'alert-success' : 
+                             type === 'warning' ? 'alert-warning' :
+                             type === 'info' ? 'alert-info' : 'alert-danger';
+            const icon = type === 'success' ? 'fa-check-circle' : 
+                        type === 'warning' ? 'fa-exclamation-triangle' :
+                        type === 'info' ? 'fa-info-circle' : 'fa-exclamation-circle';
+            
+            const toast = document.createElement('div');
+            toast.className = `alert ${alertClass} alert-dismissible fade show position-fixed toast-notification`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 350px;';
+            toast.innerHTML = `
+                <i class="fas ${icon}"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+
+        function showLoadingSpinner() {
+            // Afficher un spinner de chargement
+            const spinner = document.createElement('div');
+            spinner.className = 'position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center';
+            spinner.style.backgroundColor = 'rgba(0,0,0,0.5)';
+            spinner.style.zIndex = '9999';
+            spinner.innerHTML = `
+                <div class="spinner-border text-light" role="status">
+                    <span class="visually-hidden">Chargement...</span>
+                </div>
+            `;
+            document.body.appendChild(spinner);
+        }
+
+        // Initialisation au chargement de la page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Actualiser les alertes au chargement
+            showAllAlerts();
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .opacity-75 { opacity: 0.75; }
+        .text-white-50 { color: rgba(255, 255, 255, 0.75); }
+        .text-white-75 { color: rgba(255, 255, 255, 0.75); }
+        .text-dark-50 { color: rgba(0, 0, 0, 0.5); }
+        .text-dark-75 { color: rgba(0, 0, 0, 0.75); }
+        
+        .table-warning {
+            --bs-table-accent-bg: #fff3cd;
+        }
+        
+        .alert-item:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+        
+        .movement-item:hover {
+            background-color: rgba(0,123,255,0.05);
+        }
+        
+        .btn-group .btn {
+            border-radius: 0.25rem !important;
+            margin-right: 2px;
+        }
+        
+        .btn-group .btn:last-child {
+            margin-right: 0;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        
+        .card-header {
+            border-radius: 0.75rem 0.75rem 0 0 !important;
+        }
+        
+        .toast-notification {
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        @@keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Amélioration visuelle des modales */
+        .modal-content {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        
+        .modal-header {
+            border-bottom: 1px solid #e9ecef;
+            border-radius: 0.75rem 0.75rem 0 0;
+        }
+        
+        .modal-footer {
+            border-top: 1px solid #e9ecef;
+            border-radius: 0 0 0.75rem 0.75rem;
+        }
+    </style>
+}
+
+
+@* @model HManagSys.Models.ViewModels.Stock.StockOverviewViewModel
+@{
+    ViewData["Title"] = "Tableau de Bord des Stocks";
+    var isSuperAdmin = Model.CurrentUserRole == "SuperAdmin";
+}
+
+<div class="container-fluid">
+    <!-- En-tête avec titre et actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="fas fa-boxes text-primary"></i>
+                        Tableau de Bord des Stocks
+                    </h1>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-hospital"></i>
+                        @Model.CurrentCenterName
+                        <span class="ms-3">
+                            <i class="fas fa-user-tag"></i>
+                            @Model.CurrentUserRole
+                        </span>
+                    </p>
+                </div>
+                <div class="d-flex gap-2">
+                    @if (isSuperAdmin)
+                    {
+                        <a asp-action="InitialSetup" class="btn btn-warning">
+                            <i class="fas fa-cog"></i>
+                            Configuration initiale
+                        </a>
+                        <a asp-controller="Product" asp-action="Create" class="btn btn-success">
+                            <i class="fas fa-plus"></i>
+                            Nouveau produit
+                        </a>
+                    }
+                    <button type="button" class="btn btn-outline-primary" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i>
+                        Actualiser
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques rapides -->
+    <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="card bg-primary text-white h-100">
                 <div class="card-body">
@@ -933,4 +1672,4 @@
             border-radius: 0 0 0.75rem 0.75rem;
         }
     </style>
-}
+} *@

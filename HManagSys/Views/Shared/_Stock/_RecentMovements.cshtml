@@ -1,0 +1,36 @@
+﻿@model List<HManagSys.Models.ViewModels.Stock.RecentStockMovementViewModel>
+
+@if (Model.Any())
+{
+    @foreach (var movement in Model)
+    {
+        <div class="movement-item p-3 border-bottom">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="@movement.MovementIcon fa-lg"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="fw-bold">@movement.ProductName</div>
+                    <div class="small text-muted">
+                        @movement.MovementTypeText
+                        <span class="@movement.QuantityClass">@movement.QuantityText</span>
+                    </div>
+                    <div class="small text-muted">
+                        @movement.DateText @movement.TimeText
+                        @if (!string.IsNullOrEmpty(movement.CreatedByName))
+                        {
+                            <span>• @movement.CreatedByName</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="p-3 text-center text-muted">
+        <i class="fas fa-clock fa-2x mb-2"></i>
+        <div>Aucun mouvement récent</div>
+    </div>
+}
