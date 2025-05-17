@@ -135,7 +135,7 @@ public interface IGenericRepository<TEntity> where TEntity : class, IEntity
     /// <summary>
     /// Exécute une requête personnalisée retournant une liste
     /// </summary>
-    Task<IList<TResult>> QueryListAsync<TResult>(
+    Task<List<TResult>> QueryListAsync<TResult>(
         Func<IQueryable<TEntity>, IQueryable<TResult>> queryBuilder)
         where TResult : class;
 

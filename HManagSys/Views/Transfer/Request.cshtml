@@ -1,0 +1,511 @@
+﻿@model HManagSys.Models.ViewModels.Stock.TransferRequestViewModel
+@{
+    ViewData["Title"] = "Demande de Transfert";
+}
+
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-exchange-alt"></i>
+                    Transferts
+                </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Nouvelle demande</li>
+        </ol>
+    </nav>
+
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="fas fa-plus-circle text-success"></i>
+                        Nouvelle Demande de Transfert
+                    </h1>
+                    <p class="text-muted mb-0">Créer une demande de transfert de produits entre centres</p>
+                </div>
+                <div>
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Retour à la liste
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire de création -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i>
+                        Informations du transfert
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Request" method="post" id="transferRequestForm">
+                        @Html.AntiForgeryToken()
+
+                        <!-- Centre source -->
+                        <div class="mb-4">
+                            <label asp-for="FromHospitalCenterId" class="form-label required">
+                                <i class="fas fa-hospital text-primary"></i>
+                                Centre source
+                            </label>
+                            <input type="text" class="form-control" 
+                                   value="@Model.AvailableCenters.FirstOrDefault(c => c.Value == Model.FromHospitalCenterId.ToString())?.Text" 
+                                   readonly />
+                            <input asp-for="FromHospitalCenterId" type="hidden" />
+                            <div class="form-text">
+                                <i class="fas fa-info-circle text-info"></i>
+                                Centre à partir duquel les produits seront transférés
+                            </div>
+                        </div>
+
+                        <!-- Centre destination -->
+                        <div class="mb-4">
+                            <label asp-for="ToHospitalCenterId" class="form-label required">
+                                <i class="fas fa-hospital-alt text-success"></i>
+                                Centre destination
+                            </label>
+                            <select asp-for="ToHospitalCenterId" class="form-select">
+                                <option value="">-- Sélectionner un centre --</option>
+                                @foreach (var center in Model.AvailableCenters)
+                                {
+                                    <option value="@center.Value">@center.Text</option>
+                                }
+                            </select>
+                            <span asp-validation-for="ToHospitalCenterId" class="text-danger small"></span>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle text-info"></i>
+                                Centre qui recevra les produits
+                            </div>
+                        </div>
+
+                        <!-- Produit -->
+                        <div class="mb-4">
+                            <label asp-for="ProductId" class="form-label required">
+                                <i class="fas fa-cube text-warning"></i>
+                                Produit
+                            </label>
+                            <select asp-for="ProductId" class="form-select" id="productSelector">
+                                <option value="">-- Sélectionner un produit --</option>
+                                @foreach (var product in Model.AvailableProducts)
+                                {
+                                    <option value="@product.Value">
+@*                                             @(Model.ProductId.ToString() == product.Value ? "selected" : "")>
+ *@                                        @product.Text
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="ProductId" class="text-danger small"></span>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle text-info"></i>
+                                Produit à transférer
+                            </div>
+                        </div>
+
+                        <!-- Informations produit -->
+                        <div class="card mb-4 bg-light" id="productInfoCard" style="@(Model.ProductId > 0 ? "" : "display: none;")">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="fas fa-info-circle text-primary"></i>
+                                    Informations sur le produit
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Produit:</strong> <span id="productNameDisplay">@Model.ProductName</span></p>
+                                        <p class="mb-0"><strong>Unité:</strong> <span id="unitOfMeasureDisplay">@Model.UnitOfMeasure</span></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1">
+                                            <strong>Stock disponible:</strong> 
+                                            <span id="availableQuantityDisplay" class="@(Model.AvailableQuantity > 0 ? "text-success" : "text-danger") fw-bold">
+                                                @Model.AvailableQuantity.ToString("N2") @Model.UnitOfMeasure
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quantité -->
+                        <div class="mb-4">
+                            <label asp-for="Quantity" class="form-label required">
+                                <i class="fas fa-balance-scale text-info"></i>
+                                Quantité
+                            </label>
+                            <div class="input-group">
+                                <input asp-for="Quantity" class="form-control" type="number" step="0.01" min="0.01"
+                                       placeholder="0.00" id="quantityInput">
+                                <span class="input-group-text" id="unitDisplay">@Model.UnitOfMeasure</span>
+                            </div>
+                            <span asp-validation-for="Quantity" class="text-danger small"></span>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle text-info"></i>
+                                Quantité à transférer
+                            </div>
+                            <!-- Alerte si quantité trop élevée -->
+                            <div class="alert alert-danger mt-2" id="quantityWarning" style="display: none;">
+                                <small>
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    La quantité demandée est supérieure au stock disponible.
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Motif -->
+                        <div class="mb-4">
+                            <label asp-for="TransferReason" class="form-label">
+                                <i class="fas fa-comment-alt text-secondary"></i>
+                                Motif du transfert
+                            </label>
+                            <textarea asp-for="TransferReason" class="form-control" rows="3"
+                                      placeholder="Motif de la demande de transfert..."></textarea>
+                            <span asp-validation-for="TransferReason" class="text-danger small"></span>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle text-info"></i>
+                                Raison pour laquelle ce transfert est nécessaire
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Index" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-times"></i>
+                                Annuler
+                            </a>
+                            <button type="submit" class="btn btn-success" id="submitButton">
+                                <span id="submitSpinner" class="spinner-border spinner-border-sm d-none me-2"></span>
+                                <i class="fas fa-save"></i>
+                                Créer la demande
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aide contextuelle -->
+    <div class="row mt-4">
+        <div class="col-lg-8 col-xl-6 mx-auto">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="fas fa-lightbulb text-warning"></i>
+                        Informations sur les transferts
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="mb-0 small">
+                                <li><strong>Workflow de transfert:</strong> Demande → Approbation → Exécution</li>
+                                <li><strong>Approbation:</strong> Requise par un SuperAdmin du centre source</li>
+                                <li><strong>Exécution:</strong> Après approbation, le transfert peut être réalisé</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="mb-0 small">
+                                <li><strong>Quantité:</strong> Ne peut pas dépasser le stock disponible</li>
+                                <li><strong>Motif:</strong> Utile pour justifier la demande</li>
+                                <li><strong>Annulation:</strong> Possible avant la complétion</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @* Validation côté client *@
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        // Variables globales
+        let availableQuantity = @(Model.AvailableQuantity);
+        let currentUnitOfMeasure = '@Model.UnitOfMeasure';
+        
+        // Gestion du changement de produit
+        document.getElementById('productSelector').addEventListener('change', function() {
+            const productId = this.value;
+            if (!productId) {
+                // Masquer les informations produit si aucun produit sélectionné
+                document.getElementById('productInfoCard').style.display = 'none';
+                document.getElementById('unitDisplay').textContent = '';
+                return;
+            }
+            
+            // Afficher un spinner pendant le chargement
+            document.getElementById('productInfoCard').style.display = 'block';
+            document.getElementById('productNameDisplay').innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div>';
+            document.getElementById('unitOfMeasureDisplay').innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div>';
+            document.getElementById('availableQuantityDisplay').innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div>';
+            
+            // Récupérer les informations du produit via AJAX
+            fetch(`@Url.Action("GetProductInfo")?productId=${productId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Mettre à jour les informations du produit
+                        document.getElementById('productNameDisplay').textContent = data.productName;
+                        document.getElementById('unitOfMeasureDisplay').textContent = data.unitOfMeasure;
+                        document.getElementById('availableQuantityDisplay').textContent = data.availableQuantityFormatted;
+                        document.getElementById('unitDisplay').textContent = data.unitOfMeasure;
+                        
+                        // Mettre à jour les variables globales
+                        availableQuantity = data.availableQuantity;
+                        currentUnitOfMeasure = data.unitOfMeasure;
+                        
+                        // Mettre à jour la classe de disponibilité
+                        const availableElement = document.getElementById('availableQuantityDisplay');
+                        if (data.availableQuantity > 0) {
+                            availableElement.classList.remove('text-danger');
+                            availableElement.classList.add('text-success');
+                        } else {
+                            availableElement.classList.remove('text-success');
+                            availableElement.classList.add('text-danger');
+                        }
+                        
+                        // Vérifier la quantité actuelle
+                        validateQuantity();
+                    } else {
+                        // Afficher une erreur
+                        showToast(data.message || 'Erreur lors de la récupération des informations du produit', 'error');
+                        document.getElementById('productInfoCard').style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showToast('Erreur lors de la récupération des informations du produit', 'error');
+                    document.getElementById('productInfoCard').style.display = 'none';
+                });
+        });
+        
+        // Validation de la quantité
+        function validateQuantity() {
+            const quantityInput = document.getElementById('quantityInput');
+            const quantityWarning = document.getElementById('quantityWarning');
+            const quantity = parseFloat(quantityInput.value);
+            
+            if (isNaN(quantity) || quantity <= 0) {
+                // Quantité invalide
+                quantityWarning.style.display = 'none';
+                return;
+            }
+            
+            if (quantity > availableQuantity) {
+                // Quantité supérieure au stock disponible
+                quantityWarning.style.display = 'block';
+                quantityInput.classList.add('is-invalid');
+            } else {
+                // Quantité valide
+                quantityWarning.style.display = 'none';
+                quantityInput.classList.remove('is-invalid');
+            }
+        }
+        
+        document.getElementById('quantityInput').addEventListener('input', validateQuantity);
+        
+        // Validation du formulaire
+        document.getElementById('transferRequestForm').addEventListener('submit', function(e) {
+            const submitButton = document.getElementById('submitButton');
+            const spinner = document.getElementById('submitSpinner');
+            
+            // Vérifier si la quantité est valide
+            const quantity = parseFloat(document.getElementById('quantityInput').value);
+            if (quantity > availableQuantity) {
+                e.preventDefault();
+                showToast('La quantité demandée dépasse le stock disponible', 'error');
+                return;
+            }
+            
+            // Désactiver le bouton et afficher le spinner
+            submitButton.disabled = true;
+            spinner.classList.remove('d-none');
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Création en cours...';
+            
+            // Validation finale
+            if (!validateForm()) {
+                e.preventDefault();
+                // Réactiver le bouton
+                submitButton.disabled = false;
+                spinner.classList.add('d-none');
+                submitButton.innerHTML = '<i class="fas fa-save"></i> Créer la demande';
+                return false;
+            }
+        });
+        
+        // Fonction de validation complète
+        function validateForm() {
+            let isValid = true;
+            const fields = [
+                { id: 'ToHospitalCenterId', required: true },
+                { id: 'ProductId', required: true },
+                { id: 'Quantity', required: true, min: 0.01 }
+            ];
+            
+            fields.forEach(field => {
+                const element = document.getElementById(field.id);
+                if (!element) return;
+                
+                let fieldValid = true;
+                let errorMessage = '';
+                
+                // Validation required
+                if (field.required && (!element.value || element.value.trim() === '')) {
+                    fieldValid = false;
+                    errorMessage = 'Ce champ est obligatoire';
+                }
+                
+                // Validation min pour les nombres
+                if (fieldValid && field.min !== undefined && parseFloat(element.value) < field.min) {
+                    fieldValid = false;
+                    errorMessage = `La valeur doit être supérieure à ${field.min}`;
+                }
+                
+                if (!fieldValid) {
+                    element.classList.add('is-invalid');
+                    showFieldError(element, errorMessage);
+                    isValid = false;
+                } else {
+                    element.classList.remove('is-invalid');
+                    hideFieldError(element);
+                }
+            });
+            
+            return isValid;
+        }
+        
+        // Fonctions utilitaires pour les erreurs
+        function showFieldError(element, message) {
+            // Supprimer l'erreur existante
+            hideFieldError(element);
+            
+            // Créer le message d'erreur
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'invalid-feedback';
+            errorDiv.textContent = message;
+            element.parentNode.appendChild(errorDiv);
+        }
+        
+        function hideFieldError(element) {
+            const existingError = element.parentNode.querySelector('.invalid-feedback');
+            if (existingError) {
+                existingError.remove();
+            }
+        }
+        
+        // Fonction toast
+        function showToast(message, type) {
+            const existingToasts = document.querySelectorAll('.toast-notification');
+            existingToasts.forEach(toast => toast.remove());
+            
+            const alertClass = type === 'success' ? 'alert-success' : 
+                             type === 'warning' ? 'alert-warning' :
+                             type === 'info' ? 'alert-info' : 'alert-danger';
+            const icon = type === 'success' ? 'fa-check-circle' : 
+                        type === 'warning' ? 'fa-exclamation-triangle' :
+                        type === 'info' ? 'fa-info-circle' : 'fa-exclamation-circle';
+            
+            const toast = document.createElement('div');
+            toast.className = `alert ${alertClass} alert-dismissible fade show position-fixed toast-notification`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 350px;';
+            toast.innerHTML = `
+                <i class="fas ${icon}"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+        
+        // Amélioration UX : Focus sur le premier champ au chargement
+        window.addEventListener('load', function() {
+            document.getElementById('ToHospitalCenterId').focus();
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .required::after {
+            content: '*';
+            color: #dc3545;
+            margin-left: 4px;
+        }
+
+        .form-control-lg {
+            font-size: 1.125rem;
+            padding: 0.75rem 1rem;
+        }
+
+        .card-header.bg-success {
+            background-color: #198754 !important;
+        }
+
+        .form-text {
+            margin-top: 0.5rem;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: var(--bs-breadcrumb-divider, ">");
+        }
+
+        /* Amélioration des styles des champs invalides */
+        .form-control.is-invalid, .form-select.is-invalid {
+            border-color: #dc3545;
+            padding-right: calc(1.5em + 0.75rem);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 3.6.7.7-1.4 1.4 1.4 1.4-.7.7L4.4 6l1.4-1.4z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+
+        /* Animation du bouton de soumission */
+        .btn:disabled {
+            opacity: 0.65;
+        }
+
+        /* Amélioration des cartes */
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        .card-header {
+            border-radius: 0.75rem 0.75rem 0 0 !important;
+        }
+
+        /* Focus amélioré */
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #86b7fe;
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        
+        /* Toast notification */
+        .toast-notification {
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        @@keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
+}

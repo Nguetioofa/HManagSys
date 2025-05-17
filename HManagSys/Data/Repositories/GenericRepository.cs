@@ -475,7 +475,7 @@ namespace HManagSys.Data.Repositories
             }
         }
 
-        public virtual async Task<IList<TResult>> QueryListAsync<TResult>(
+        public virtual async Task<List<TResult>> QueryListAsync<TResult>(
             Func<IQueryable<TEntity>, IQueryable<TResult>> queryBuilder)
             where TResult : class
         {

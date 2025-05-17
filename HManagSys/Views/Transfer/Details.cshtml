@@ -1,0 +1,571 @@
+﻿@model HManagSys.Models.ViewModels.Stock.TransferViewModel
+@{
+    ViewData["Title"] = "Détails du Transfert";
+    var isSuperAdmin = ViewContext.HttpContext.Session.GetString("CurrentRole") == "SuperAdmin";
+    var canApprove = (bool?)ViewBag.CanApprove ?? false;
+}
+
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-exchange-alt"></i>
+                    Transferts
+                </a>
+            </li>
+            <li class="breadcrumb-item active" aria-current="page">Détails du transfert #@Model.Id</li>
+        </ol>
+    </nav>
+
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="fas fa-exchange-alt text-primary"></i>
+                        Transfert #@Model.Id
+                        <span class="badge @Model.StatusBadgeClass ms-2">@Model.StatusText</span>
+                    </h1>
+                    <p class="text-muted mb-0">Demandé le @Model.RequestDate.ToString("dd/MM/yyyy HH:mm")</p>
+                </div>
+                <div>
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Retour à la liste
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenu principal -->
+    <div class="row">
+        <!-- Colonne de gauche: informations principales -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i>
+                        Informations du transfert
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary">Produit</h6>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    <i class="fas fa-box fa-2x text-secondary"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">@Model.ProductName</h5>
+                                    <p class="text-muted mb-0">Catégorie: @Model.ProductCategory</p>
+                                </div>
+                            </div>
+                            <p class="mb-0">
+                                <strong>Quantité:</strong> 
+                                <span class="@(Model.HasEnoughStock ? "text-success" : "text-danger") fw-bold">
+                                    @Model.QuantityText
+                                </span>
+                                @if (!Model.HasEnoughStock)
+                                {
+                                    <span class="badge bg-danger ms-2">Stock insuffisant</span>
+                                }
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary">Centres</h6>
+                            <div class="d-flex flex-column">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-arrow-right text-danger me-2"></i>
+                                    <strong>Depuis:</strong>
+                                    <span class="ms-2">@Model.FromHospitalCenterName</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-arrow-left text-success me-2"></i>
+                                    <strong>Vers:</strong>
+                                    <span class="ms-2">@Model.ToHospitalCenterName</span>
+                                </div>
+                            </div>
+                            <hr />
+                            <p>
+                                <strong>Stock actuel (source):</strong>
+                                <span class="@(Model.HasEnoughStock ? "text-success" : "text-danger") fw-bold">
+                                    @Model.SourceStockQuantity.ToString("N2") @Model.UnitOfMeasure
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.TransferReason))
+                    {
+                        <div class="card bg-light mb-4">
+                            <div class="card-body">
+                                <h6 class="fw-bold text-primary">Motif du transfert</h6>
+                                <p class="mb-0">@Model.TransferReason</p>
+                            </div>
+                        </div>
+                    }
+
+                    <h6 class="fw-bold text-primary">Chronologie</h6>
+                    <div class="timeline mt-3">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-primary"></div>
+                            <div class="timeline-content">
+                                <h6 class="mb-0">Demande créée</h6>
+                                <p class="small text-muted mb-0">@Model.RequestDate.ToString("dd/MM/yyyy HH:mm")</p>
+                                <p class="small mb-0">Par: @Model.RequestedByName</p>
+                            </div>
+                        </div>
+
+                        @if (Model.ApprovedDate.HasValue)
+                        {
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-success"></div>
+                                <div class="timeline-content">
+                                    <h6 class="mb-0">Transfert approuvé</h6>
+                                    <p class="small text-muted mb-0">@Model.ApprovedDate.Value.ToString("dd/MM/yyyy HH:mm")</p>
+                                    <p class="small mb-0">Par: @Model.ApprovedByName</p>
+                                    @if (!string.IsNullOrEmpty(Model.ApprovalComments))
+                                    {
+                                        <p class="small fst-italic mt-2">"@Model.ApprovalComments"</p>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (Model.CompletedDate.HasValue)
+                        {
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-info"></div>
+                                <div class="timeline-content">
+                                    <h6 class="mb-0">Transfert complété</h6>
+                                    <p class="small text-muted mb-0">@Model.CompletedDate.Value.ToString("dd/MM/yyyy HH:mm")</p>
+                                </div>
+                            </div>
+                        }
+                        else if (Model.Status == "Rejected")
+                        {
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-danger"></div>
+                                <div class="timeline-content">
+                                    <h6 class="mb-0">Transfert rejeté</h6>
+@*                                     <p class="small text-muted mb-0">@(Model.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Date inconnue")</p>
+ *@                                </div>
+                            </div>
+                        }
+                        else if (Model.Status == "Cancelled")
+                        {
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-secondary"></div>
+                                <div class="timeline-content">
+                                    <h6 class="mb-0">Transfert annulé</h6>
+@*                                     <p class="small text-muted mb-0">@(Model.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Date inconnue")</p>
+ *@                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne de droite: actions et statut -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-tasks"></i>
+                        Statut et Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-center mb-4">
+                        <div class="status-indicator @Model.StatusBadgeClass">
+                            <i class="fas @(Model.Status switch {
+                                "Requested" => "fa-clock",
+                                "Pending" => "fa-hourglass-half",
+                                "Approved" => "fa-thumbs-up",
+                                "Completed" => "fa-check-double",
+                                "Rejected" => "fa-times",
+                                "Cancelled" => "fa-ban",
+                                _ => "fa-question"
+                            })"></i>
+                        </div>
+                        <div class="ms-3">
+                            <h5 class="mb-0">@Model.StatusText</h5>
+                            <p class="text-muted mb-0">
+                                @(Model.Status switch {
+                                    "Requested" => "En attente d'approbation",
+                                    "Pending" => "En attente de traitement",
+                                    "Approved" => "Prêt à être complété",
+                                    "Completed" => "Transfert terminé",
+                                    "Rejected" => "Demande rejetée",
+                                    "Cancelled" => "Demande annulée",
+                                    _ => "Statut inconnu"
+                                })
+                            </p>
+                        </div>
+                    </div>
+
+                    @if (Model.Status is "Requested" or "Pending" or "Approved")
+                    {
+                        <div class="alert @(Model.HasEnoughStock ? "alert-info" : "alert-danger")">
+                            <div class="d-flex">
+                                <div class="me-3">
+                                    <i class="fas @(Model.HasEnoughStock ? "fa-info-circle fa-2x" : "fa-exclamation-triangle fa-2x")"></i>
+                                </div>
+                                <div>
+                                    @if (Model.HasEnoughStock)
+                                    {
+                                        <h6 class="alert-heading">Stock suffisant</h6>
+                                        <p class="mb-0">Le centre source dispose de @Model.SourceStockQuantity.ToString("N2") @Model.UnitOfMeasure, suffisant pour ce transfert.</p>
+                                    }
+                                    else
+                                    {
+                                        <h6 class="alert-heading">Stock insuffisant</h6>
+                                        <p class="mb-0">Le centre source ne dispose que de @Model.SourceStockQuantity.ToString("N2") @Model.UnitOfMeasure, ce qui est insuffisant pour ce transfert de @Model.Quantity.ToString("N2") @Model.UnitOfMeasure.</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (isSuperAdmin)
+                    {
+                        <div class="d-grid gap-2 mt-4">
+                            @if (Model.CanBeApproved && canApprove)
+                            {
+                                <button type="button" class="btn btn-success" onclick="showApprovalModal()">
+                                    <i class="fas fa-check"></i>
+                                    Approuver
+                                </button>
+                            }
+                            
+                            @if (Model.CanBeRejected && canApprove)
+                            {
+                                <button type="button" class="btn btn-danger" onclick="showRejectModal()">
+                                    <i class="fas fa-times"></i>
+                                    Rejeter
+                                </button>
+                            }
+                            
+                            @if (Model.CanBeCompleted)
+                            {
+                                <button type="button" class="btn btn-primary" onclick="showCompleteModal()">
+                                    <i class="fas fa-check-double"></i>
+                                    Compléter le transfert
+                                </button>
+                            }
+                            
+                            @if (Model.CanBeCancelled)
+                            {
+                                <button type="button" class="btn btn-secondary" onclick="showCancelModal()">
+                                    <i class="fas fa-ban"></i>
+                                    Annuler
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user-circle"></i>
+                        Personnes impliquées
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <div class="avatar-circle bg-primary">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Demandé par</h6>
+                                <p class="mb-0">@Model.RequestedByName</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    @if (Model.ApprovedByName != null)
+                    {
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <div class="avatar-circle bg-success">
+                                        <i class="fas fa-user-check"></i>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0">Approuvé par</h6>
+                                    <p class="mb-0">@Model.ApprovedByName</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals pour les actions -->
+@if (isSuperAdmin)
+{
+    <!-- Modal d'approbation -->
+    <div class="modal fade" id="approvalModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-check-circle"></i>
+                        Approuver le transfert
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form asp-action="Approve" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="comments" class="form-label">Commentaires</label>
+                            <textarea class="form-control" name="comments" id="approvalComments" rows="3" 
+                                      required placeholder="Commentaires d'approbation..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-success">Approuver</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de rejet -->
+    <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-times-circle"></i>
+                        Rejeter le transfert
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form asp-action="Reject" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Motif du rejet</label>
+                            <textarea class="form-control" name="reason" id="rejectReason" rows="3" 
+                                      required placeholder="Motif du rejet..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-danger">Rejeter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de complétion -->
+    <div class="modal fade" id="completeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-check-double"></i>
+                        Compléter le transfert
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form asp-action="Complete" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <div class="alert alert-info">
+                                <h6 class="alert-heading">Information importante</h6>
+                                <p>Cette action va exécuter le transfert physique des produits entre les centres.</p>
+                                <p>Le stock sera décrémenté du centre source et incrémenté dans le centre destination.</p>
+                                @if (Model.SourceStockQuantity < Model.Quantity)
+                                {
+                                    <div class="alert alert-danger mt-3">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <strong>Attention :</strong> Le stock actuel du centre source est insuffisant. Ce transfert ne peut pas être complété.
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary" @(Model.SourceStockQuantity < Model.Quantity ? "disabled" : "")>Compléter le transfert</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal d'annulation -->
+    <div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-secondary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-ban"></i>
+                        Annuler le transfert
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form asp-action="Cancel" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Motif de l'annulation</label>
+                            <textarea class="form-control" name="reason" id="cancelReason" rows="3" 
+                                      required placeholder="Motif de l'annulation..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                        <button type="submit" class="btn btn-danger">Annuler le transfert</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Fonctions pour les modales
+        function showApprovalModal() {
+            const modal = new bootstrap.Modal(document.getElementById('approvalModal'));
+            modal.show();
+        }
+
+        function showRejectModal() {
+            const modal = new bootstrap.Modal(document.getElementById('rejectModal'));
+            modal.show();
+        }
+
+        function showCompleteModal() {
+            const modal = new bootstrap.Modal(document.getElementById('completeModal'));
+            modal.show();
+        }
+
+        function showCancelModal() {
+            const modal = new bootstrap.Modal(document.getElementById('cancelModal'));
+            modal.show();
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        /* Timeline style */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+            margin-bottom: 30px;
+        }
+
+        .timeline:before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background: #e9ecef;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .timeline-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: -30px;
+            top: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #007bff;
+            border: 3px solid #fff;
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+        }
+
+        .timeline-content {
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #e9ecef;
+        }
+
+        .timeline-item:last-child .timeline-content {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        /* Status indicator */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        /* Person avatar */
+        .avatar-circle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            color: white;
+            font-size: 1rem;
+        }
+
+        /* Card shadows */
+        .card.shadow {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+        }
+
+        /* Alert icons */
+        .alert i.fa-2x {
+            font-size: 2rem;
+        }
+        
+        /* Card header radius */
+        .card-header {
+            border-radius: 0.75rem 0.75rem 0 0 !important;
+        }
+        
+        .card {
+            border-radius: 0.75rem;
+            border: none;
+        }
+    </style>
+}

@@ -35,6 +35,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 // Services métier - Stock
 builder.Services.AddScoped<IProductCategoryService, ProductCategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ITransferService, TransferService>();
 // builder.Services.AddScoped<IStockService, StockService>(); // À ajouter plus tard
 
 

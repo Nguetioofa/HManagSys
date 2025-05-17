@@ -1,0 +1,515 @@
+﻿@model HManagSys.Models.ViewModels.Stock.TransferHistoryViewModel
+@{
+    ViewData["Title"] = "Historique des Transferts";
+    var isSuperAdmin = ViewContext.HttpContext.Session.GetString("CurrentRole") == "SuperAdmin";
+}
+
+<div class="container-fluid">
+    <!-- En-tête avec titre et actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1">
+                        <i class="fas fa-history text-primary"></i>
+                        Historique des Transferts
+                    </h1>
+                    <p class="text-muted mb-0">Consulter l'historique complet des transferts</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Retour au tableau de bord
+                    </a>
+                    @if (isSuperAdmin)
+                    {
+                        <a asp-action="Request" class="btn btn-success">
+                            <i class="fas fa-plus"></i>
+                            Nouvelle demande
+                        </a>
+                    }
+                    <button type="button" class="btn btn-outline-primary" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i>
+                        Actualiser
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques simplifiées -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body py-2">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-exchange-alt fa-2x opacity-75"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">@Model.Statistics.TotalTransfers</h3>
+                            <small>Total des transferts</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body py-2">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-check-circle fa-2x opacity-75"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">@Model.Statistics.CompletedTransfers</h3>
+                            <small>Transferts complétés</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body py-2">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-hourglass-half fa-2x opacity-75"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">@(Model.Statistics.PendingTransfers + Model.Statistics.ApprovedTransfers)</h3>
+                            <small>En attente d'exécution</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body py-2">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-times-circle fa-2x opacity-75"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0">@(Model.Statistics.RejectedTransfers + Model.Statistics.CancelledTransfers)</h3>
+                            <small>Rejetés ou annulés</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres avancés -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="@Url.Action("History")" id="filtersForm">
+                <div class="row align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label">Statut</label>
+                        <select class="form-select" name="Status">
+                            <option value="">Tous</option>
+                            <option value="Requested" selected="@(Model.Filters.Status == "Requested")">Demandés</option>
+                            <option value="Pending" selected="@(Model.Filters.Status == "Pending")">En attente</option>
+                            <option value="Approved" selected="@(Model.Filters.Status == "Approved")">Approuvés</option>
+                            <option value="Completed" selected="@(Model.Filters.Status == "Completed")">Complétés</option>
+                            <option value="Rejected" selected="@(Model.Filters.Status == "Rejected")">Rejetés</option>
+                            <option value="Cancelled" selected="@(Model.Filters.Status == "Cancelled")">Annulés</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Centre source</label>
+                        <select class="form-select" name="FromCenterId">
+                            <option value="">Tous</option>
+                            @foreach (var center in Model.AvailableCenters)
+                            {
+                                <option value="@center.Value" selected="@(Model.Filters.FromCenterId == int.Parse(center.Value))">
+                                    @center.Text
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Centre destination</label>
+                        <select class="form-select" name="ToCenterId">
+                            <option value="">Tous</option>
+                            @foreach (var center in Model.AvailableCenters)
+                            {
+                                <option value="@center.Value" selected="@(Model.Filters.ToCenterId == int.Parse(center.Value))">
+                                    @center.Text
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Produit</label>
+                        <select class="form-select" name="ProductId">
+                            <option value="">Tous</option>
+                            @foreach (var product in Model.AvailableProducts)
+                            {
+                                <option value="@product.Value" selected="@(Model.Filters.ProductId == int.Parse(product.Value))">
+                                    @product.Text
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Période</label>
+                        <select class="form-select" name="Days">
+                            <option value="7" selected="@(Model.Filters.Days == 7)">7 jours</option>
+                            <option value="30" selected="@(Model.Filters.Days == 30 || Model.Filters.Days == 0)">30 jours</option>
+                            <option value="90" selected="@(Model.Filters.Days == 90)">3 mois</option>
+                            <option value="180" selected="@(Model.Filters.Days == 180)">6 mois</option>
+                            <option value="365" selected="@(Model.Filters.Days == 365)">1 an</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" name="OnlyMyRequests" value="true" id="onlyMyRequests" checked="@Model.Filters.OnlyMyRequests">
+                            <label class="form-check-label" for="onlyMyRequests">Mes demandes</label>
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearFilters()">
+                            <i class="fas fa-times"></i>
+                            Effacer les filtres
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tableau des transferts -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-list"></i>
+                Historique des Transferts
+                <span class="badge bg-secondary ms-2">@Model.Pagination.TotalCount</span>
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Transfers.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Produit</th>
+                                <th>Quantité</th>
+                                <th>Source → Destination</th>
+                                <th>Date demande</th>
+                                <th>Statut</th>
+                                <th>Dernière MAJ</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var transfer in Model.Transfers)
+                            {
+                                <tr>
+                                    <td>@transfer.Id</td>
+                                    <td>
+                                        <strong>@transfer.ProductName</strong>
+                                        <div class="small text-muted">@transfer.ProductCategory</div>
+                                    </td>
+                                    <td>@transfer.QuantityText</td>
+                                    <td>
+                                        <span class="text-danger">@transfer.FromHospitalCenterName</span>
+                                        <i class="fas fa-arrow-right mx-1 text-secondary"></i>
+                                        <span class="text-success">@transfer.ToHospitalCenterName</span>
+                                    </td>
+                                    <td>@transfer.RequestDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>
+                                        <span class="badge @transfer.StatusBadgeClass">@transfer.StatusText</span>
+                                    </td>
+                                    <td>
+                                        @if (transfer.CompletedDate.HasValue)
+                                        {
+                                            @transfer.CompletedDate.Value.ToString("dd/MM/yyyy")
+                                        }
+                                        else if (transfer.ApprovedDate.HasValue)
+                                        {
+                                            @transfer.ApprovedDate.Value.ToString("dd/MM/yyyy")
+                                        }
+                                        else
+                                        {
+                                            @transfer.RequestDate.ToString("dd/MM/yyyy")
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a asp-action="Details" asp-route-id="@transfer.Id" 
+                                                class="btn btn-sm btn-outline-primary" title="Détails">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            @if (isSuperAdmin)
+                                            {
+                                                @if (transfer.CanBeCompleted)
+                                                {
+                                                    <a asp-action="Details" asp-route-id="@transfer.Id" 
+                                                       class="btn btn-sm btn-outline-success" title="Compléter">
+                                                        <i class="fas fa-check-double"></i>
+                                                    </a>
+                                                }
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                @if (Model.Pagination.TotalPages > 1)
+                {
+                    <div class="card-footer">
+                        <nav aria-label="Navigation des transferts">
+                            <ul class="pagination justify-content-center mb-0">
+                                <li class="page-item @(!Model.Pagination.HasPreviousPage ? "disabled" : "")">
+                                    <a class="page-link" href="@Url.Action("History", new { 
+                                        pageIndex = Model.Pagination.PreviousPage, 
+                                        Model.Filters.Status, 
+                                        Model.Filters.FromCenterId,
+                                        Model.Filters.ToCenterId,
+                                        Model.Filters.ProductId,
+                                        Model.Filters.Days,
+                                        Model.Filters.OnlyMyRequests
+                                    })">
+                                        <i class="fas fa-chevron-left"></i>
+                                        Précédent
+                                    </a>
+                                </li>
+                                
+                                @for (int i = Math.Max(1, Model.Pagination.CurrentPage - 2); 
+                                      i <= Math.Min(Model.Pagination.TotalPages, Model.Pagination.CurrentPage + 2); 
+                                      i++)
+                                {
+                                    <li class="page-item @(i == Model.Pagination.CurrentPage ? "active" : "")">
+                                        <a class="page-link" href="@Url.Action("History", new { 
+                                            pageIndex = i, 
+                                            Model.Filters.Status, 
+                                            Model.Filters.FromCenterId,
+                                            Model.Filters.ToCenterId,
+                                            Model.Filters.ProductId,
+                                            Model.Filters.Days,
+                                            Model.Filters.OnlyMyRequests
+                                        })">
+                                            @i
+                                        </a>
+                                    </li>
+                                }
+                                
+                                <li class="page-item @(!Model.Pagination.HasNextPage ? "disabled" : "")">
+                                    <a class="page-link" href="@Url.Action("History", new { 
+                                        pageIndex = Model.Pagination.NextPage, 
+                                        Model.Filters.Status, 
+                                        Model.Filters.FromCenterId,
+                                        Model.Filters.ToCenterId,
+                                        Model.Filters.ProductId,
+                                        Model.Filters.Days,
+                                        Model.Filters.OnlyMyRequests
+                                    })">
+                                        Suivant
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                        <div class="text-center text-muted mt-2">
+                            Affichage de @((Model.Pagination.CurrentPage - 1) * Model.Pagination.PageSize + 1) à 
+                            @(Math.Min(Model.Pagination.CurrentPage * Model.Pagination.PageSize, Model.Pagination.TotalCount)) 
+                            sur @Model.Pagination.TotalCount transferts
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Aucun transfert trouvé</h5>
+                    <p class="text-muted mb-4">
+                        @if (Model.Filters.Status != null || Model.Filters.FromCenterId != null || Model.Filters.ToCenterId != null || Model.Filters.ProductId != null)
+                        {
+                            <text>Aucun transfert ne correspond aux critères sélectionnés.</text>
+                        }
+                        else
+                        {
+                            <text>Aucun historique de transfert n'est disponible pour le moment.</text>
+                        }
+                    </p>
+                    @if (isSuperAdmin)
+                    {
+                        <a asp-action="Request" class="btn btn-primary">
+                            <i class="fas fa-plus"></i>
+                            Créer une demande de transfert
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Tableau des produits les plus transférés -->
+    @if (Model.Statistics.TopTransferredProducts.Any())
+    {
+        <div class="row mt-4">
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-cube"></i>
+                            Produits les plus transférés
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Produit</th>
+                                        <th>Transferts</th>
+                                        <th>Quantité totale</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var product in Model.Statistics.TopTransferredProducts)
+                                    {
+                                        <tr>
+                                            <td>@product.ProductName</td>
+                                            <td>@product.TransferCount</td>
+                                            <td>@product.TotalQuantity.ToString("N2") @product.UnitOfMeasure</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-hospital"></i>
+                            Centres les plus actifs
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-sm mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Centre source</th>
+                                        <th>Transferts sortants</th>
+                                        <th>Centre destination</th>
+                                        <th>Transferts entrants</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        var maxRows = Math.Max(
+                                            Model.Statistics.TopSourceCenters.Count, 
+                                            Model.Statistics.TopDestinationCenters.Count);
+
+                                        for (int i = 0; i < maxRows; i++)
+                                        {
+                                            <tr>
+                                                @if (i < Model.Statistics.TopSourceCenters.Count)
+                                                {
+                                                    <td>@Model.Statistics.TopSourceCenters[i].CenterName</td>
+                                                    <td>@Model.Statistics.TopSourceCenters[i].TransferCount</td>
+                                                }
+                                                else
+                                                {
+                                                    <td>-</td>
+                                                    <td>-</td>
+                                                }
+
+                                                @if (i < Model.Statistics.TopDestinationCenters.Count)
+                                                {
+                                                    <td>@Model.Statistics.TopDestinationCenters[i].CenterName</td>
+                                                    <td>@Model.Statistics.TopDestinationCenters[i].TransferCount</td>
+                                                }
+                                                else
+                                                {
+                                                    <td>-</td>
+                                                    <td>-</td>
+                                                }
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-soumission du formulaire de filtres
+        document.querySelectorAll('#filtersForm select').forEach(select => {
+            select.addEventListener('change', () => {
+                document.getElementById('filtersForm').submit();
+            });
+        });
+        
+        document.querySelector('#onlyMyRequests').addEventListener('change', () => {
+            document.getElementById('filtersForm').submit();
+        });
+
+        // Effacer les filtres
+        function clearFilters() {
+            window.location.href = '@Url.Action("History")';
+        }
+
+        // Actualiser les données
+        function refreshData() {
+            location.reload();
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .opacity-75 { opacity: 0.75; }
+        .table-hover tbody tr:hover {
+            background-color: rgba(0,123,255,0.1);
+        }
+        
+        .btn-group .btn {
+            border-radius: 0.25rem !important;
+            margin-right: 2px;
+        }
+        
+        .btn-group .btn:last-child {
+            margin-right: 0;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        .card-header {
+            border-radius: 0.75rem 0.75rem 0 0 !important;
+        }
+    </style>
+}
