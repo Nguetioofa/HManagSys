@@ -1,0 +1,481 @@
+﻿@using HManagSys.Models.ViewModels.Patients
+@model PatientDetailsViewModel
+
+@{
+    ViewData["Title"] = $"Patient - {Model.FullName}";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-user-injured"></i> Dossier Patient
+        </h1>
+        <div>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Retour à la liste
+            </a>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+                <i class="fas fa-edit"></i> Modifier
+            </a>
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown">
+                    <i class="fas fa-plus"></i> Actions
+                </button>
+                <div class="dropdown-menu dropdown-menu-right">
+                    <a asp-action="AddDiagnosis" asp-route-patientId="@Model.Id" class="dropdown-item">
+                        <i class="fas fa-stethoscope fa-fw"></i> Nouveau diagnostic
+                    </a>
+                    <a asp-controller="Prescription" asp-action="Create" asp-route-patientId="@Model.Id" class="dropdown-item">
+                        <i class="fas fa-prescription fa-fw"></i> Nouvelle prescription
+                    </a>
+                    <a asp-controller="Examination" asp-action="Create" asp-route-patientId="@Model.Id" class="dropdown-item">
+                        <i class="fas fa-microscope fa-fw"></i> Nouvel examen
+                    </a>
+                    <a asp-controller="CareEpisode" asp-action="Create" asp-route-patientId="@Model.Id" class="dropdown-item">
+                        <i class="fas fa-procedures fa-fw"></i> Nouvel épisode de soins
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a asp-action="History" asp-route-id="@Model.Id" class="dropdown-item">
+                        <i class="fas fa-history fa-fw"></i> Voir l'historique complet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Entête avec info patient -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h2 class="h4 font-weight-bold text-primary">
+                        @Model.FullName
+                        <span class="badge @(Model.IsActive ? "badge-success" : "badge-secondary")">
+                            @(Model.IsActive ? "Actif" : "Inactif")
+                        </span>
+                    </h2>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>ID:</strong> @Model.Id</p>
+                            <p class="mb-1">
+                                <strong>Âge/Genre:</strong>
+                                @if (Model.Age.HasValue)
+                                {
+                                    <span>@Model.Age ans</span>
+                                }
+                                else
+                                {
+                                    <span>Non spécifié</span>
+                                }
+                                - @(Model.Gender ?? "Non spécifié")
+                            </p>
+                            <p class="mb-1">
+                                <strong>Date de naissance:</strong>
+                                @(Model.DateOfBirth?.ToString("dd/MM/yyyy") ?? "Non spécifiée")
+                            </p>
+                            <p class="mb-1">
+                                <strong>Groupe sanguin:</strong>
+                                @if (!string.IsNullOrEmpty(Model.BloodType))
+                                {
+                                    <span class="badge badge-danger">@Model.BloodType</span>
+                                }
+                                else
+                                {
+                                    <span>Non spécifié</span>
+                                }
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Téléphone:</strong> @Model.PhoneNumber</p>
+                            <p class="mb-1">
+                                <strong>Email:</strong>
+                                @if (!string.IsNullOrEmpty(Model.Email))
+                                {
+                                    <a href="mailto:@Model.Email">@Model.Email</a>
+                                }
+                                else
+                                {
+                                    <span>Non spécifié</span>
+                                }
+                            </p>
+                            <p class="mb-1">
+                                <strong>Adresse:</strong>
+                                @(Model.Address ?? "Non spécifiée")
+                            </p>
+                            <p class="mb-1">
+                                <strong>Contact d'urgence:</strong>
+                                @if (!string.IsNullOrEmpty(Model.EmergencyContactName))
+                                {
+                                    <span>@Model.EmergencyContactName</span>
+                                    @if (!string.IsNullOrEmpty(Model.EmergencyContactPhone))
+                                    {
+                                        <span> - @Model.EmergencyContactPhone</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span>Non spécifié</span>
+                                }
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-left-primary h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                Diagnostics
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.Diagnoses.Count</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-stethoscope fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-left-info h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                Visites
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalVisits</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="card border-left-warning h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                Dernière visite
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                @(Model.LastVisitDate?.ToString("dd/MM/yyyy") ?? "Jamais")
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-history fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-left-success h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                Dépenses totales
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                @Model.TotalSpent.ToString("N0") FCFA
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Allergies))
+            {
+                <div class="alert alert-warning mt-3 mb-0">
+                    <h6 class="font-weight-bold"><i class="fas fa-exclamation-triangle"></i> Allergies</h6>
+                    <p class="mb-0">@Model.Allergies</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Onglets avec dossier médical -->
+    <div class="card shadow mb-4">
+        <div class="card-header p-0">
+            <ul class="nav nav-tabs" id="patientDetailsTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="diagnoses-tab" data-toggle="tab" href="#diagnoses" role="tab">
+                        <i class="fas fa-stethoscope"></i> Diagnostics
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="care-tab" data-toggle="tab" href="#care" role="tab">
+                        <i class="fas fa-procedures"></i> Épisodes de soins
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="exams-tab" data-toggle="tab" href="#exams" role="tab">
+                        <i class="fas fa-microscope"></i> Examens
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="prescriptions-tab" data-toggle="tab" href="#prescriptions" role="tab">
+                        <i class="fas fa-prescription"></i> Prescriptions
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="patientDetailsContent">
+                <!-- Diagnostics -->
+                <div class="tab-pane fade show active" id="diagnoses" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">Diagnostics médicaux</h5>
+                        <a asp-action="AddDiagnosis" asp-route-patientId="@Model.Id" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-plus"></i> Nouveau diagnostic
+                        </a>
+                    </div>
+
+                    @if (Model.Diagnoses.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Diagnostic</th>
+                                        <th>Description</th>
+                                        <th>Sévérité</th>
+                                        <th>Médecin</th>
+                                        <th>Centre</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var diagnosis in Model.Diagnoses.OrderByDescending(d => d.DiagnosisDate))
+                                    {
+                                        <tr>
+                                            <td>@diagnosis.DiagnosisDate.ToString("dd/MM/yyyy")</td>
+                                            <td>
+                                                <strong>@diagnosis.DiagnosisName</strong>
+                                                @if (!string.IsNullOrEmpty(diagnosis.DiagnosisCode))
+                                                {
+                                                    <span class="badge badge-light ml-1">@diagnosis.DiagnosisCode</span>
+                                                }
+                                            </td>
+                                            <td>@(diagnosis.Description ?? "-")</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(diagnosis.Severity))
+                                                {
+                                                    <span class="badge badge-@(diagnosis.SeverityClass.Replace("text-", ""))">
+                                                        @diagnosis.Severity
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span>-</span>
+                                                }
+                                            </td>
+                                            <td>@diagnosis.DiagnosedByName</td>
+                                            <td>@diagnosis.HospitalCenterName</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Aucun diagnostic enregistré pour ce patient.
+                        </div>
+                    }
+                </div>
+
+                <!-- Épisodes de soins -->
+                <div class="tab-pane fade" id="care" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">Épisodes de soins</h5>
+                        <a asp-controller="CareEpisode" asp-action="Create" asp-route-patientId="@Model.Id" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-plus"></i> Nouvel épisode de soins
+                        </a>
+                    </div>
+
+                    @if (Model.CareEpisodes.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date début</th>
+                                        <th>Date fin</th>
+                                        <th>Diagnostic</th>
+                                        <th>Statut</th>
+                                        <th>Soignant</th>
+                                        <th>Centre</th>
+                                        <th>Coût</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var episode in Model.CareEpisodes.OrderByDescending(e => e.EpisodeStartDate))
+                                    {
+                                        <tr>
+                                            <td>@episode.EpisodeStartDate.ToString("dd/MM/yyyy")</td>
+                                            <td>@(episode.EpisodeEndDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                            <td>@episode.DiagnosisName</td>
+                                            <td>
+                                                <span class="badge badge-@(episode.Status == "Active" ? "success" :
+                                                                                                                            episode.Status == "Interrupted" ? "warning" : "secondary")">
+                                            @episode.Status
+                                        </span>
+                                    </td>
+                                    <td>@episode.PrimaryCaregiverName</td>
+                                    <td>@episode.HospitalCenterName</td>
+                                    <td>@episode.TotalCost.ToString("N0") FCFA</td>
+                                    <td>
+                                        <a asp-controller="CareEpisode" asp-action="Details" asp-route-id="@episode.Id"
+                                           class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Aucun épisode de soins enregistré pour ce patient.
+                        </div>
+                    }
+                </div>
+
+                <!-- Examens -->
+                <div class="tab-pane fade" id="exams" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">Examens médicaux</h5>
+                        <a asp-controller="Examination" asp-action="Create" asp-route-patientId="@Model.Id" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-plus"></i> Nouvel examen
+                        </a>
+                    </div>
+
+                    @if (Model.Examinations.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date demande</th>
+                                        <th>Type d'examen</th>
+                                        <th>Statut</th>
+                                        <th>Date réalisation</th>
+                                        <th>Prix</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var exam in Model.Examinations.OrderByDescending(e => e.RequestDate))
+                                    {
+                                        <tr>
+                                            <td>@exam.RequestDate.ToString("dd/MM/yyyy")</td>
+                                            <td>@exam.ExaminationTypeName</td>
+                                            <td>
+                                                <span class="badge badge-@(exam.Status == "Completed" ? "success" :
+                                                                                                                            exam.Status == "Scheduled" ? "info" :
+                                                                                                                            exam.Status == "Requested" ? "warning" : "secondary")">
+                                            @exam.Status
+                                        </span>
+                                    </td>
+                                    <td>@(exam.PerformedDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                    <td>@exam.FinalPrice.ToString("N0") FCFA</td>
+                                    <td>
+                                        <a asp-controller="Examination" asp-action="Details" asp-route-id="@exam.Id"
+                                           class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Aucun examen enregistré pour ce patient.
+                        </div>
+                    }
+                </div>
+
+                <!-- Prescriptions -->
+                <div class="tab-pane fade" id="prescriptions" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="card-title mb-0">Prescriptions médicales</h5>
+                        <a asp-controller="Prescription" asp-action="Create" asp-route-patientId="@Model.Id" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-plus"></i> Nouvelle prescription
+                        </a>
+                    </div>
+
+                    @if (Model.Prescriptions.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Prescripteur</th>
+                                        <th>Instructions</th>
+                                        <th>Statut</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var prescription in Model.Prescriptions.OrderByDescending(p => p.PrescriptionDate))
+                                    {
+                                        <tr>
+                                            <td>@prescription.PrescriptionDate.ToString("dd/MM/yyyy")</td>
+                                            <td>@prescription.PrescribedByName</td>
+                                            <td>@(prescription.Instructions ?? "-")</td>
+                                            <td>
+                                                <span class="badge badge-@(prescription.Status == "Dispensed" ? "success" :
+                                                                                                                            prescription.Status == "Pending" ? "warning" : "secondary")">
+                                            @prescription.Status
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a asp-controller="Prescription" asp-action="Details" asp-route-id="@prescription.Id"
+                                           class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Aucune prescription enregistrée pour ce patient.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

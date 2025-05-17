@@ -1,4 +1,5 @@
 ﻿using HManagSys.Attributes;
+using HManagSys.Models;
 using HManagSys.Models.ViewModels;
 using HManagSys.Models.ViewModels.Stock;
 using HManagSys.Services.Interfaces;
@@ -51,7 +52,7 @@ namespace HManagSys.Controllers
                         CurrentPage = filters.PageIndex,
                         PageSize = filters.PageSize,
                         TotalCount = totalCount,
-                        TotalPages = (int)Math.Ceiling((double)totalCount / filters.PageSize)
+                        //TotalPages = (int)Math.Ceiling((double)totalCount / filters.PageSize)
                     },
                     Statistics = statistics,
                     AvailableCategories = categories

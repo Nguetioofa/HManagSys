@@ -1,0 +1,252 @@
+﻿@using HManagSys.Models.ViewModels.Patients
+@model CreatePatientViewModel
+
+@{
+    ViewData["Title"] = "Nouveau patient";
+}
+
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-user-plus"></i> Nouveau patient
+            </h6>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Retour à la liste
+            </a>
+        </div>
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                <!-- Alertes pour les doublons potentiels -->
+                @if (ViewBag.PotentialDuplicates != null && ViewBag.PotentialDuplicates.Count > 0)
+                {
+                    <div class="alert alert-warning">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Patients similaires détectés</h5>
+                        <p>Des patients similaires existent déjà. Veuillez vérifier avant de créer un doublon.</p>
+                        <div class="list-group mt-3">
+                            @foreach (var duplicate in ViewBag.PotentialDuplicates)
+                            {
+                                <a asp-action="Details" asp-route-id="@duplicate.Id" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">@duplicate.FullName</h6>
+                                        <small>@duplicate.PhoneNumber</small>
+                                    </div>
+                                    <small class="text-muted">
+                                        @(duplicate.Gender ?? "Genre non spécifié")
+                                        @if (duplicate.DateOfBirth.HasValue)
+                                        {
+                                            <span>- Né(e) le @duplicate.DateOfBirth.Value.ToString("dd/MM/yyyy")</span>
+                                        }
+                                    </small>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- Onglets du formulaire -->
+                <ul class="nav nav-tabs mb-4" id="patientFormTabs" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="personal-tab" data-toggle="tab" href="#personal" role="tab">
+                            <i class="fas fa-user"></i> Informations personnelles
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="contact-tab" data-toggle="tab" href="#contact" role="tab">
+                            <i class="fas fa-address-book"></i> Coordonnées
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="medical-tab" data-toggle="tab" href="#medical" role="tab">
+                            <i class="fas fa-heartbeat"></i> Informations médicales
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Contenu des onglets -->
+                <div class="tab-content" id="patientFormContent">
+                    <!-- Informations personnelles -->
+                    <div class="tab-pane fade show active" id="personal" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label asp-for="FirstName">Prénom <span class="text-danger">*</span></label>
+                                <input asp-for="FirstName" class="form-control" autocomplete="off" />
+                                <span asp-validation-for="FirstName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label asp-for="LastName">Nom <span class="text-danger">*</span></label>
+                                <input asp-for="LastName" class="form-control" autocomplete="off" />
+                                <span asp-validation-for="LastName" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label asp-for="DateOfBirth">Date de naissance</label>
+                                <input asp-for="DateOfBirth" type="date" class="form-control" />
+                                <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label asp-for="Gender">Genre</label>
+                                <select asp-for="Gender" class="form-control">
+                                    <option value="">Sélectionner...</option>
+                                    @foreach (var option in Model.GenderOptions)
+                                    {
+                                        <option value="@option.Value">@option.Text</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="Gender" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coordonnées -->
+                    <div class="tab-pane fade" id="contact" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label asp-for="PhoneNumber">Téléphone <span class="text-danger">*</span></label>
+                                <input asp-for="PhoneNumber" class="form-control" placeholder="+237 ..." />
+                                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                                <small class="form-text text-muted">Format international recommandé, ex: +237 612345678</small>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label asp-for="Email">Email</label>
+                                <input asp-for="Email" type="email" class="form-control" />
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label asp-for="Address">Adresse</label>
+                            <textarea asp-for="Address" class="form-control" rows="2"></textarea>
+                            <span asp-validation-for="Address" class="text-danger"></span>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label asp-for="EmergencyContactName">Contact d'urgence</label>
+                                <input asp-for="EmergencyContactName" class="form-control" />
+                                <span asp-validation-for="EmergencyContactName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label asp-for="EmergencyContactPhone">Téléphone d'urgence</label>
+                                <input asp-for="EmergencyContactPhone" class="form-control" />
+                                <span asp-validation-for="EmergencyContactPhone" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informations médicales -->
+                    <div class="tab-pane fade" id="medical" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6 form-group">
+                                <label asp-for="BloodType">Groupe sanguin</label>
+                                <select asp-for="BloodType" class="form-control">
+                                    <option value="">Sélectionner...</option>
+                                    @foreach (var option in Model.BloodTypeOptions)
+                                    {
+                                        <option value="@option.Value">@option.Text</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="BloodType" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 form-group">
+                                <label asp-for="IsActive">Statut</label>
+                                <div class="form-check mt-2">
+                                    <input asp-for="IsActive" class="form-check-input" />
+                                    <label asp-for="IsActive" class="form-check-label">Patient actif</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label asp-for="Allergies">Allergies</label>
+                            <textarea asp-for="Allergies" class="form-control" rows="3"
+                                      placeholder="Listez les allergies connues (médicaments, aliments, etc.)"></textarea>
+                            <span asp-validation-for="Allergies" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <hr />
+
+                <div class="d-flex justify-content-between">
+                    <button type="button" id="prevTab" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Précédent
+                    </button>
+                    <div>
+                        <a asp-action="Index" class="btn btn-secondary">Annuler</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Enregistrer le patient
+                        </button>
+                    </div>
+                    <button type="button" id="nextTab" class="btn btn-outline-primary">
+                        Suivant <i class="fas fa-arrow-right"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function() {
+            const tabs = ['#personal', '#contact', '#medical'];
+            let currentTabIndex = 0;
+
+            // Navigation entre les onglets
+            $('#nextTab').click(function() {
+                if (currentTabIndex < tabs.length - 1) {
+                    currentTabIndex++;
+                    $(tabs[currentTabIndex] + '-tab').tab('show');
+                    updateNavigationButtons();
+                }
+            });
+
+            $('#prevTab').click(function() {
+                if (currentTabIndex > 0) {
+                    currentTabIndex--;
+                    $(tabs[currentTabIndex] + '-tab').tab('show');
+                    updateNavigationButtons();
+                }
+            });
+
+            // Mettre à jour les boutons de navigation
+            function updateNavigationButtons() {
+                $('#prevTab').prop('disabled', currentTabIndex === 0);
+                $('#nextTab').prop('disabled', currentTabIndex === tabs.length - 1);
+            }
+
+            // Surveiller les changements d'onglets
+            $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+                const targetTab = $(e.target).attr('href');
+                currentTabIndex = tabs.indexOf(targetTab);
+                updateNavigationButtons();
+            });
+
+            // Initialiser les boutons
+            updateNavigationButtons();
+
+            // Validation téléphone en temps réel
+            $('#PhoneNumber').on('input', function() {
+                const phoneNumber = $(this).val();
+                if (phoneNumber && phoneNumber.length >= 8) {
+                    $.get('@Url.Action("CheckPhone")', { phone: phoneNumber }, function(data) {
+                        if (data.exists) {
+                            $('#PhoneNumber').addClass('is-invalid');
+                            $('#PhoneNumber').siblings('.text-danger').text('Ce numéro de téléphone est déjà utilisé');
+                        } else {
+                            $('#PhoneNumber').removeClass('is-invalid');
+                            $('#PhoneNumber').siblings('.text-danger').text('');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+}

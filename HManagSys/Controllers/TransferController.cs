@@ -62,7 +62,7 @@ namespace HManagSys.Controllers
                         CurrentPage = filters.PageIndex,
                         PageSize = filters.PageSize,
                         TotalCount = totalCount,
-                        TotalPages = (int)Math.Ceiling((double)totalCount / filters.PageSize)
+                       // TotalPages = (int)Math.Ceiling((double)totalCount / filters.PageSize)
                     },
                     AvailableCenters = centers,
                     AvailableProducts = availableProducts,
@@ -424,7 +424,7 @@ namespace HManagSys.Controllers
                         CurrentPage = filters.PageIndex,
                         PageSize = filters.PageSize,
                         TotalCount = totalCount,
-                        TotalPages = (int)Math.Ceiling((double)totalCount / filters.PageSize)
+                        //TotalPages = (int)Math.Ceiling((double)totalCount / filters.PageSize)
                     },
                     AvailableCenters = centers,
                     AvailableProducts = products.Select(p => new SelectOption(p.Id.ToString(), p.Name)).ToList(),

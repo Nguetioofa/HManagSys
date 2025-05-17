@@ -1,5 +1,6 @@
 ﻿using HManagSys.Data.Repositories.Interfaces;
 using HManagSys.Helpers;
+using HManagSys.Models;
 using HManagSys.Models.EfModels;
 using HManagSys.Models.ViewModels;
 using HManagSys.Models.ViewModels.Stock;
@@ -904,7 +905,7 @@ namespace HManagSys.Services.Implementations
                     CurrentPage = filters.PageIndex,
                     PageSize = filters.PageSize,
                     TotalCount = totalCount,
-                    TotalPages = (int)Math.Ceiling((double)totalCount / filters.PageSize)
+                    //TotalPages = (int)Math.Ceiling((double)totalCount / filters.PageSize)
                 };
 
                 // Charger les alertes critiques

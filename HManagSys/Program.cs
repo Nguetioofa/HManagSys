@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using HManagSys.Data.DBContext;
 using HManagSys.Data.Repositories;
 using HManagSys.Data.Repositories.Interfaces;
@@ -37,6 +38,9 @@ builder.Services.AddScoped<IProductCategoryService, ProductCategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ITransferService, TransferService>();
 // builder.Services.AddScoped<IStockService, StockService>(); // À ajouter plus tard
+
+//
+builder.Services.AddScoped<IPatientService, PatientService>();
 
 
 // Configuration de la session

@@ -1,0 +1,587 @@
+﻿@using HManagSys.Models.ViewModels.Patients
+@model PagedViewModel<PatientViewModel, PatientFilters>
+
+@{
+    ViewData["Title"] = "Patients";
+}
+
+<div class="container-fluid">
+    <!-- En-tête avec titre et boutons d'action -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-user-injured"></i> Patients
+        </h1>
+        <div>
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nouveau patient
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Patients</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ExtraData.TotalPatients</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Patients Actifs</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ExtraData.ActivePatients</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Nouveaux ce mois</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ExtraData.NewPatientsThisMonth</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-plus fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">En Suivi Actif</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ExtraData.PatientsWithActiveCare</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-procedures fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Recherche de patients</h6>
+        </div>
+        <div class="card-body">
+            <form asp-action="Index" method="get" id="searchForm">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            </div>
+                            <input type="text" class="form-control" asp-for="Filters.SearchTerm" 
+                                   placeholder="Rechercher par nom, prénom ou tél...">
+                        </div>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <select class="form-control" asp-for="Filters.IsActive">
+                            <option value="">Tous les statuts</option>
+                            <option value="true">Actifs</option>
+                            <option value="false">Inactifs</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <select class="form-control" asp-for="Filters.Gender">
+                            <option value="">Tous les genres</option>
+                            <option value="M">Masculin</option>
+                            <option value="F">Féminin</option>
+                            <option value="O">Autre</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <select class="form-control" asp-for="Filters.BloodType">
+                            <option value="">Tous les groupes sanguins</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <div class="d-flex">
+                            <button type="submit" class="btn btn-primary mr-2">
+                                <i class="fas fa-filter"></i> Filtrer
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-redo"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Liste des patients -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Liste des patients</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Genre/Âge</th>
+                            <th>Contact</th>
+                            <th>Groupe sanguin</th>
+                            <th>Statut</th>
+                            <th>Diagnostics</th>
+                            <th>Dernière visite</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Items.Any())
+                        {
+                            @foreach (var patient in Model.Items)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            @if (patient.HasRecentDiagnosis)
+                                            {
+                                                <span class="badge badge-pill badge-success mr-2" title="Diagnostic récent">
+                                                    <i class="fas fa-circle"></i>
+                                                </span>
+                                            }
+                                            <div>
+                                                <a asp-action="Details" asp-route-id="@patient.Id" class="font-weight-bold text-primary">
+                                                    @patient.FullName
+                                                </a>
+                                                <small class="d-block text-muted">
+                                                    ID: @patient.Id
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge @(patient.Gender == "M" ? "badge-info" : (patient.Gender == "F" ? "badge-pink" : "badge-secondary"))">
+                                            @(patient.Gender == "M" ? "M" : (patient.Gender == "F" ? "F" : "?"))
+                                        </span>
+                                        @if (patient.Age.HasValue)
+                                        {
+                                            <span class="ml-2">@patient.Age ans</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="ml-2 text-muted">Âge inconnu</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <span class="d-block">@patient.PhoneNumber</span>
+                                            @if (!string.IsNullOrEmpty(patient.Email))
+                                            {
+                                                <small class="text-muted">@patient.Email</small>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(patient.BloodType))
+                                        {
+                                            <span class="badge badge-danger">@patient.BloodType</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Non défini</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (patient.IsActive)
+                                        {
+                                            <span class="badge badge-success">Actif</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-secondary">Inactif</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge badge-pill badge-primary mr-2">@patient.DiagnosisCount</span>
+                                            @if (patient.DiagnosisCount > 0)
+                                            {
+                                                <a href="javascript:void(0)" class="text-primary"
+                                                   onclick="showDiagnosesList(@patient.Id, '@patient.FullName')" title="Voir les diagnostics">
+                                                    <i class="fas fa-clipboard-list"></i>
+                                                </a>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (patient.LastVisitDate.HasValue)
+                                        {
+                                            <span title="@patient.LastVisitDate.Value.ToString("dd/MM/yyyy HH:mm")">
+                                                @((DateTime.Now - patient.LastVisitDate.Value).TotalDays < 30
+                                                                                    ? $"Il y a {(int)(DateTime.Now - patient.LastVisitDate.Value).TotalDays} jours"
+                                                                                    : patient.LastVisitDate.Value.ToString("dd/MM/yyyy"))
+                                </span>
+                                                                }
+                                        else
+                                        {
+                                            <span class="text-muted">Jamais</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a asp-action="Details" asp-route-id="@patient.Id" class="btn btn-sm btn-outline-primary" title="Détails">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a asp-action="Edit" asp-route-id="@patient.Id" class="btn btn-sm btn-outline-secondary" title="Modifier">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a asp-action="AddDiagnosis" asp-route-patientId="@patient.Id" class="btn btn-sm btn-outline-info" title="Ajouter un diagnostic">
+                                                <i class="fas fa-stethoscope"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm @(patient.IsActive ? "btn-outline-danger" : "btn-outline-success")"
+                                                    onclick="togglePatientStatus(@patient.Id, @(patient.IsActive ? "false" : "true"), '@patient.FullName')"
+                                                    title="@(patient.IsActive ? "Désactiver" : "Activer")">
+                                                <i class="fas @(patient.IsActive ? "fa-user-slash" : "fa-user-check")"></i>
+                                            </button>
+                                            <a href="javascript:void(0)" class="btn btn-sm btn-outline-dark dropdown-toggle" data-toggle="dropdown">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </a>
+                                            <div class="dropdown-menu dropdown-menu-right">
+                                                <a asp-action="History" asp-route-id="@patient.Id" class="dropdown-item">
+                                                    <i class="fas fa-history fa-fw"></i> Historique médical
+                                                </a>
+                                                <a asp-controller="Prescription" asp-action="Create" asp-route-patientId="@patient.Id" class="dropdown-item">
+                                                    <i class="fas fa-prescription fa-fw"></i> Nouvelle prescription
+                                                </a>
+                                                <a asp-controller="Examination" asp-action="Create" asp-route-patientId="@patient.Id" class="dropdown-item">
+                                                    <i class="fas fa-microscope fa-fw"></i> Nouvel examen
+                                                </a>
+                                                <a asp-controller="CareEpisode" asp-action="Create" asp-route-patientId="@patient.Id" class="dropdown-item">
+                                                    <i class="fas fa-procedures fa-fw"></i> Nouvel épisode de soins
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="fas fa-search fa-2x mb-3"></i>
+                                        <p>Aucun patient ne correspond à votre recherche</p>
+                                        <a asp-action="Index" class="btn btn-sm btn-outline-primary">Voir tous les patients</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @if (Model.Pagination.TotalPages > 1)
+        {
+            <div class="card-footer">
+                <nav aria-label="Pagination">
+                    <ul class="pagination justify-content-center mb-0">
+                        <li class="page-item @(!Model.Pagination.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link" asp-action="Index"
+                               asp-route-pageIndex="@Model.Pagination.PreviousPage"
+                               asp-route-searchTerm="@Model.Filters.SearchTerm"
+                               asp-route-isActive="@Model.Filters.IsActive"
+                               asp-route-gender="@Model.Filters.Gender"
+                               asp-route-bloodType="@Model.Filters.BloodType">
+                                <i class="fas fa-angle-left"></i>
+                            </a>
+                        </li>
+
+                        @for (int i = Math.Max(1, Model.Pagination.CurrentPage - 2);
+                                            i <= Math.Min(Model.Pagination.TotalPages, Model.Pagination.CurrentPage + 2);
+                                            i++)
+                        {
+                            <li class="page-item @(i == Model.Pagination.CurrentPage ? "active" : "")">
+                                <a class="page-link" asp-action="Index"
+                                   asp-route-pageIndex="@i"
+                                   asp-route-searchTerm="@Model.Filters.SearchTerm"
+                                   asp-route-isActive="@Model.Filters.IsActive"
+                                   asp-route-gender="@Model.Filters.Gender"
+                                   asp-route-bloodType="@Model.Filters.BloodType">
+                                    @i
+                                </a>
+                            </li>
+                        }
+
+                        <li class="page-item @(!Model.Pagination.HasNextPage ? "disabled" : "")">
+                            <a class="page-link" asp-action="Index"
+                               asp-route-pageIndex="@Model.Pagination.NextPage"
+                               asp-route-searchTerm="@Model.Filters.SearchTerm"
+                               asp-route-isActive="@Model.Filters.IsActive"
+                               asp-route-gender="@Model.Filters.Gender"
+                               asp-route-bloodType="@Model.Filters.BloodType">
+                                <i class="fas fa-angle-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="text-center mt-2">
+                    <small class="text-muted">
+                        Affichage de @((Model.Pagination.CurrentPage - 1) * Model.Pagination.PageSize + 1) à
+                        @Math.Min(Model.Pagination.CurrentPage * Model.Pagination.PageSize, Model.Pagination.TotalCount)
+                        sur @Model.Pagination.TotalCount patients
+                    </small>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal de confirmation pour l'activation/désactivation -->
+<div class="modal fade" id="statusChangeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statusChangeTitle">Changer le statut du patient</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="statusChangeMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="confirmStatusChange">Confirmer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de diagnostics -->
+<div class="modal fade" id="diagnosesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Diagnostics du patient <span id="patientNameForDiagnoses"></span></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="diagnosesList">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+                <a href="#" id="addDiagnosisLink" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Nouveau diagnostic
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Variables globales
+        let currentPatientId = null;
+        let currentPatientStatus = null;
+
+        // Fonction pour changer le statut d'un patient
+        function togglePatientStatus(patientId, newStatus, patientName) {
+            currentPatientId = patientId;
+            currentPatientStatus = newStatus;
+
+            const statusText = newStatus ? 'activer' : 'désactiver';
+            $('#statusChangeTitle').text(`${newStatus ? 'Activation' : 'Désactivation'} du patient`);
+            $('#statusChangeMessage').html(`Êtes-vous sûr de vouloir <strong>${statusText}</strong> le patient <strong>${patientName}</strong> ?`);
+            $('#confirmStatusChange').removeClass('btn-success btn-danger').addClass(newStatus ? 'btn-success' : 'btn-danger');
+
+            $('#statusChangeModal').modal('show');
+        }
+
+        // Confirmation du changement de statut
+        $('#confirmStatusChange').on('click', function() {
+            if (!currentPatientId) return;
+
+            $.ajax({
+                url: '@Url.Action("ToggleStatus")',
+                type: 'POST',
+                data: {
+                    id: currentPatientId,
+                    isActive: currentPatientStatus,
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showToast('Succès', response.message, 'success');
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showToast('Erreur', response.message, 'error');
+                    }
+                    $('#statusChangeModal').modal('hide');
+                },
+                error: function() {
+                    showToast('Erreur', 'Une erreur est survenue lors du changement de statut', 'error');
+                    $('#statusChangeModal').modal('hide');
+                }
+            });
+        });
+
+        // Afficher les diagnostics d'un patient
+        function showDiagnosesList(patientId, patientName) {
+            $('#patientNameForDiagnoses').text(patientName);
+            $('#addDiagnosisLink').attr('href', '@Url.Action("AddDiagnosis")' + '?patientId=' + patientId);
+            $('#diagnosesList').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Chargement...</span>
+                    </div>
+                </div>
+            `);
+
+            $('#diagnosesModal').modal('show');
+
+            $.ajax({
+                url: '@Url.Action("GetPatientDiagnoses")',
+                type: 'GET',
+                data: { patientId: patientId },
+                success: function(response) {
+                    if (response.length === 0) {
+                        $('#diagnosesList').html(`
+                            <div class="alert alert-info">
+                                Aucun diagnostic enregistré pour ce patient.
+                            </div>
+                        `);
+                        return;
+                    }
+
+                    let html = '<div class="list-group">';
+                    response.forEach(function(diagnosis) {
+                        const dateFormatted = new Date(diagnosis.diagnosisDate).toLocaleDateString('fr-FR');
+                        html += `
+                            <div class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">${diagnosis.diagnosisName}</h5>
+                                    <small class="text-muted">${dateFormatted}</small>
+                                </div>
+                                <p class="mb-1">${diagnosis.description || 'Aucune description'}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        <span class="badge badge-${getSeverityClass(diagnosis.severity)}">${diagnosis.severity || 'Non spécifiée'}</span>
+                                        - Dr. ${diagnosis.diagnosedByName}
+                                    </small>
+                                    <small>${diagnosis.hospitalCenterName}</small>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+
+                    $('#diagnosesList').html(html);
+                },
+                error: function() {
+                    $('#diagnosesList').html(`
+                        <div class="alert alert-danger">
+                            Erreur lors du chargement des diagnostics.
+                        </div>
+                    `);
+                }
+            });
+        }
+
+        // Helper pour obtenir la classe selon la sévérité
+        function getSeverityClass(severity) {
+            switch (severity) {
+                case 'Critical': return 'danger';
+                case 'Severe': return 'warning';
+                case 'Moderate': return 'primary';
+                case 'Mild': return 'success';
+                default: return 'secondary';
+            }
+        }
+
+        // Soumission automatique du formulaire de filtres
+        $('#searchForm select').on('change', function() {
+            $('#searchForm').submit();
+        });
+
+        // Fonction pour afficher des toasts
+        function showToast(title, message, type) {
+            const toast = $(`
+                <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
+                    <div class="toast-header bg-${type === 'success' ? 'success' : 'danger'} text-white">
+                        <strong class="mr-auto">${title}</strong>
+                        <button type="button" class="ml-2 mb-1 close text-white" data-dismiss="toast" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `);
+
+            $('.toast-container').append(toast);
+            toast.toast('show');
+
+            toast.on('hidden.bs.toast', function() {
+                $(this).remove();
+            });
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .badge-pink {
+            background-color: #e83e8c;
+            color: white;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+    </style>
+
+    <div class="toast-container"></div>
+}

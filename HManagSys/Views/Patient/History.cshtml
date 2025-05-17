@@ -1,0 +1,259 @@
+﻿@using HManagSys.Models.ViewModels.Patients
+@model PatientHistoryViewModel
+
+@{
+    ViewData["Title"] = $"Historique - {Model.PatientName}";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-history"></i> Historique Médical
+        </h1>
+        <a asp-action="Details" asp-route-id="@Model.PatientId" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour au dossier patient
+        </a>
+    </div>
+
+    <!-- Patient info -->
+    <div class="card shadow mb-4">
+        <div class="card-body py-3">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-user-injured fa-2x mr-3 text-primary"></i>
+                <div>
+                    <h5 class="mb-1">@Model.PatientName</h5>
+                    <p class="mb-0">ID: @Model.PatientId</p>
+                </div>
+                <div class="ml-auto">
+                    <div class="d-flex">
+                        <div class="mr-4">
+                            <span class="d-block text-xs font-weight-bold text-uppercase mb-1">Diagnostics</span>
+                            <span class="h5 mb-0 font-weight-bold">@Model.TotalDiagnoses</span>
+                        </div>
+                        <div class="mr-4">
+                            <span class="d-block text-xs font-weight-bold text-uppercase mb-1">Soins</span>
+                            <span class="h5 mb-0 font-weight-bold">@Model.TotalCareEpisodes</span>
+                        </div>
+                        <div class="mr-4">
+                            <span class="d-block text-xs font-weight-bold text-uppercase mb-1">Examens</span>
+                            <span class="h5 mb-0 font-weight-bold">@Model.TotalExaminations</span>
+                        </div>
+                        <div>
+                            <span class="d-block text-xs font-weight-bold text-uppercase mb-1">Prescriptions</span>
+                            <span class="h5 mb-0 font-weight-bold">@Model.TotalPrescriptions</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historique chronologique -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Historique Chronologique</h6>
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-outline-primary filter-btn active" data-filter="all">Tout</button>
+                <button type="button" class="btn btn-sm btn-outline-primary filter-btn" data-filter="Diagnosis">Diagnostics</button>
+                <button type="button" class="btn btn-sm btn-outline-primary filter-btn" data-filter="CareEpisode">Soins</button>
+                <button type="button" class="btn btn-sm btn-outline-primary filter-btn" data-filter="Examination">Examens</button>
+                <button type="button" class="btn btn-sm btn-outline-primary filter-btn" data-filter="Prescription">Prescriptions</button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.ChronologicalHistory.Any())
+            {
+                <div class="timeline-container">
+                    <div class="timeline">
+                        @foreach (var evt in Model.ChronologicalHistory)
+                        {
+                            <div class="timeline-item @evt.EventType.ToLower()-event">
+                                <div class="timeline-item-date">
+                                    @evt.Date.ToString("dd/MM/yyyy")
+                                </div>
+                                <div class="timeline-item-marker">
+                                    <span class="timeline-item-icon">
+                                        <i class="fas @evt.EventIcon"></i>
+                                    </span>
+                                </div>
+                                <div class="timeline-item-content">
+                                    <div class="card">
+                                        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                                            <span class="font-weight-bold">@evt.Title</span>
+                                            <span class="badge badge-@GetEventClass(evt.EventType)">
+                                                @GetEventTypeText(evt.EventType)
+                                            </span>
+                                        </div>
+                                        <div class="card-body py-2">
+                                            @if (!string.IsNullOrEmpty(evt.Description))
+                                            {
+                                                <p class="mb-2">@evt.Description</p>
+                                            }
+                                            <div class="d-flex justify-content-between">
+                                                <small class="text-muted">@evt.StaffName</small>
+                                                <small class="text-muted">@evt.HospitalCenterName</small>
+                                            </div>
+                                        </div>
+                                        <div class="card-footer py-2 text-right">
+                                            @switch (evt.EventType)
+                                            {
+                                                case "Diagnosis":
+                                                    <a href="javascript:void(0)" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i> Détails
+                                                    </a>
+                                                    break;
+                                                case "CareEpisode":
+                                                    <a asp-controller="CareEpisode" asp-action="Details" asp-route-id="@evt.EventId"
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i> Détails
+                                                    </a>
+                                                    break;
+                                                case "Examination":
+                                                    <a asp-controller="Examination" asp-action="Details" asp-route-id="@evt.EventId"
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i> Détails
+                                                    </a>
+                                                    break;
+                                                case "Prescription":
+                                                    <a asp-controller="Prescription" asp-action="Details" asp-route-id="@evt.EventId"
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye"></i> Détails
+                                                    </a>
+                                                    break;
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info m-3">
+                    <i class="fas fa-info-circle"></i> Aucun événement médical enregistré pour ce patient.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .timeline-container {
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 1.5rem;
+            border-left: 1px solid #e3e6f0;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+            .timeline-item:last-child {
+                margin-bottom: 0;
+            }
+
+        .timeline-item-date {
+            position: absolute;
+            left: -5rem;
+            top: 0;
+            text-align: right;
+            width: 3.5rem;
+            font-size: 0.875rem;
+            color: #858796;
+        }
+
+        .timeline-item-marker {
+            position: absolute;
+            left: -0.85rem;
+            top: 0;
+        }
+
+        .timeline-item-icon {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 50%;
+            background-color: #4e73df;
+            color: white;
+        }
+
+        .diagnosis-event .timeline-item-icon {
+            background-color: #e74a3b;
+        }
+
+        .care-event .timeline-item-icon {
+            background-color: #1cc88a;
+        }
+
+        .examination-event .timeline-item-icon {
+            background-color: #f6c23e;
+        }
+
+        .prescription-event .timeline-item-icon {
+            background-color: #36b9cc;
+        }
+
+        .timeline-item-content {
+            padding-left: 1.5rem;
+            padding-bottom: 0.5rem;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Filtrage des événements
+            $('.filter-btn').click(function() {
+                $('.filter-btn').removeClass('active');
+                $(this).addClass('active');
+
+                const filter = $(this).data('filter');
+
+                if (filter === 'all') {
+                    $('.timeline-item').show();
+                } else {
+                    $('.timeline-item').hide();
+                    $(`.${filter.toLowerCase()}-event`).show();
+                }
+            });
+        });
+    </script>
+}
+
+@functions {
+    public string GetEventTypeText(string eventType)
+    {
+        return eventType switch
+        {
+            "Diagnosis" => "Diagnostic",
+            "CareEpisode" => "Soins",
+            "Examination" => "Examen",
+            "Prescription" => "Prescription",
+            _ => eventType
+        };
+    }
+
+    public string GetEventClass(string eventType)
+    {
+        return eventType switch
+        {
+            "Diagnosis" => "danger",
+            "CareEpisode" => "success",
+            "Examination" => "warning",
+            "Prescription" => "info",
+            _ => "secondary"
+        };
+    }
+}
