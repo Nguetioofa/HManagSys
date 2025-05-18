@@ -9,6 +9,7 @@ using HManagSys.Services.Interfaces;
 using HospitalManagementSystem.Data.Repositories;
 using HospitalManagementSystem.Services;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,6 +45,10 @@ builder.Services.AddScoped<IPatientService, PatientService>();
 builder.Services.AddScoped<ICareEpisodeService, CareEpisodeService>();
 builder.Services.AddScoped<IExaminationService, ExaminationService>();
 builder.Services.AddScoped<IPrescriptionService, PrescriptionService>();
+
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 // Configuration de la session
 builder.Services.AddSession(options =>

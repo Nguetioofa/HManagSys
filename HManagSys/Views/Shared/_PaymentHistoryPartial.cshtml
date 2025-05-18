@@ -1,0 +1,55 @@
+﻿@using HManagSys.Models.ViewModels.Payments
+@model List<PaymentViewModel>
+
+@if (Model != null && Model.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-hover table-sm">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Référence</th>
+                    <th>Méthode</th>
+                    <th>Montant</th>
+                    <th>Statut</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var payment in Model.OrderByDescending(p => p.PaymentDate))
+                {
+                    <tr class="@(payment.IsCancelled ? "table-danger" : "")">
+                        <td>@payment.FormattedDate</td>
+                        <td>
+                            <span class="small">@payment.ReferenceDescription</span>
+                        </td>
+                        <td>@payment.PaymentMethodName</td>
+                        <td>@payment.FormattedAmount</td>
+                        <td>
+                            <span class="@payment.StatusBadge">@payment.StatusText</span>
+                        </td>
+                        <td class="text-end">
+                            <a asp-controller="Payment" asp-action="Details" asp-route-id="@payment.Id"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot class="table-light">
+                <tr>
+                    <th colspan="3" class="text-end">Total:</th>
+                    <th>@Model.Where(p => !p.IsCancelled).Sum(p => p.Amount).ToString("N0") FCFA</th>
+                    <th colspan="2"></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> Aucun paiement enregistré.
+    </div>
+}

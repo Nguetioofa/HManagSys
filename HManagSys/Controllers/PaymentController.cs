@@ -1,0 +1,393 @@
+﻿using HManagSys.Attributes;
+using HManagSys.Data.Repositories.Interfaces;
+using HManagSys.Models;
+using HManagSys.Models.ViewModels;
+using HManagSys.Models.ViewModels.Payments;
+using HManagSys.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+
+namespace HManagSys.Controllers;
+
+[RequireAuthentication]
+[RequireCurrentCenter]
+public class PaymentController : BaseController
+{
+    private readonly IPaymentService _paymentService;
+    private readonly IPatientService _patientService;
+    private readonly ICareEpisodeService _careEpisodeService;
+    private readonly IExaminationService _examinationService;
+    private readonly IApplicationLogger _logger;
+    private readonly IUserRepository _userRepository;
+
+    public PaymentController(
+        IPaymentService paymentService,
+        IPatientService patientService,
+        ICareEpisodeService careEpisodeService,
+        IExaminationService examinationService,
+        IApplicationLogger logger,
+        IUserRepository userRepository)
+    {
+        _paymentService = paymentService;
+        _patientService = patientService;
+        _careEpisodeService = careEpisodeService;
+        _examinationService = examinationService;
+        _logger = logger;
+        _userRepository = userRepository;
+    }
+
+    [MedicalStaff]
+    public async Task<IActionResult> Index(PaymentFilters? filters = null)
+    {
+        try
+        {
+            filters ??= new PaymentFilters();
+            filters.HospitalCenterId = CurrentCenterId;
+
+            var (payments, total) = await _paymentService.GetPaymentsAsync(filters);
+
+            var viewModel = new PagedViewModel<PaymentViewModel, PaymentFilters>
+            {
+                Items = payments,
+                Filters = filters,
+                Pagination = new PaginationInfo
+                {
+                    CurrentPage = filters.PageIndex,
+                    PageSize = filters.PageSize,
+                    TotalCount = total
+                }
+            };
+
+            // Journalisation de l'accès
+            await _logger.LogInfoAsync("Payment", "IndexAccessed",
+                "Accès à la liste des paiements",
+                CurrentUserId, CurrentCenterId);
+
+            return View(viewModel);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "IndexError",
+                "Erreur lors du chargement de la liste des paiements",
+                CurrentUserId, CurrentCenterId,
+                details: new { Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Erreur lors du chargement de la liste des paiements";
+            return View(new PagedViewModel<PaymentViewModel, PaymentFilters>());
+        }
+    }
+
+    [MedicalStaff]
+    public async Task<IActionResult> Details(int id)
+    {
+        try
+        {
+            var payment = await _paymentService.GetByIdAsync(id);
+            if (payment == null)
+            {
+                TempData["ErrorMessage"] = "Paiement introuvable";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Journalisation de l'accès
+            await _logger.LogInfoAsync("Payment", "DetailsAccessed",
+                $"Accès aux détails du paiement {id}",
+                CurrentUserId, CurrentCenterId);
+
+            return View(payment);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "DetailsError",
+                $"Erreur lors du chargement des détails du paiement {id}",
+                CurrentUserId, CurrentCenterId,
+                details: new { PaymentId = id, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Erreur lors du chargement des détails du paiement";
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    [HttpGet]
+    [MedicalStaff]
+    public async Task<IActionResult> Create(string referenceType, int referenceId)
+    {
+        try
+        {
+            // Vérifier si le type de référence est valide
+            if (!IsValidReferenceType(referenceType))
+            {
+                TempData["ErrorMessage"] = "Type de référence invalide";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Créer le modèle initial
+            var model = new CreatePaymentViewModel
+            {
+                ReferenceType = referenceType,
+                ReferenceId = referenceId,
+                HospitalCenterId = CurrentCenterId.Value,
+                PaymentDate = DateTime.Now,
+                ReceivedById = CurrentUserId.Value,
+            };
+
+            // Charger les informations spécifiques selon le type de référence
+            switch (referenceType)
+            {
+                case "CareEpisode":
+                    await LoadCareEpisodeInfoAsync(model, referenceId);
+                    break;
+                case "Examination":
+                    await LoadExaminationInfoAsync(model, referenceId);
+                    break;
+                default:
+                    TempData["ErrorMessage"] = $"Type de référence non pris en charge: {referenceType}";
+                    return RedirectToAction(nameof(Index));
+            }
+
+            // Charger les méthodes de paiement
+            model.PaymentMethods = await _paymentService.GetPaymentMethodsAsync();
+
+            return View(model);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "CreateGetError",
+                "Erreur lors du chargement du formulaire de paiement",
+                CurrentUserId, CurrentCenterId,
+                details: new { ReferenceType = referenceType, ReferenceId = referenceId, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Erreur lors du chargement du formulaire de paiement";
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [MedicalStaff]
+    public async Task<IActionResult> Create(CreatePaymentViewModel model)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                // Recharger les listes pour le formulaire
+                model.PaymentMethods = await _paymentService.GetPaymentMethodsAsync();
+                return View(model);
+            }
+
+            // Créer le paiement
+            var result = await _paymentService.CreatePaymentAsync(model, CurrentUserId.Value);
+
+            if (result.IsSuccess)
+            {
+                TempData["SuccessMessage"] = "Paiement enregistré avec succès";
+                return RedirectToAction(nameof(Receipt), new { id = result.Data.Id });
+            }
+
+            // En cas d'erreur
+            foreach (var error in result.ValidationErrors)
+            {
+                ModelState.AddModelError("", error);
+            }
+
+            // Recharger les listes pour le formulaire
+            model.PaymentMethods = await _paymentService.GetPaymentMethodsAsync();
+            return View(model);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "CreatePostError",
+                "Erreur lors de la création du paiement",
+                CurrentUserId, CurrentCenterId,
+                details: new { Model = model, Error = ex.Message });
+
+            ModelState.AddModelError("", "Une erreur est survenue lors de la création du paiement");
+            model.PaymentMethods = await _paymentService.GetPaymentMethodsAsync();
+            return View(model);
+        }
+    }
+
+    [MedicalStaff]
+    public async Task<IActionResult> Receipt(int id)
+    {
+        try
+        {
+            var payment = await _paymentService.GetByIdAsync(id);
+            if (payment == null)
+            {
+                TempData["ErrorMessage"] = "Paiement introuvable";
+                return RedirectToAction(nameof(Index));
+            }
+
+            return View(payment);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "ReceiptError",
+                $"Erreur lors du chargement du reçu du paiement {id}",
+                CurrentUserId, CurrentCenterId,
+                details: new { PaymentId = id, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Erreur lors du chargement du reçu";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
+    [MedicalStaff]
+    public async Task<IActionResult> DownloadReceipt(int id)
+    {
+        try
+        {
+            var payment = await _paymentService.GetByIdAsync(id);
+            if (payment == null)
+            {
+                TempData["ErrorMessage"] = "Paiement introuvable";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var pdfBytes = await _paymentService.GenerateReceiptAsync(id);
+
+            return File(pdfBytes, "application/pdf", $"Recu_{payment.ReferenceType}_{payment.ReferenceId}_{payment.Id}.pdf");
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "DownloadReceiptError",
+                $"Erreur lors du téléchargement du reçu du paiement {id}",
+                CurrentUserId, CurrentCenterId,
+                details: new { PaymentId = id, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Erreur lors de la génération du reçu";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [SuperAdmin]
+    public async Task<IActionResult> Cancel(int id, string reason)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                TempData["ErrorMessage"] = "Une raison est requise pour annuler le paiement";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var result = await _paymentService.CancelPaymentAsync(id, reason, CurrentUserId.Value);
+
+            if (result.IsSuccess)
+            {
+                TempData["SuccessMessage"] = "Paiement annulé avec succès";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            TempData["ErrorMessage"] = result.ErrorMessage ?? "Erreur lors de l'annulation du paiement";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "CancelError",
+                $"Erreur lors de l'annulation du paiement {id}",
+                CurrentUserId, CurrentCenterId,
+                details: new { PaymentId = id, Reason = reason, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Une erreur est survenue lors de l'annulation du paiement";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
+    [MedicalStaff]
+    public async Task<IActionResult> PatientPayments(int patientId)
+    {
+        try
+        {
+            var patient = await _patientService.GetPatientByIdAsync(patientId);
+            if (patient == null)
+            {
+                TempData["ErrorMessage"] = "Patient introuvable";
+                return RedirectToAction("Index", "Patient");
+            }
+
+            var payments = await _paymentService.GetPatientPaymentHistoryAsync(patientId);
+            var summary = await _paymentService.GetPatientPaymentSummaryAsync(patientId);
+
+            var viewModel = new PatientPaymentsViewModel
+            {
+                Patient = new Models.ViewModels.Patients.PatientViewModel
+                {
+                    Id = patient.Id,
+                    FirstName = patient.FirstName,
+                    LastName = patient.LastName
+                },
+                Payments = payments,
+                Summary = summary
+            };
+
+            return View(viewModel);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "PatientPaymentsError",
+                $"Erreur lors du chargement des paiements du patient {patientId}",
+                CurrentUserId, CurrentCenterId,
+                details: new { PatientId = patientId, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Erreur lors du chargement des paiements du patient";
+            return RedirectToAction("Details", "Patient", new { id = patientId });
+        }
+    }
+
+    // Méthodes privées d'aide
+
+    private bool IsValidReferenceType(string referenceType)
+    {
+        return referenceType is "CareEpisode" or "Examination";
+    }
+
+    private async Task LoadCareEpisodeInfoAsync(CreatePaymentViewModel model, int careEpisodeId)
+    {
+        var careEpisode = await _careEpisodeService.GetByIdAsync(careEpisodeId);
+        if (careEpisode == null)
+        {
+            throw new Exception($"Épisode de soins {careEpisodeId} introuvable");
+        }
+
+        model.PatientId = careEpisode.PatientId;
+        model.PatientName = careEpisode.PatientName;
+        model.ReferenceDescription = $"Épisode de soins ({careEpisode.DiagnosisName})";
+        model.TotalAmount = careEpisode.TotalCost;
+        model.RemainingAmount = careEpisode.RemainingBalance;
+        model.Amount = careEpisode.RemainingBalance;
+    }
+
+    private async Task LoadExaminationInfoAsync(CreatePaymentViewModel model, int examinationId)
+    {
+        var examination = await _examinationService.GetByIdAsync(examinationId);
+        if (examination == null)
+        {
+            throw new Exception($"Examen {examinationId} introuvable");
+        }
+
+        model.PatientId = examination.PatientId;
+        model.PatientName = examination.PatientName;
+        model.ReferenceDescription = $"Examen {examination.ExaminationTypeName}";
+        model.TotalAmount = examination.FinalPrice;
+
+        // Calculer le montant restant à payer (si des paiements existent déjà)
+        var existingPayments = await _paymentService.GetPaymentsByReferenceAsync("Examination", examinationId);
+        decimal totalPaid = existingPayments.Where(p => !p.IsCancelled).Sum(p => p.Amount);
+        model.RemainingAmount = examination.FinalPrice - totalPaid;
+        model.Amount = model.RemainingAmount ?? examination.FinalPrice;
+    }
+}
+
+/// <summary>
+/// ViewModel pour la page des paiements d'un patient
+/// </summary>
+public class PatientPaymentsViewModel
+{
+    public Models.ViewModels.Patients.PatientViewModel Patient { get; set; } = null!;
+    public List<PaymentViewModel> Payments { get; set; } = new List<PaymentViewModel>();
+    public PaymentSummaryViewModel Summary { get; set; } = null!;
+}

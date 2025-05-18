@@ -342,12 +342,14 @@ namespace HManagSys.Data.Repositories
                 if (selector == null)
                     throw new ArgumentNullException(nameof(selector));
 
-                IQueryable<TEntity> query = _dbSet;
+                //IQueryable<TEntity> query = _dbSet;
 
-                if (filter != null)
-                    query = filter(query);
-
-                var sum = await filter(_dbSet).SumAsync(entity => Convert.ToDecimal(selector(entity)));
+                //if (filter != null)
+                //    query = filter(query);
+                var sum = filter(_dbSet)
+                                .AsEnumerable()
+                                .Sum(entity => Convert.ToDecimal(selector(entity)));
+                //var sum = await filter(_dbSet).SumAsync(entity => Convert.ToDecimal(selector(entity)));
                 return (TResult)Convert.ChangeType(sum, typeof(TResult));
             }
             catch (Exception ex)

@@ -1,0 +1,198 @@
+﻿@using HManagSys.Models.ViewModels.Payments
+@model PaymentViewModel
+@{
+    ViewData["Title"] = "Détails du paiement";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Paiements</a></li>
+            <li class="breadcrumb-item active">Détails</li>
+        </ol>
+    </nav>
+    <div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-money-bill-wave"></i> Informations du paiement #@Model.Id
+                </h5>
+                <span class="@Model.StatusBadge">@Model.StatusText</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Référence</label>
+                            <div class="fw-bold">@Model.ReferenceDescription</div>
+                            <div class="small text-muted">@Model.ReferenceText</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Patient</label>
+                            <div class="fw-bold">
+                                @if (Model.PatientId.HasValue)
+                                {
+                                    <a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.PatientId" class="text-decoration-none">
+                                        <i class="fas fa-user"></i> @Model.PatientName
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span>Non assigné</span>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Centre hospitalier</label>
+                            <div class="fw-bold">@Model.HospitalCenterName</div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Montant</label>
+                            <div class="fw-bold fs-4">@Model.FormattedAmount</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Méthode de paiement</label>
+                            <div class="fw-bold">@Model.PaymentMethodName</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Date de paiement</label>
+                            <div class="fw-bold">@Model.FormattedDate</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Reçu par</label>
+                            <div class="fw-bold">@Model.ReceivedByName</div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.TransactionReference))
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Référence de transaction</label>
+                        <div class="fw-bold">@Model.TransactionReference</div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.Notes))
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Notes</label>
+                        <div class="bg-light p-2 rounded">@Model.Notes</div>
+                    </div>
+                }
+
+                @if (Model.IsCancelled && !string.IsNullOrWhiteSpace(Model.CancellationReason))
+                {
+                    <div class="alert alert-danger mt-3">
+                        <h6 class="alert-heading"><i class="fas fa-ban"></i> Paiement annulé</h6>
+                        <p class="mb-0">Raison: @Model.CancellationReason</p>
+                    </div>
+                }
+            </div>
+            <div class="card-footer bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="small text-muted">
+                        Créé le @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm") par @Model.CreatedByName
+                    </div>
+                    <div>
+                        @if (!Model.IsCancelled && ViewBag.IsSuperAdmin == true)
+                        {
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                                <i class="fas fa-ban"></i> Annuler le paiement
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-file-invoice"></i> Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a asp-action="Receipt" asp-route-id="@Model.Id" class="btn btn-primary">
+                        <i class="fas fa-receipt"></i> Voir le reçu
+                    </a>
+                    <a asp-action="DownloadReceipt" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+                        <i class="fas fa-download"></i> Télécharger le reçu (PDF)
+                    </a>
+                    @if (Model.PatientId.HasValue)
+                    {
+                        <a asp-action="PatientPayments" asp-route-patientId="@Model.PatientId" class="btn btn-outline-secondary">
+                            <i class="fas fa-history"></i> Historique des paiements du patient
+                        </a>
+                    }
+
+                    @if (Model.ReferenceType == "CareEpisode")
+                    {
+                        <a asp-controller="CareEpisode" asp-action="Details" asp-route-id="@Model.ReferenceId" class="btn btn-outline-secondary">
+                            <i class="fas fa-procedures"></i> Voir l'épisode de soins
+                        </a>
+                    }
+                    else if (Model.ReferenceType == "Examination")
+                    {
+                        <a asp-controller="Examination" asp-action="Details" asp-route-id="@Model.ReferenceId" class="btn btn-outline-secondary">
+                            <i class="fas fa-microscope"></i> Voir l'examen
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'annulation -->
+@if (!Model.IsCancelled && ViewBag.IsSuperAdmin == true)
+{
+    <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cancelModalLabel">Annuler le paiement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form asp-action="Cancel" asp-route-id="@Model.Id" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> Attention: Cette action est irréversible.
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="reason" class="form-label">Raison de l'annulation</label>
+                            <textarea id="reason" name="reason" class="form-control" rows="3" required></textarea>
+                            <div class="form-text">
+                                Veuillez spécifier la raison de l'annulation de ce paiement.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-ban"></i> Confirmer l'annulation
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}

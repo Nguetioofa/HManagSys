@@ -1,0 +1,221 @@
+﻿@using HManagSys.Models.ViewModels.Payments
+@model PagedViewModel<PaymentViewModel, PaymentFilters>
+@{
+    ViewData["Title"] = "Gestion des paiements";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1><i class="fas fa-money-bill-wave"></i> Gestion des paiements</h1>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-light">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-filter"></i> Filtres
+            <button class="btn btn-link btn-sm float-end" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFilters">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </h5>
+    </div>
+    <div class="collapse show" id="collapseFilters">
+        <div class="card-body">
+            <form asp-action="Index" method="get" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Recherche</label>
+                        <input type="text" name="SearchTerm" class="form-control" placeholder="Patient, référence..." value="@Model.Filters.SearchTerm" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Type de référence</label>
+                        <select name="ReferenceType" class="form-select" asp-for="Filters.ReferenceType">
+                            <option value="">Tous</option>
+                            <option value="CareEpisode">Épisodes de soins</option>
+                            <option value="Examination">Examens</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Méthode de paiement</label>
+                        <select name="PaymentMethodId" class="form-select" asp-for="Filters.PaymentMethodId">
+                            <option value="">Toutes</option>
+                            @foreach (var method in ViewBag.PaymentMethods ?? new List<SelectOption>())
+                            {
+                                <option value="@method.Value">@method.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Période</label>
+                        <div class="row">
+                            <div class="col">
+                                <div class="input-group">
+                                    <span class="input-group-text">Du</span>
+                                    <input type="date" class="form-control" name="FromDate" value="@(Model.Filters.FromDate?.ToString("yyyy-MM-dd"))" />
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="input-group">
+                                    <span class="input-group-text">Au</span>
+                                    <input type="date" class="form-control" name="ToDate" value="@(Model.Filters.ToDate?.ToString("yyyy-MM-dd"))" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 align-self-end">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-grow-1">
+                                <i class="fas fa-search"></i> Filtrer
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-redo"></i> Réinitialiser
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        @if (!Model.Items.Any())
+        {
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Aucun paiement trouvé avec les critères spécifiés.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Date</th>
+                            <th>Patient</th>
+                            <th>Référence</th>
+                            <th>Méthode</th>
+                            <th>Montant</th>
+                            <th>Statut</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr class="@(item.IsCancelled ? "table-danger" : "")">
+                                <td>@item.Id</td>
+                                <td>@item.FormattedDate</td>
+                                <td>
+                                    @if (item.PatientId.HasValue)
+                                    {
+                                        <a asp-controller="Patient" asp-action="Details" asp-route-id="@item.PatientId">
+                                            @item.PatientName
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">N/A</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span>@item.ReferenceDescription</span>
+                                    <small class="d-block text-muted">@item.ReferenceText</small>
+                                </td>
+                                <td>@item.PaymentMethodName</td>
+                                <td>@item.FormattedAmount</td>
+                                <td>
+                                    <span class="@item.StatusBadge">@item.StatusText</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a asp-action="Receipt" asp-route-id="@item.Id" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-receipt"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div>
+                    <span class="text-muted">
+                        Affichage de @((Model.Pagination.CurrentPage - 1) * Model.Pagination.PageSize + 1)
+                        à @(Math.Min(Model.Pagination.CurrentPage * Model.Pagination.PageSize, Model.Pagination.TotalCount))
+                        sur @Model.Pagination.TotalCount paiements
+                    </span>
+                </div>
+                @if (Model.Pagination.TotalPages > 1)
+                {
+                    <nav>
+                        <ul class="pagination">
+                            @if (Model.Pagination.HasPreviousPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="1" asp-route-searchTerm="@Model.Filters.SearchTerm" asp-route-referenceType="@Model.Filters.ReferenceType" asp-route-paymentMethodId="@Model.Filters.PaymentMethodId" asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="@Model.Pagination.PreviousPage" asp-route-searchTerm="@Model.Filters.SearchTerm" asp-route-referenceType="@Model.Filters.ReferenceType" asp-route-paymentMethodId="@Model.Filters.PaymentMethodId" asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            @{
+                                const int maxPagesToShow = 5;
+                                int startPage = Math.Max(1, Model.Pagination.CurrentPage - maxPagesToShow / 2);
+                                int endPage = Math.Min(Model.Pagination.TotalPages, startPage + maxPagesToShow - 1);
+                                startPage = Math.Max(1, endPage - maxPagesToShow + 1);
+                            }
+
+                            @for (int i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == Model.Pagination.CurrentPage ? "active" : "")">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="@i" asp-route-searchTerm="@Model.Filters.SearchTerm" asp-route-referenceType="@Model.Filters.ReferenceType" asp-route-paymentMethodId="@Model.Filters.PaymentMethodId" asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+
+                            @if (Model.Pagination.HasNextPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="@Model.Pagination.NextPage" asp-route-searchTerm="@Model.Filters.SearchTerm" asp-route-referenceType="@Model.Filters.ReferenceType" asp-route-paymentMethodId="@Model.Filters.PaymentMethodId" asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="@Model.Pagination.TotalPages" asp-route-searchTerm="@Model.Filters.SearchTerm" asp-route-referenceType="@Model.Filters.ReferenceType" asp-route-paymentMethodId="@Model.Filters.PaymentMethodId" asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Auto-submit on change for some filters
+            $('#filterForm select').change(function() {
+                if ($(this).attr('name') === 'ReferenceType' || 
+                    $(this).attr('name') === 'PaymentMethodId') {
+                    $('#filterForm').submit();
+                }
+            });
+        });
+    </script>
+}

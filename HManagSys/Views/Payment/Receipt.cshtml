@@ -1,0 +1,141 @@
+﻿@using HManagSys.Models.ViewModels.Payments
+@model PaymentViewModel
+@{
+    ViewData["Title"] = "Reçu de paiement";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Paiements</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.Id">Détails</a></li>
+            <li class="breadcrumb-item active">Reçu</li>
+        </ol>
+    </nav>
+    <div>
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-receipt"></i> Reçu de paiement
+                </h5>
+                <div>
+                    <a asp-action="DownloadReceipt" asp-route-id="@Model.Id" class="btn btn-sm btn-primary">
+                        <i class="fas fa-download"></i> Télécharger PDF
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+                        <i class="fas fa-print"></i> Imprimer
+                    </button>
+                </div>
+            </div>
+            <div class="card-body receipt-container">
+                <!-- Contenu du reçu -->
+                <div class="receipt" id="receipt-printable">
+                    <div class="text-center mb-4">
+                        <h4 class="mb-0">@Model.HospitalCenterName</h4>
+                        <p class="small text-muted mb-0">Centre de santé</p>
+                        <p class="small text-muted mb-0">REÇU N° @($"REÇU-{Model.Id:D6}")</p>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-6">
+                            <p class="mb-1"><strong>Date:</strong> @Model.PaymentDate.ToString("dd/MM/yyyy HH:mm")</p>
+                            <p class="mb-1"><strong>Référence:</strong> @Model.ReferenceDescription</p>
+                            @if (Model.PatientId.HasValue)
+                            {
+                                <p class="mb-1"><strong>Patient:</strong> @Model.PatientName</p>
+                            }
+                        </div>
+                        <div class="col-6 text-end">
+                            <p class="mb-1"><strong>Méthode:</strong> @Model.PaymentMethodName</p>
+                            @if (!string.IsNullOrWhiteSpace(Model.TransactionReference))
+                            {
+                                <p class="mb-1"><strong>Réf. Transaction:</strong> @Model.TransactionReference</p>
+                            }
+                            <p class="mb-1"><strong>Reçu par:</strong> @Model.ReceivedByName</p>
+                        </div>
+                    </div>
+
+                    <div class="border-top border-bottom py-3 mb-4">
+                        <div class="row">
+                            <div class="col-md-12 text-center">
+                                <h5>Montant payé</h5>
+                                <h2 class="mb-0">@Model.FormattedAmount</h2>
+                                @if (Model.IsCancelled)
+                                {
+                                    <div class="text-danger mt-2">
+                                        <strong>ANNULÉ</strong>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Notes))
+                    {
+                        <div class="mb-4">
+                            <h6>Notes</h6>
+                            <p>@Model.Notes</p>
+                        </div>
+                    }
+
+                    <div class="small text-muted text-center mt-5">
+                        <p class="mb-0">Merci pour votre paiement</p>
+                        <p class="mb-0">Ce document tient lieu de reçu officiel</p>
+                        <p class="mb-0">Émis le @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        @@media print {
+            body *
+
+        {
+            visibility: hidden;
+        }
+
+        #receipt-printable, #receipt-printable * {
+            visibility: visible;
+        }
+
+        #receipt-printable {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .card-header, .btn, nav, .breadcrumb {
+            display: none !important;
+        }
+
+        }
+
+        .receipt-container {
+            padding: 20px;
+        }
+
+        .receipt {
+            padding: 20px;
+            font-family: 'Arial', sans-serif;
+        }
+    </style>
+}
