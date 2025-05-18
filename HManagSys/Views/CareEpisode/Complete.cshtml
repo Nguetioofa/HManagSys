@@ -1,0 +1,113 @@
+﻿@using HManagSys.Models.ViewModels.Patients
+@model CompleteCareEpisodeViewModel
+@{
+    ViewData["Title"] = "Terminer l'épisode de soins";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Épisodes de soins</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.CareEpisodeId">Détails</a></li>
+            <li class="breadcrumb-item active">Terminer</li>
+        </ol>
+    </nav>
+    <div>
+        <a asp-action="Details" asp-route-id="@Model.CareEpisodeId" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-check-circle"></i> Terminer l'épisode de soins pour @Model.PatientName
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle fa-2x me-3"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="alert-heading mb-1">Information importante</h6>
+                            <p class="mb-0">
+                                Terminer cet épisode de soins le marquera comme « Complété ».
+                                Vous ne pourrez plus ajouter de services ou modifier cet épisode après cette action.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <form asp-action="Complete" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    <input type="hidden" asp-for="CareEpisodeId" />
+                    <input type="hidden" asp-for="PatientName" />
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="CompletionDate" class="form-label">Date de fin</label>
+                                <input asp-for="CompletionDate" class="form-control" type="datetime-local" required />
+                                <span asp-validation-for="CompletionDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <label asp-for="Notes" class="form-label">Notes de clôture</label>
+                        <textarea asp-for="Notes" class="form-control" rows="5"
+                                  placeholder="Résumé des soins administrés, résultat du traitement, recommandations pour le suivi..."></textarea>
+                        <span asp-validation-for="Notes" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" id="confirmCompletion" required>
+                        <label class="form-check-label" for="confirmCompletion">
+                            Je confirme que tous les soins nécessaires ont été administrés et que cet épisode de soins peut être clôturé.
+                        </label>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a asp-action="Details" asp-route-id="@Model.CareEpisodeId" class="btn btn-secondary">Annuler</a>
+                        <button type="submit" id="submitButton" class="btn btn-success" disabled>
+                            <i class="fas fa-check-circle"></i> Confirmer la fin de l'épisode
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function() {
+            // Définir la date/heure actuelle sur le champ de date
+            const now = new Date();
+            const localISOTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            $("#CompletionDate").val(localISOTime);
+
+            // Activer/désactiver le bouton de soumission en fonction de la case à cocher
+            $("#confirmCompletion").change(function() {
+                $("#submitButton").prop("disabled", !this.checked);
+            });
+
+            // Confirmation supplémentaire avant soumission
+            $("form").submit(function(e) {
+                if (!confirm("Êtes-vous sûr de vouloir terminer cet épisode de soins ? Cette action est irréversible.")) {
+                    e.preventDefault();
+                    return false;
+                }
+                return true;
+            });
+        });
+    </script>
+}

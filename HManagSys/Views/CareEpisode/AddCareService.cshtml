@@ -1,0 +1,270 @@
+﻿@using HManagSys.Models.ViewModels.Patients
+@model CreateCareServiceViewModel
+@{
+    ViewData["Title"] = "Ajouter un service de soins";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Épisodes de soins</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.CareEpisodeId">Détails</a></li>
+            <li class="breadcrumb-item active">Ajouter un service</li>
+        </ol>
+    </nav>
+    <div>
+        <a asp-action="Details" asp-route-id="@Model.CareEpisodeId" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour à l'épisode
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-hand-holding-medical"></i> Ajouter un service de soins
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="AddCareService" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    <input type="hidden" asp-for="CareEpisodeId" />
+                    <input type="hidden" asp-for="PatientName" />
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label asp-for="CareTypeId" class="form-label">Type de service</label>
+                                <select asp-for="CareTypeId" class="form-select" required>
+                                    <option value="">-- Sélectionner un type --</option>
+                                    @foreach (var option in Model.CareTypeOptions)
+                                    {
+                                        <option value="@option.Value">@option.Text</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="CareTypeId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label asp-for="AdministeredBy" class="form-label">Administré par</label>
+                                <select asp-for="AdministeredBy" class="form-select" required>
+                                    <option value="">-- Sélectionner un soignant --</option>
+                                    @foreach (var option in Model.StaffOptions)
+                                    {
+                                        <option value="@option.Value">@option.Text</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="AdministeredBy" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label asp-for="ServiceDate" class="form-label">Date du service</label>
+                                <input asp-for="ServiceDate" class="form-control" type="datetime-local" required />
+                                <span asp-validation-for="ServiceDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label asp-for="Duration" class="form-label">Durée (minutes)</label>
+                                <input asp-for="Duration" class="form-control" type="number" min="1" />
+                                <span asp-validation-for="Duration" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label asp-for="Cost" class="form-label">Coût</label>
+                                <div class="input-group">
+                                    <input asp-for="Cost" class="form-control" type="number" min="0" required />
+                                    <span class="input-group-text">FCFA</span>
+                                </div>
+                                <span asp-validation-for="Cost" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <label asp-for="Notes" class="form-label">Notes</label>
+                        <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Notes" class="text-danger"></span>
+                    </div>
+
+                    <h5 class="mb-3"><i class="fas fa-pills"></i> Produits utilisés</h5>
+                    <div id="products-container">
+                        <div class="product-row row mb-3 align-items-end">
+                            <div class="col-md-5">
+                                <label class="form-label">Produit</label>
+                                <select name="Products[0].ProductId" class="form-select product-select">
+                                    <option value="">-- Sélectionner un produit --</option>
+                                    @foreach (var product in Model.AvailableProducts)
+                                    {
+                                        <option value="@product.Id" data-price="@product.SellingPrice" data-unit="@product.UnitOfMeasure">
+                                            @product.Name (@product.UnitOfMeasure)
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Quantité</label>
+                                <div class="input-group">
+                                    <input type="number" name="Products[0].QuantityUsed" class="form-control product-quantity" value="1" min="0.01" step="0.01" />
+                                    <span class="input-group-text unit-text">Unité</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Coût unitaire</label>
+                                <div class="input-group">
+                                    <input type="number" name="Products[0].UnitCost" class="form-control product-unit-cost" value="0" min="0" />
+                                    <span class="input-group-text">FCFA</span>
+                                </div>
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-product">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mb-4">
+                        <button type="button" id="add-product-btn" class="btn btn-outline-secondary">
+                            <i class="fas fa-plus-circle"></i> Ajouter un produit
+                        </button>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a asp-action="Details" asp-route-id="@Model.CareEpisodeId" class="btn btn-secondary">Annuler</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Enregistrer le service
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function() {
+            // Définir la date/heure actuelle sur le champ de date
+            const now = new Date();
+            const localISOTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            $("#ServiceDate").val(localISOTime);
+
+            // Gestion du changement de produit
+            $(document).on("change", ".product-select", function() {
+                const row = $(this).closest(".product-row");
+                const selectedOption = $(this).find("option:selected");
+                const unitText = row.find(".unit-text");
+                const unitCostInput = row.find(".product-unit-cost");
+
+                if (selectedOption.val()) {
+                    unitText.text(selectedOption.data("unit"));
+                    unitCostInput.val(selectedOption.data("price"));
+                } else {
+                    unitText.text("Unité");
+                    unitCostInput.val(0);
+                }
+            });
+
+            // Ajouter un produit
+            $("#add-product-btn").click(function() {
+                const container = $("#products-container");
+                const index = container.children().length;
+
+                const newRow = `
+                <div class="product-row row mb-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label">Produit</label>
+                        <select name="Products[${index}].ProductId" class="form-select product-select">
+                            <option value="">-- Sélectionner un produit --</option>
+                            @foreach (var product in Model.AvailableProducts)
+                            {
+                                    <option value="@product.Id" data-price="@product.SellingPrice" data-unit="@product.UnitOfMeasure">
+                                        @product.Name (@product.UnitOfMeasure)
+                                    </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Quantité</label>
+                        <div class="input-group">
+                            <input type="number" name="Products[${index}].Quantity" class="form-control product-quantity" value="1" min="0.01" step="0.01" />
+                            <span class="input-group-text unit-text">Unité</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Coût unitaire</label>
+                        <div class="input-group">
+                            <input type="number" name="Products[${index}].UnitCost" class="form-control product-unit-cost" value="0" min="0" />
+                            <span class="input-group-text">FCFA</span>
+                        </div>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-product">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>`;
+
+                container.append(newRow);
+            });
+
+            // Supprimer un produit
+            $(document).on("click", ".remove-product", function() {
+                if ($("#products-container").children().length > 1) {
+                    $(this).closest(".product-row").remove();
+                    reindexProducts();
+                } else {
+                    // Réinitialiser le premier produit au lieu de le supprimer
+                    const row = $(this).closest(".product-row");
+                    row.find(".product-select").val("").trigger("change");
+                    row.find(".product-quantity").val(1);
+                }
+            });
+
+            // Réindexer les produits après suppression
+            function reindexProducts() {
+                $("#products-container .product-row").each(function(index) {
+                    $(this).find("select, input").each(function() {
+                        const name = $(this).attr("name");
+                        if (name) {
+                            const newName = name.replace(/Products\[\d+\]/, `Products[${index}]`);
+                            $(this).attr("name", newName);
+                        }
+                    });
+                });
+            }
+
+            // Mettre à jour le coût du service en fonction du type
+            $("#CareTypeId").change(function() {
+                const careTypeId = $(this).val();
+                if (careTypeId) {
+                    // Ici vous pourriez faire un appel AJAX pour récupérer le prix du type de soin
+                    // Pour l'exemple, on utilise un prix fixe
+                    const prices = {
+                        "1": 2000, // Consultation
+                        "2": 1500, // Pansement
+                        "3": 1000, // Injection
+                        "4": 3000, // Perfusion
+                        "5": 1000  // Surveillance
+                    };
+
+                    $("#Cost").val(prices[careTypeId] || 0);
+                } else {
+                    $("#Cost").val(0);
+                }
+            });
+        });
+    </script>
+}

@@ -1,0 +1,292 @@
+﻿@using HManagSys.Models.ViewModels.Patients
+@model PagedViewModel<ExaminationViewModel, ExaminationFilters>
+@{
+    ViewData["Title"] = "Examens médicaux";
+}
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <h1><i class="fas fa-microscope"></i> Examens médicaux</h1>
+    </div>
+    <div class="col-md-6 text-end">
+        <a id="btnNewExamination" class="btn btn-primary" style="display: none;">
+            <i class="fas fa-plus-circle"></i> Nouvel examen
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-light">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-filter"></i> Filtres
+            <button class="btn btn-link btn-sm float-end" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFilters">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </h5>
+    </div>
+    <div class="collapse show" id="collapseFilters">
+        <div class="card-body">
+            <form asp-action="Index" method="get" id="filterForm">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Patient</label>
+                        <div class="input-group">
+                            <input type="hidden" name="PatientId" id="selectedPatientId" value="@Model.Filters.PatientId" />
+                            <input type="text" id="patientSearch" class="form-control" placeholder="Rechercher un patient..." />
+                            <button class="btn btn-outline-secondary" type="button" id="clearPatient">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Statut</label>
+                        <select name="Status" class="form-select" asp-for="Filters.Status">
+                            <option value="">Tous</option>
+                            <option value="Requested">Demandé</option>
+                            <option value="Scheduled">Planifié</option>
+                            <option value="Completed">Complété</option>
+                            <option value="Canceled">Annulé</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Type d'examen</label>
+                        <select name="ExaminationTypeId" class="form-select" asp-for="Filters.ExaminationTypeId">
+                            <option value="">Tous</option>
+                            @foreach (var type in ViewBag.ExaminationTypes ?? new List<SelectOption>())
+                            {
+                                <option value="@type.Value">@type.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Période</label>
+                        <div class="row">
+                            <div class="col">
+                                <div class="input-group">
+                                    <span class="input-group-text">Du</span>
+                                    <input type="date" class="form-control" name="FromDate" value="@(Model.Filters.FromDate?.ToString("yyyy-MM-dd"))" />
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="input-group">
+                                    <span class="input-group-text">Au</span>
+                                    <input type="date" class="form-control" name="ToDate" value="@(Model.Filters.ToDate?.ToString("yyyy-MM-dd"))" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 align-self-end">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary flex-grow-1">
+                                <i class="fas fa-search"></i> Filtrer
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-redo"></i> Réinitialiser
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        @if (!Model.Items.Any())
+        {
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Aucun examen trouvé avec les critères spécifiés.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Date demande</th>
+                            <th>Patient</th>
+                            <th>Type d'examen</th>
+                            <th>Demandé par</th>
+                            <th>Date prévue</th>
+                            <th>Statut</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.Id</td>
+                                <td>@item.RequestDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    <a asp-controller="Patient" asp-action="Details" asp-route-id="@item.PatientId">
+                                        @item.PatientName
+                                    </a>
+                                </td>
+                                <td>@item.ExaminationTypeName</td>
+                                <td>@item.RequestedByName</td>
+                                <td>
+                                    @if (item.ScheduledDate.HasValue)
+                                    {
+                                        @item.ScheduledDate.Value.ToString("dd/MM/yyyy HH:mm")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Non planifié</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="@item.StatusClass">@item.Status</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        @if (item.Status == "Requested")
+                                        {
+                                            <a asp-action="Schedule" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-calendar-alt"></i>
+                                            </a>
+                                        }
+                                        @if (item.Status == "Scheduled")
+                                        {
+                                            <a asp-action="AddResult" asp-route-id="@item.Id" class="btn btn-sm btn-outline-success">
+                                                <i class="fas fa-clipboard-check"></i>
+                                            </a>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div>
+                    <span class="text-muted">
+                        Affichage de @((Model.Pagination.CurrentPage - 1) * Model.Pagination.PageSize + 1)
+                        à @(Math.Min(Model.Pagination.CurrentPage * Model.Pagination.PageSize, Model.Pagination.TotalCount))
+                        sur @Model.Pagination.TotalCount examens
+                    </span>
+                </div>
+                @if (Model.Pagination.TotalPages > 1)
+                {
+                    <nav>
+                        <ul class="pagination">
+                            @if (Model.Pagination.HasPreviousPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="1" asp-route-patientId="@Model.Filters.PatientId" asp-route-status="@Model.Filters.Status" asp-route-examinationTypeId="@Model.Filters.ExaminationTypeId" asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="@Model.Pagination.PreviousPage" asp-route-patientId="@Model.Filters.PatientId" asp-route-status="@Model.Filters.Status" asp-route-examinationTypeId="@Model.Filters.ExaminationTypeId" asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            @{
+                                const int maxPagesToShow = 5;
+                                int startPage = Math.Max(1, Model.Pagination.CurrentPage - maxPagesToShow / 2);
+                                int endPage = Math.Min(Model.Pagination.TotalPages, startPage + maxPagesToShow - 1);
+                                startPage = Math.Max(1, endPage - maxPagesToShow + 1);
+                            }
+
+                            @for (int i = startPage; i <= endPage; i++)
+                            {
+                                <li class="page-item @(i == Model.Pagination.CurrentPage ? "active" : "")">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="@i" asp-route-patientId="@Model.Filters.PatientId" asp-route-status="@Model.Filters.Status" asp-route-examinationTypeId="@Model.Filters.ExaminationTypeId" asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+
+                            @if (Model.Pagination.HasNextPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="@Model.Pagination.NextPage" asp-route-patientId="@Model.Filters.PatientId" asp-route-status="@Model.Filters.Status" asp-route-examinationTypeId="@Model.Filters.ExaminationTypeId" asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="@Model.Pagination.TotalPages" asp-route-patientId="@Model.Filters.PatientId" asp-route-status="@Model.Filters.Status" asp-route-examinationTypeId="@Model.Filters.ExaminationTypeId" asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Configuration autocomplétion patient
+            $("#patientSearch").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("Search", "Patient")',
+                        dataType: "json",
+                        data: {
+                            term: request.term
+                        },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return {
+                                    label: item.text + " (" + item.phone + ")",
+                                    value: item.text,
+                                    id: item.id
+                                };
+                            }));
+                        }
+                    });
+                },
+                minLength: 2,
+                select: function (event, ui) {
+                    $("#selectedPatientId").val(ui.item.id);
+                    // Activer le bouton de nouvel examen
+                    $("#btnNewExamination").attr("href", '@Url.Action("Create")' + "?patientId=" + ui.item.id);
+                    $("#btnNewExamination").show();
+                    return true;
+                }
+            });
+
+            // Effacer la sélection du patient
+            $("#clearPatient").click(function () {
+                $("#patientSearch").val("");
+                $("#selectedPatientId").val("");
+                $("#btnNewExamination").hide();
+            });
+
+            // Gérer l'affichage du bouton nouvel examen
+            if ($("#selectedPatientId").val()) {
+                $("#btnNewExamination").attr("href", '@Url.Action("Create")' + "?patientId=" + $("#selectedPatientId").val());
+                $("#btnNewExamination").show();
+                // Charger le nom du patient
+                $.ajax({
+                    url: '@Url.Action("Search", "Patient")',
+                    dataType: "json",
+                    data: {
+                        id: $("#selectedPatientId").val()
+                    },
+                    success: function (data) {
+                        if (data.length > 0) {
+                            $("#patientSearch").val(data[0].text);
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}

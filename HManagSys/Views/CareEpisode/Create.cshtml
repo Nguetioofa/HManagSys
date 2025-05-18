@@ -1,0 +1,113 @@
+﻿@using HManagSys.Models.ViewModels.Patients
+@model CreateCareEpisodeViewModel
+@{
+    ViewData["Title"] = "Nouvel épisode de soins";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Épisodes de soins</a></li>
+            <li class="breadcrumb-item active">Nouveau</li>
+        </ol>
+    </nav>
+    <div>
+        <a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.PatientId" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour au patient
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-procedures"></i> Nouvel épisode de soins pour @Model.PatientName
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    <input type="hidden" asp-for="PatientId" />
+                    <input type="hidden" asp-for="PatientName" />
+                    <input type="hidden" asp-for="HospitalCenterId" />
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="DiagnosisId" class="form-label">Diagnostic</label>
+                                <select asp-for="DiagnosisId" class="form-select" required>
+                                    <option value="">-- Sélectionner un diagnostic --</option>
+                                    @foreach (var option in Model.DiagnosisOptions)
+                                    {
+                                        <option value="@option.Value">@option.Text</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="DiagnosisId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="PrimaryCaregiver" class="form-label">Soignant principal</label>
+                                <select asp-for="PrimaryCaregiver" class="form-select" required>
+                                    <option value="">-- Sélectionner un soignant --</option>
+                                    @foreach (var option in Model.CaregiverOptions)
+                                    {
+                                        <option value="@option.Value">@option.Text</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="PrimaryCaregiver" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="EpisodeStartDate" class="form-label">Date de début</label>
+                                <input asp-for="EpisodeStartDate" class="form-control" type="datetime-local" required />
+                                <span asp-validation-for="EpisodeStartDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Prix initial estimé (FCFA)</label>
+@*                                 <input type="number" asp-for="InitialCostEstimate" class="form-control" min="0" value="0" />
+                                <span asp-validation-for="InitialCostEstimate" class="text-danger"></span> *@
+                                <small class="text-muted">Peut être mis à jour ultérieurement</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <label asp-for="Notes" class="form-label">Notes</label>
+                        <textarea asp-for="Notes" class="form-control" rows="4"></textarea>
+                        <span asp-validation-for="Notes" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.PatientId" class="btn btn-secondary">Annuler</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Créer l'épisode de soins
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function() {
+            // Définir la date/heure actuelle sur le champ de date
+            const now = new Date();
+            const localISOTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            $("#EpisodeStartDate").val(localISOTime);
+        });
+    </script>
+}

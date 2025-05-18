@@ -1,0 +1,107 @@
+﻿@using HManagSys.Models.ViewModels.Patients
+@model CreateExaminationResultViewModel
+@{
+    ViewData["Title"] = "Enregistrer les résultats";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Examens</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.ExaminationId">Détails</a></li>
+            <li class="breadcrumb-item active">Résultats</li>
+        </ol>
+    </nav>
+    <div>
+        <a asp-action="Details" asp-route-id="@Model.ExaminationId" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-clipboard-check"></i> Enregistrer les résultats de l'examen @Model.ExaminationTypeName
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="AddResult" method="post" enctype="multipart/form-data">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    <input type="hidden" asp-for="ExaminationId" />
+                    <input type="hidden" asp-for="PatientName" />
+                    <input type="hidden" asp-for="ExaminationTypeName" />
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label asp-for="ReportDate" class="form-label">Date du rapport</label>
+                                <input asp-for="ReportDate" class="form-control" type="datetime-local" required />
+                                <span asp-validation-for="ReportDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="ResultData" class="form-label">Données du résultat</label>
+                        <textarea asp-for="ResultData" class="form-control" rows="6"></textarea>
+                        <span asp-validation-for="ResultData" class="text-danger"></span>
+                        <small class="text-muted">Saisissez les valeurs et données mesurées (taux, comptages, etc.)</small>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="ResultNotes" class="form-label">Notes et interprétation</label>
+                        <textarea asp-for="ResultNotes" class="form-control" rows="6"></textarea>
+                        <span asp-validation-for="ResultNotes" class="text-danger"></span>
+                        <small class="text-muted">Ajoutez l'interprétation des résultats et toute recommandation</small>
+                    </div>
+
+@*                     <div class="form-group mb-4">
+                        <label asp-for="AttachmentFile" class="form-label">Pièce jointe (optionnelle)</label>
+                        <input asp-for="AttachmentFile" class="form-control" type="file" />
+                        <span asp-validation-for="AttachmentFile" class="text-danger"></span>
+                        <small class="text-muted">Formats acceptés: PDF, JPG, PNG (max 10 MB)</small>
+                    </div> *@
+
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-info-circle fa-2x me-3"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="alert-heading mb-1">Informations importantes</h6>
+                                <p class="mb-0">
+                                    En enregistrant ces résultats, l'examen sera automatiquement marqué comme "Complété".
+                                    Assurez-vous que toutes les informations sont correctes avant de soumettre.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a asp-action="Details" asp-route-id="@Model.ExaminationId" class="btn btn-secondary">Annuler</a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Enregistrer les résultats
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function() {
+            // Définir la date/heure actuelle sur le champ de date
+            const now = new Date();
+            const localISOTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            $("#ReportDate").val(localISOTime);
+        });
+    </script>
+}

@@ -686,10 +686,17 @@ public class CareEpisodeService : ICareEpisodeService
 
             // Calcul du coût total (service + produits)
             decimal totalProductsCost = 0;
-            foreach (var product in model.Products)
+            if (model.Products.Count == 1 && model.Products.First().ProductId == null)
+                model.Products = null;
+
+            if (model.Products != null && model.Products.Any())
             {
-                totalProductsCost += product.QuantityUsed * product.UnitCost;
+                foreach (var product in model.Products)
+                {
+                    totalProductsCost += product.QuantityUsed * product.UnitCost;
+                }
             }
+
 
             decimal totalCost = model.Cost + totalProductsCost;
 
@@ -723,7 +730,7 @@ public class CareEpisodeService : ICareEpisodeService
                 foreach (var productItem in model.Products)
                 {
                     // Vérifier que le produit existe
-                    var product = await _productRepository.GetByIdAsync(productItem.ProductId);
+                    var product = await _productRepository.GetByIdAsync(productItem.ProductId.Value);
                     if (product == null)
                     {
                         continue; // Ignorer ce produit
@@ -748,7 +755,7 @@ public class CareEpisodeService : ICareEpisodeService
                     var careServiceProduct = new CareServiceProduct
                     {
                         CareServiceId = createdService.Id,
-                        ProductId = productItem.ProductId,
+                        ProductId = productItem.ProductId.Value,
                         QuantityUsed = productItem.QuantityUsed,
                         UnitCost = product.SellingPrice,
                         TotalCost = productItem.QuantityUsed * product.SellingPrice,
@@ -768,7 +775,7 @@ public class CareEpisodeService : ICareEpisodeService
                     // Créer le mouvement de stock
                     var stockMovement = new StockMovement
                     {
-                        ProductId = productItem.ProductId,
+                        ProductId = productItem.ProductId.Value,
                         HospitalCenterId = episode.HospitalCenterId,
                         MovementType = "Care",
                         Quantity = -productItem.QuantityUsed, // Négatif car c'est une sortie

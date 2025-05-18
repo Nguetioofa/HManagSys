@@ -1,9 +1,9 @@
 ﻿
-using global::HManagSys.Attributes;
-using global::HManagSys.Models;
-using global::HManagSys.Models.ViewModels.Patients;
-using global::HManagSys.Models.ViewModels.Stock;
-using global::HManagSys.Services.Interfaces;
+using HManagSys.Attributes;
+using HManagSys.Data.Repositories.Interfaces;
+using HManagSys.Models;
+using HManagSys.Models.ViewModels.Patients;
+using HManagSys.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HManagSys.Controllers;
@@ -15,15 +15,21 @@ public class CareEpisodeController : BaseController
     private readonly ICareEpisodeService _careEpisodeService;
     private readonly IPatientService _patientService;
     private readonly IApplicationLogger _logger;
+    private readonly IUserRepository _userRepository;
+    private readonly IProductService _productService;
 
     public CareEpisodeController(
         ICareEpisodeService careEpisodeService,
         IPatientService patientService,
-        IApplicationLogger logger)
+        IUserRepository userRepository,
+        IApplicationLogger logger,
+        IProductService productService)
     {
         _careEpisodeService = careEpisodeService;
         _patientService = patientService;
         _logger = logger;
+        _userRepository = userRepository;
+        _productService = productService;
     }
 
     [MedicalStaff]
@@ -363,13 +369,8 @@ public class CareEpisodeController : BaseController
 
     private async Task<List<SelectOption>> GetCaregiversAsync()
     {
-        // This would be implemented using a user/staff service
-        return new List<SelectOption>
-        {
-            new("1", "Dr. Martin"),
-            new("2", "Dr. Kamga"),
-            new("3", "Infirmière Ngo")
-        };
+        return await _userRepository.GetUsersByCenterAsync(CurrentCenterId.Value);
+
     }
 
     private async Task<List<SelectOption>> GetCareTypesAsync()
@@ -378,21 +379,24 @@ public class CareEpisodeController : BaseController
         return new List<SelectOption>
         {
             new("1", "Consultation"),
-            new("2", "Pansement"),
-            new("3", "Injection"),
+            new("2", "Injection"),
+            new("3", "Pansement"),
             new("4", "Perfusion"),
-            new("5", "Surveillance")
         };
     }
 
     private async Task<List<ProductViewModel>> GetAvailableProductsAsync()
     {
         // This would be implemented using a product service
-        return new List<ProductViewModel>
+        var products = await _productService.SearchProductsAsync(string.Empty, null, CurrentCenterId.Value);
+
+        return products.Select(tt => new ProductViewModel
         {
-            new() { Id = 1, Name = "Paracétamol 500mg", UnitOfMeasure = "boîte", SellingPrice = 1500 },
-            new() { Id = 2, Name = "Compresse stérile", UnitOfMeasure = "unité", SellingPrice = 250 },
-            new() { Id = 3, Name = "Sérum physiologique", UnitOfMeasure = "flacon", SellingPrice = 750 }
-        };
+            Id = tt.Id,
+            Name = tt.Name,
+            UnitOfMeasure = tt.UnitOfMeasure,
+            SellingPrice = tt.SellingPrice
+        }).ToList();
+
     }
 }

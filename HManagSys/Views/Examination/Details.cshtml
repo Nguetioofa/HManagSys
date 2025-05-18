@@ -1,0 +1,293 @@
+﻿@model ExaminationViewModel
+@{
+    ViewData["Title"] = "Détails de l'examen";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Examens</a></li>
+            <li class="breadcrumb-item active">Détails</li>
+        </ol>
+    </nav>
+    <div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Informations générales -->
+    <div class="col-md-5">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-info-circle"></i> Informations générales</h5>
+                <span class="@Model.StatusClass">@Model.Status</span>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Patient</label>
+                    <div>
+                        <a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.PatientId" class="fw-bold text-decoration-none">
+                            <i class="fas fa-user"></i> @Model.PatientName
+                        </a>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">Type d'examen</label>
+                    <div class="fw-bold">@Model.ExaminationTypeName</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">Demandé par</label>
+                    <div class="fw-bold">@Model.RequestedByName</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">Date de demande</label>
+                    <div class="fw-bold">@Model.RequestDate.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+
+                @if (Model.ScheduledDate.HasValue)
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Date planifiée</label>
+                        <div class="fw-bold">@Model.ScheduledDate.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                    </div>
+                }
+
+                @if (Model.PerformedById.HasValue)
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Exécuté par</label>
+                        <div class="fw-bold">@Model.PerformedByName</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Date d'exécution</label>
+                        <div class="fw-bold">@Model.PerformedDate?.ToString("dd/MM/yyyy HH:mm")</div>
+                    </div>
+                }
+
+                @if (Model.CareEpisodeId.HasValue)
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Épisode de soins</label>
+                        <div class="fw-bold">
+                            <a asp-controller="CareEpisode" asp-action="Details" asp-route-id="@Model.CareEpisodeId" class="text-decoration-none">
+                                <i class="fas fa-procedures"></i> Voir l'épisode
+                            </a>
+                        </div>
+                    </div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">Centre hospitalier</label>
+                    <div class="fw-bold">@Model.HospitalCenterName</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">Tarif</label>
+                    <div class="fw-bold">@Model.FinalPrice.ToString("N0") FCFA</div>
+                    @if (Model.DiscountAmount > 0)
+                    {
+                        <div class="text-success small">
+                            <i class="fas fa-tag"></i> Remise: @Model.DiscountAmount.ToString("N0") FCFA
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.Notes))
+            {
+                <div class="card-footer">
+                    <h6 class="mb-2">Notes</h6>
+                    <div class="p-2 bg-light rounded">
+                        @Model.Notes
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Actions disponibles selon le statut -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-tasks"></i> Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    @if (Model.Status == "Requested")
+                    {
+                        <a asp-action="Schedule" asp-route-id="@Model.Id" class="btn btn-primary">
+                            <i class="fas fa-calendar-alt"></i> Planifier l'examen
+                        </a>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                            <i class="fas fa-times-circle"></i> Annuler l'examen
+                        </button>
+                    }
+                    else if (Model.Status == "Scheduled")
+                    {
+                        <a asp-action="AddResult" asp-route-id="@Model.Id" class="btn btn-success">
+                            <i class="fas fa-clipboard-check"></i> Enregistrer les résultats
+                        </a>
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                            <i class="fas fa-times-circle"></i> Annuler l'examen
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Résultats de l'examen -->
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-clipboard-list"></i> Résultats d'examen</h5>
+            </div>
+            <div class="card-body">
+                @if (Model.Result == null)
+                {
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        @if (Model.Status == "Completed")
+                        {
+                            <span>Les résultats de cet examen n'ont pas encore été enregistrés.</span>
+                        }
+                        else if (Model.Status == "Scheduled")
+                        {
+                            <span>L'examen est planifié mais n'a pas encore été effectué.</span>
+                        }
+                        else if (Model.Status == "Requested")
+                        {
+                            <span>L'examen n'a pas encore été planifié.</span>
+                        }
+                        else if (Model.Status == "Canceled")
+                        {
+                            <span>L'examen a été annulé.</span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">Informations sur le rapport</h6>
+                            <small class="text-muted">Rapport du @Model.Result.ReportDate.ToString("dd/MM/yyyy HH:mm")</small>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-muted">Rapporté par:</label>
+                                <div class="fw-bold">@Model.Result.ReportedByName</div>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.Result.ResultData))
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Données du résultat</label>
+                                <div class="p-3 bg-light rounded">
+                                    @Model.Result.ResultData
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(Model.Result.ResultNotes))
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Notes et interprétation</label>
+                                <div class="p-3 bg-light rounded">
+                                    @Model.Result.ResultNotes
+                                </div>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(Model.Result.AttachmentPath))
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">Pièce jointe</label>
+                                <div>
+                                    <a href="@Model.Result.AttachmentPath" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-paperclip"></i> Voir la pièce jointe
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'annulation -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelModalLabel">Annuler l'examen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir annuler cet examen ?</p>
+                <div class="form-group">
+                    <label for="cancelReason" class="form-label">Raison de l'annulation</label>
+                    <textarea id="cancelReason" class="form-control" rows="3" placeholder="Veuillez indiquer la raison de l'annulation..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                <button type="button" id="btnConfirmCancel" class="btn btn-danger">
+                    <i class="fas fa-times-circle"></i> Confirmer l'annulation
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Gestion de l'annulation
+            $("#btnConfirmCancel").click(function() {
+                const reason = $("#cancelReason").val();
+
+                if (!reason) {
+                    alert("Veuillez indiquer la raison de l'annulation.");
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("Cancel", "Examination")',
+                    type: 'POST',
+                    data: {
+                        id: @Model.Id,
+                        reason: reason,
+                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Fermer le modal
+                            $("#cancelModal").modal("hide");
+
+                            // Afficher message succès
+                            toastr.success(response.message);
+
+                            // Recharger la page après un court délai
+                            setTimeout(function() {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            toastr.error(response.message);
+                        }
+                    },
+                    error: function() {
+                        toastr.error("Une erreur est survenue lors de l'annulation de l'examen.");
+                    }
+                });
+            });
+        });
+    </script>
+}

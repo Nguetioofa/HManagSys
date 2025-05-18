@@ -42,41 +42,6 @@ public class CareEpisodeViewModel
     public bool IsComplete => Status == "Completed";
 }
 
-/// <summary>
-/// ViewModel pour les prescriptions médicales
-/// </summary>
-public class PrescriptionViewModel
-{
-    public int Id { get; set; }
-    public int PatientId { get; set; }
-    public string PatientName { get; set; } = string.Empty;
-    public int? DiagnosisId { get; set; }
-    public string? DiagnosisName { get; set; }
-    public int? CareEpisodeId { get; set; }
-    public int HospitalCenterId { get; set; }
-    public string HospitalCenterName { get; set; } = string.Empty;
-    public int PrescribedById { get; set; }
-    public string PrescribedByName { get; set; } = string.Empty;
-    public DateTime PrescriptionDate { get; set; }
-    public string? Instructions { get; set; }
-    public string Status { get; set; } = string.Empty; // "Pending", "Dispensed", "Cancelled"
-
-    // Items de la prescription
-    public List<PrescriptionItemViewModel>? Items { get; set; }
-
-    // Propriétés calculées
-    public bool IsDispensed => Status == "Dispensed";
-    public bool IsCancelled => Status == "Cancelled";
-    public int ItemCount => Items?.Count ?? 0;
-
-    public string StatusClass => Status switch
-    {
-        "Dispensed" => "text-success",
-        "Pending" => "text-warning",
-        "Cancelled" => "text-danger",
-        _ => "text-secondary"
-    };
-}
 
 /// <summary>
 /// ViewModel pour les items de prescription
@@ -96,6 +61,11 @@ public class PrescriptionItemViewModel
     public string FullInstructions => string.Join(" - ",
         new[] { Dosage, Frequency, Duration, Instructions }
         .Where(s => !string.IsNullOrEmpty(s)));
+
+    public string FormattedDosage => !string.IsNullOrEmpty(Dosage) ? Dosage : "N/A";
+    public string FormattedFrequency => !string.IsNullOrEmpty(Frequency) ? Frequency : "N/A";
+    public string FormattedDuration => !string.IsNullOrEmpty(Duration) ? Duration : "N/A";
+    public string FormattedInstructions => !string.IsNullOrEmpty(Instructions) ? Instructions : "N/A";
 }
 
 /// <summary>

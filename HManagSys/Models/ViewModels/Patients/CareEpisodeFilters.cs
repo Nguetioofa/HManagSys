@@ -75,7 +75,7 @@ public class CreateCareServiceViewModel
     public decimal Cost { get; set; }
 
     // Produits utilisés
-    public List<CareServiceProductItemViewModel> Products { get; set; } = new();
+    public List<CareServiceProductItemViewModel> Products { get; set; } = null;
 
     // Listes pour les dropdowns
     public List<SelectOption> CareTypeOptions { get; set; } = new();
@@ -88,12 +88,12 @@ public class CreateCareServiceViewModel
 /// </summary>
 public class CareServiceProductItemViewModel
 {
-    [Required]
-    public int ProductId { get; set; }
+    //[Required]
+    public int? ProductId { get; set; }
     public string? ProductName { get; set; }
 
-    [Required]
-    [Range(0.01, 1000, ErrorMessage = "La quantité doit être entre 0.01 et 1000")]
+    //[Required]
+    //[Range(0, 1000, ErrorMessage = "La quantité doit être entre 0.01 et 1000")]
     public decimal QuantityUsed { get; set; }
 
     public decimal UnitCost { get; set; }

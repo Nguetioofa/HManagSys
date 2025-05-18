@@ -1,0 +1,276 @@
+﻿@using HManagSys.Models.ViewModels.Patients
+@model CreatePrescriptionViewModel
+@{
+    ViewData["Title"] = "Nouvelle Prescription";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Prescriptions</a></li>
+            <li class="breadcrumb-item active">Nouvelle prescription</li>
+        </ol>
+    </nav>
+    <div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-prescription-bottle-alt"></i> Nouvelle prescription pour @Model.PatientName
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post" id="prescriptionForm">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                    <input type="hidden" asp-for="PatientId" />
+                    <input type="hidden" asp-for="PatientName" />
+                    <input type="hidden" asp-for="HospitalCenterId" />
+                    <input type="hidden" asp-for="Status" />
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label asp-for="DiagnosisId" class="form-label"></label>
+                                <select asp-for="DiagnosisId" class="form-select">
+                                    <option value="">-- Sélectionner un diagnostic --</option>
+                                    @foreach (var option in Model.DiagnosisOptions)
+                                    {
+                                        <option value="@option.Value">@option.Text</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="DiagnosisId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label asp-for="CareEpisodeId" class="form-label"></label>
+                                <select asp-for="CareEpisodeId" class="form-select">
+                                    <option value="">-- Sélectionner un épisode --</option>
+                                    @foreach (var option in Model.CareEpisodeOptions)
+                                    {
+                                        <option value="@option.Value">@option.Text</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="CareEpisodeId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label asp-for="PrescriptionDate" class="form-label"></label>
+                                <input asp-for="PrescriptionDate" class="form-control" type="datetime-local" />
+                                <span asp-validation-for="PrescriptionDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <label asp-for="Instructions" class="form-label"></label>
+                        <textarea asp-for="Instructions" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Instructions" class="text-danger"></span>
+                    </div>
+
+                    <h5 class="card-title mb-3"><i class="fas fa-pills"></i> Produits prescrits</h5>
+
+                    <div id="prescription-items-container">
+                        @for (int i = 0; i < Model.Items.Count; i++)
+                        {
+                            <div class="prescription-item card mb-3">
+                                <div class="card-body">
+                                    <button type="button" class="btn-close float-end remove-item" aria-label="Supprimer"></button>
+                                    <div class="row mb-3">
+                                        <div class="col-md-8">
+                                            <label class="form-label">Produit</label>
+                                            <select class="form-select product-select" name="Items[@i].ProductId">
+                                                <option value="">-- Sélectionner un produit --</option>
+                                                @foreach (var product in Model.AvailableProducts)
+                                                {
+                                                    <option value="@product.Id" data-unit="@product.UnitOfMeasure">@product.DisplayName</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Quantité</label>
+                                            <div class="input-group">
+                                                <input type="number" step="0.01" min="0.01" class="form-control" name="Items[@i].Quantity" value="1" />
+                                                <span class="input-group-text unit-label">Unité</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Dosage</label>
+                                            <input type="text" class="form-control" name="Items[@i].Dosage" placeholder="Ex: 1 comprimé" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Fréquence</label>
+                                            <input type="text" class="form-control" name="Items[@i].Frequency" placeholder="Ex: 3 fois par jour" />
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Durée</label>
+                                            <input type="text" class="form-control" name="Items[@i].Duration" placeholder="Ex: 5 jours" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Instructions spécifiques</label>
+                                            <input type="text" class="form-control" name="Items[@i].Instructions" placeholder="Ex: Prendre après le repas" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="d-grid mb-4">
+                        <button type="button" id="add-item-btn" class="btn btn-outline-primary">
+                            <i class="fas fa-plus-circle"></i> Ajouter un produit
+                        </button>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a asp-action="Index" class="btn btn-secondary">Annuler</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Enregistrer la prescription
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Template pour nouvel item -->
+<template id="new-item-template">
+    <div class="prescription-item card mb-3">
+        <div class="card-body">
+            <button type="button" class="btn-close float-end remove-item" aria-label="Supprimer"></button>
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <label class="form-label">Produit</label>
+                    <select class="form-select product-select" name="Items[INDEX].ProductId">
+                        <option value="">-- Sélectionner un produit --</option>
+                        @foreach (var product in Model.AvailableProducts)
+                        {
+                            <option value="@product.Id" data-unit="@product.UnitOfMeasure">@product.DisplayName</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Quantité</label>
+                    <div class="input-group">
+                        <input type="number" step="0.01" min="0.01" class="form-control" name="Items[INDEX].Quantity" value="1" />
+                        <span class="input-group-text unit-label">Unité</span>
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Dosage</label>
+                    <input type="text" class="form-control" name="Items[INDEX].Dosage" placeholder="Ex: 1 comprimé" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Fréquence</label>
+                    <input type="text" class="form-control" name="Items[INDEX].Frequency" placeholder="Ex: 3 fois par jour" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label">Durée</label>
+                    <input type="text" class="form-control" name="Items[INDEX].Duration" placeholder="Ex: 5 jours" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Instructions spécifiques</label>
+                    <input type="text" class="form-control" name="Items[INDEX].Instructions" placeholder="Ex: Prendre après le repas" />
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function() {
+            // Définir la date/heure actuelle sur le champ de date
+            const now = new Date();
+            const localISOTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            $("#PrescriptionDate").val(localISOTime);
+
+            // Initialiser l'unité de mesure pour les items existants
+            $(".product-select").each(function() {
+                const unitLabel = $(this).closest(".prescription-item").find(".unit-label");
+                const selectedOption = $(this).find("option:selected");
+                if (selectedOption.val()) {
+                    unitLabel.text(selectedOption.data("unit"));
+                }
+            });
+
+            // Gérer le changement de produit
+            $(document).on("change", ".product-select", function() {
+                const unitLabel = $(this).closest(".prescription-item").find(".unit-label");
+                const selectedOption = $(this).find("option:selected");
+                if (selectedOption.val()) {
+                    unitLabel.text(selectedOption.data("unit"));
+                } else {
+                    unitLabel.text("Unité");
+                }
+            });
+
+            // Ajouter un nouvel item
+            $("#add-item-btn").click(function() {
+                const container = $("#prescription-items-container");
+                const itemCount = $(".prescription-item").length;
+
+                // Cloner le template
+                const template = $("#new-item-template").html();
+                const newItem = template.replace(/INDEX/g, itemCount);
+
+                // Ajouter au conteneur
+                container.append(newItem);
+            });
+
+            // Supprimer un item
+            $(document).on("click", ".remove-item", function() {
+                const item = $(this).closest(".prescription-item");
+                item.remove();
+
+                // Réindexer les champs pour éviter les problèmes de binding
+                $(".prescription-item").each(function(index) {
+                    const inputs = $(this).find("input, select");
+                    inputs.each(function() {
+                        const name = $(this).attr("name");
+                        if (name) {
+                            const newName = name.replace(/Items\[\d+\]/, `Items[${index}]`);
+                            $(this).attr("name", newName);
+                        }
+                    });
+                });
+            });
+
+            // Validation du formulaire
+            $("#prescriptionForm").submit(function(e) {
+                // Vérifier qu'au moins un produit est sélectionné
+                const hasProducts = $(".product-select").filter(function() {
+                    return $(this).val() !== "";
+                }).length > 0;
+
+                if (!hasProducts) {
+                    e.preventDefault();
+                    alert("Vous devez sélectionner au moins un produit pour la prescription.");
+                    return false;
+                }
+
+                return true;
+            });
+        });
+    </script>
+}

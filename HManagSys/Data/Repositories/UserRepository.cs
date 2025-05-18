@@ -4,6 +4,7 @@ using HManagSys.Data.DBContext;
 using HManagSys.Data.Repositories;
 using HManagSys.Data.Repositories.Interfaces;
 using HManagSys.Helpers;
+using HManagSys.Models;
 using HManagSys.Models.EfModels;
 using HManagSys.Models.ViewModels;
 using HManagSys.Models.ViewModels.Users;
@@ -223,6 +224,34 @@ namespace HManagSys.Data.Repositories
                 await _appLogger.LogErrorAsync("UserRepository", "GetUsersByRoleFailed",
                     $"Erreur lors de la récupération par rôle {roleType} au centre {hospitalCenterId}",
                     details: new { RoleType = roleType, HospitalCenterId = hospitalCenterId, Error = ex.Message });
+                throw;
+            }
+        }
+
+        public async Task<List<SelectOption>> GetUsersByCenterAsync(int hospitalCenterId)
+        {
+            try
+            {
+                return await QueryListAsync(q => q
+                    .Include(u => u.UserCenterAssignments.Where(uca => uca.IsActive))
+                    .ThenInclude(uca => uca.HospitalCenter)
+                    .Where(u => u.IsActive &&
+                               u.UserCenterAssignments.Any(uca =>
+                                   uca.IsActive &&
+                                   uca.HospitalCenterId == hospitalCenterId))
+                    .OrderBy(u => u.LastName)
+                    .ThenBy(u => u.FirstName)
+                    .Select(x=> new SelectOption
+                    {
+                        Value = x.Id.ToString(),
+                        Text = $"{x.FirstName} {x.LastName}",
+                    }));
+            }
+            catch (Exception ex)
+            {
+                await _appLogger.LogErrorAsync("UserRepository", "GetUsersByRoleFailed",
+                    $"Erreur lors de la récupération par rôle  au centre {hospitalCenterId}",
+                    details: new {HospitalCenterId = hospitalCenterId, Error = ex.Message });
                 throw;
             }
         }

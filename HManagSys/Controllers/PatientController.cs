@@ -489,7 +489,6 @@ public class PatientController : BaseController
         {
             new("M", "Masculin"),
             new("F", "Féminin"),
-            new("O", "Autre")
         };
     }
 

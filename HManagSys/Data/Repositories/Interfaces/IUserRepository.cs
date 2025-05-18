@@ -1,4 +1,5 @@
-﻿using HManagSys.Models.EfModels;
+﻿using HManagSys.Models;
+using HManagSys.Models.EfModels;
 using HManagSys.Models.ViewModels;
 using HManagSys.Models.ViewModels.Users;
 
@@ -44,6 +45,9 @@ namespace HManagSys.Data.Repositories.Interfaces
         /// Essentiel pour la gestion des équipes par centre
         /// </summary>
         Task<List<User>> GetUsersByRoleAndCenterAsync(string roleType, int hospitalCenterId);
+
+
+        Task<List<SelectOption>> GetUsersByCenterAsync(int hospitalCenterId);
 
         // ===== GESTION DES MOTS DE PASSE =====
 
