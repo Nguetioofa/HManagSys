@@ -37,7 +37,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IProductCategoryService, ProductCategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ITransferService, TransferService>();
-// builder.Services.AddScoped<IStockService, StockService>(); // À ajouter plus tard
+builder.Services.AddScoped<IStockService, StockService>();
 
 //
 builder.Services.AddScoped<IPatientService, PatientService>();

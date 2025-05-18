@@ -1,0 +1,88 @@
+﻿@using HManagSys.Models.ViewModels.Stock
+@model StockMovementTrackingViewModel
+
+@if (Model != null && Model.Movements.Any())
+{
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-exchange-alt"></i> Mouvements de stock générés
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <strong><i class="fas fa-info-circle"></i> Opération:</strong>
+                @Model.SourceOperation.OperationTypeText (@Model.SourceOperation.ReferenceNumber) -
+                @Model.TotalProductsAffected produit(s) impacté(s)
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Produit</th>
+                            <th>Quantité</th>
+                            <th>Nouveau stock</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var movement in Model.Movements)
+                        {
+                            <tr>
+                                <td>@movement.ProductName</td>
+                                <td>
+                                    <span class="@(movement.Quantity < 0 ? "text-danger" : "text-success")">
+                                        @movement.QuantityText
+                                    </span>
+                                </td>
+                                <td>@movement.NewStockText</td>
+                                <td>@movement.MovementDate.ToString("dd/MM/yyyy HH:mm")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+else if (Model != null && Model.HasShortages)
+{
+    <div class="card mb-4 border-danger">
+        <div class="card-header bg-danger text-white">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-exclamation-triangle"></i> Produits en rupture de stock
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <strong><i class="fas fa-exclamation-circle"></i> Attention:</strong>
+                Le stock est insuffisant pour @Model.ShortageItems.Count produit(s).
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Produit</th>
+                            <th>Demandé</th>
+                            <th>Disponible</th>
+                            <th>Manquant</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.ShortageItems)
+                        {
+                            <tr>
+                                <td>@item.ProductName</td>
+                                <td>@item.RequestedQuantity.ToString("N2") @item.UnitOfMeasure</td>
+                                <td>@item.AvailableQuantity.ToString("N2") @item.UnitOfMeasure</td>
+                                <td class="text-danger">@item.ShortageAmount.ToString("N2") @item.UnitOfMeasure</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}

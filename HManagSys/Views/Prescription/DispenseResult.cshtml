@@ -1,0 +1,149 @@
+﻿@using HManagSys.Models.ViewModels
+@model PrescriptionDispenseResultViewModel
+@{
+    ViewData["Title"] = "Prescription dispensée";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Prescriptions</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.Prescription.Id">Détails</a></li>
+            <li class="breadcrumb-item active">Dispensation</li>
+        </ol>
+    </nav>
+    <div>
+        <a asp-action="Details" asp-route-id="@Model.Prescription.Id" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-success">
+    <div class="d-flex">
+        <div class="me-3">
+            <i class="fas fa-check-circle fa-2x"></i>
+        </div>
+        <div>
+            <h4 class="alert-heading">Prescription dispensée avec succès!</h4>
+            <p class="mb-0">La prescription a été marquée comme dispensée et le stock a été mis à jour.</p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Informations sur la prescription -->
+    <div class="col-md-5">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0"><i class="fas fa-prescription"></i> Informations sur la prescription</h5>
+                <span class="badge bg-success">Dispensée</span>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Patient</label>
+                    <div>
+                        <a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.Prescription.PatientId" class="fw-bold text-decoration-none">
+                            <i class="fas fa-user"></i> @Model.Prescription.PatientName
+                        </a>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">Prescrite le</label>
+                    <div class="fw-bold">@Model.Prescription.FormattedDate</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">Prescrit par</label>
+                    <div class="fw-bold">@Model.Prescription.PrescribedByName</div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Prescription.DiagnosisName))
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Diagnostic</label>
+                        <div class="fw-bold">@Model.Prescription.DiagnosisName</div>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.Prescription.Instructions))
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Instructions</label>
+                        <div class="bg-light p-2 rounded">@Model.Prescription.Instructions</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Produits prescrits -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-pills"></i> Produits dispensés</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Produit</th>
+                                <th>Quantité</th>
+                                <th>Dosage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Prescription.Items)
+                            {
+                                <tr>
+                                    <td>@item.ProductName</td>
+                                    <td>@item.Quantity</td>
+                                    <td>
+                                        <small>
+                                            @if (!string.IsNullOrEmpty(item.Dosage))
+                                            {
+                                                <span class="d-block">@item.Dosage</span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(item.Frequency))
+                                            {
+                                                <span class="d-block">@item.Frequency</span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(item.Duration))
+                                            {
+                                                <span class="d-block">@item.Duration</span>
+                                            }
+                                        </small>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mouvements de stock -->
+    <div class="col-md-7">
+        @await Html.PartialAsync("_StockMovementPartial", Model.StockMovements)
+
+        <div class="d-flex justify-content-end mt-4">
+            <div class="btn-group">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="fas fa-list"></i> Liste des prescriptions
+                </a>
+                <a asp-action="Details" asp-route-id="@Model.Prescription.Id" class="btn btn-primary">
+                    <i class="fas fa-file-prescription"></i> Détails de la prescription
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Ajouter ici si nécessaire du JavaScript pour améliorer l'interactivité
+        });
+    </script>
+}

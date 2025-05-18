@@ -15,6 +15,7 @@ namespace HManagSys.Services.Interfaces
         Task<OperationResult> InterruptCareEpisodeAsync(int id, InterruptCareEpisodeViewModel model, int modifiedBy);
         Task<List<CareEpisodeViewModel>> GetPatientCareEpisodesAsync(int patientId);
         Task<List<CareServiceViewModel>> GetCareServicesAsync(int episodeId);
+        Task<CareServiceViewModel> GetCareServiceByIdAsync(int serviceId);
         Task<OperationResult<CareServiceViewModel>> AddCareServiceAsync(CreateCareServiceViewModel model, int createdBy);
     }
 }

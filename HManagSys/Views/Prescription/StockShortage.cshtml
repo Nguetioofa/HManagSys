@@ -1,0 +1,116 @@
+﻿@using HManagSys.Models.ViewModels
+@model StockShortageViewModel
+@{
+    ViewData["Title"] = "Stock insuffisant";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Prescriptions</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.PrescriptionId">Détails</a></li>
+            <li class="breadcrumb-item active">Stock insuffisant</li>
+        </ol>
+    </nav>
+    <div>
+        <a asp-action="Details" asp-route-id="@Model.PrescriptionId" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-danger">
+    <div class="d-flex">
+        <div class="me-3">
+            <i class="fas fa-exclamation-triangle fa-2x"></i>
+        </div>
+        <div>
+            <h4 class="alert-heading">Stock insuffisant</h4>
+            <p class="mb-0">La prescription ne peut pas être dispensée car le stock est insuffisant pour certains produits.</p>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-danger text-white">
+        <h5 class="card-title mb-0"><i class="fas fa-inventory"></i> Produits en rupture</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Produit</th>
+                        <th>Quantité demandée</th>
+                        <th>Quantité disponible</th>
+                        <th>Manquant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.ShortageItems)
+                    {
+                        <tr>
+                            <td>@item.ProductName</td>
+                            <td>@item.RequestedQuantity.ToString("N2") @item.UnitOfMeasure</td>
+                            <td>@item.AvailableQuantity.ToString("N2") @item.UnitOfMeasure</td>
+                            <td class="text-danger">@item.ShortageAmount.ToString("N2") @item.UnitOfMeasure</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (ViewBag.IsSuperAdmin == true)
+{
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-warning">
+            <h5 class="card-title mb-0"><i class="fas fa-user-shield"></i> Actions administrateur</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-circle"></i> En tant que SuperAdmin, vous pouvez forcer la dispensation même en cas de stock insuffisant.
+                Cette action sera journalisée et auditée.
+            </div>
+
+            <form asp-action="ForceDispense" asp-route-id="@Model.PrescriptionId" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="form-group mb-3">
+                    <label for="reason" class="form-label">Raison de la dispensation forcée</label>
+                    <textarea id="reason" name="reason" class="form-control" rows="3" required
+                          placeholder="Veuillez indiquer la raison de cette action exceptionnelle..."></textarea>
+                    <div class="form-text">
+                        Cette information sera enregistrée dans le journal d'audit.
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Forcer la dispensation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+<div class="d-flex justify-content-end mt-4">
+    <div class="btn-group">
+        <a asp-action="Details" asp-route-id="@Model.PrescriptionId" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i> Retour à la prescription
+        </a>
+        <a asp-controller="Stock" asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-boxes"></i> Gérer les stocks
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Ajouter ici du JavaScript si nécessaire
+        });
+    </script>
+}

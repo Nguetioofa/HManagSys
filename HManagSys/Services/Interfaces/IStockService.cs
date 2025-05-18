@@ -1,4 +1,5 @@
 ﻿using HManagSys.Models.EfModels;
+using HManagSys.Models.ViewModels.Patients;
 using HManagSys.Models.ViewModels.Stock;
 
 namespace HManagSys.Services.Interfaces
@@ -10,6 +11,41 @@ namespace HManagSys.Services.Interfaces
     public interface IStockService
     {
         // ===== MOUVEMENTS DE STOCK =====
+
+
+        /// <summary>
+        /// Enregistre une dispensation de prescription avec décrément de stock
+        /// </summary>
+        /// <param name="prescriptionId">ID de la prescription dispensée</param>
+        /// <param name="userId">ID de l'utilisateur effectuant la dispensation</param>
+        /// <returns>Résultat de l'opération avec les détails des mouvements effectués</returns>
+        Task<OperationResult<StockMovementTrackingViewModel>> RecordPrescriptionDispensationAsync(int prescriptionId, int userId);
+
+        /// <summary>
+        /// Enregistre l'utilisation des produits pour un service de soin
+        /// </summary>
+        /// <param name="careServiceId">ID du service de soin</param>
+        /// <param name="userId">ID de l'utilisateur enregistrant le service</param>
+        /// <returns>Résultat de l'opération avec les détails des mouvements effectués</returns>
+        Task<OperationResult<StockMovementTrackingViewModel>> RecordCareServiceProductUsageAsync(int careServiceId, int userId);
+
+        /// <summary>
+        /// Vérifie si le stock est suffisant pour dispenser une prescription
+        /// </summary>
+        /// <param name="prescriptionId">ID de la prescription à vérifier</param>
+        /// <param name="hospitalCenterId">ID du centre hospitalier</param>
+        /// <returns>Résultat de la vérification avec les éventuels produits en rupture</returns>
+        Task<(bool IsAvailable, List<StockShortageItem> ShortageItems)> CheckPrescriptionStockAvailabilityAsync(
+            int prescriptionId, int hospitalCenterId);
+
+        /// <summary>
+        /// Vérifie si le stock est suffisant pour les produits d'un service de soin
+        /// </summary>
+        /// <param name="products">Liste des produits et quantités utilisés</param>
+        /// <param name="hospitalCenterId">ID du centre hospitalier</param>
+        /// <returns>Résultat de la vérification avec les éventuels produits en rupture</returns>
+        Task<(bool IsAvailable, List<StockShortageItem> ShortageItems)> CheckCareServiceStockAvailabilityAsync(
+            List<CareServiceProductItemViewModel> products, int hospitalCenterId);
 
         /// <summary>
         /// Enregistre un mouvement de stock

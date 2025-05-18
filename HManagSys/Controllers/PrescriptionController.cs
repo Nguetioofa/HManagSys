@@ -2,6 +2,8 @@
 using HManagSys.Models;
 using HManagSys.Models.ViewModels;
 using HManagSys.Models.ViewModels.Patients;
+using HManagSys.Models.ViewModels.Stock;
+using HManagSys.Services;
 using HManagSys.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,12 +18,16 @@ public class PrescriptionController : BaseController
     private readonly IProductService _productService;
     private readonly ICareEpisodeService _careEpisodeService;
     private readonly IApplicationLogger _logger;
+    private readonly IStockService _stockService;
+    private readonly IAuditService _auditService;
 
     public PrescriptionController(
         IPrescriptionService prescriptionService,
         IPatientService patientService,
         IProductService productService,
         ICareEpisodeService careEpisodeService,
+        IStockService stockService,
+        IAuditService auditService,
         IApplicationLogger logger)
     {
         _prescriptionService = prescriptionService;
@@ -29,6 +35,8 @@ public class PrescriptionController : BaseController
         _productService = productService;
         _careEpisodeService = careEpisodeService;
         _logger = logger;
+        _auditService = auditService;
+        _stockService = stockService;
     }
 
     [MedicalStaff]
@@ -398,6 +406,40 @@ public class PrescriptionController : BaseController
         }
     }
 
+    //[HttpPost]
+    //[ValidateAntiForgeryToken]
+    //[MedicalStaff]
+    //public async Task<IActionResult> Dispense(int id)
+    //{
+    //    try
+    //    {
+    //        var result = await _prescriptionService.DisposePrescriptionAsync(id, CurrentUserId!.Value);
+
+    //        if (result.IsSuccess)
+    //        {
+    //            TempData["SuccessMessage"] = "Prescription dispensée avec succès";
+    //            return RedirectToAction(nameof(Details), new { id });
+    //        }
+
+    //        TempData["ErrorMessage"] = result.ErrorMessage ?? "Erreur lors de la dispensation de la prescription";
+    //        return RedirectToAction(nameof(Details), new { id });
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        await _logger.LogErrorAsync("Prescription", "DispenseError",
+    //            $"Erreur lors de la dispensation de la prescription {id}",
+    //            CurrentUserId, CurrentCenterId,
+    //            details: new { PrescriptionId = id, Error = ex.Message });
+
+    //        TempData["ErrorMessage"] = "Une erreur est survenue lors de la dispensation de la prescription";
+    //        return RedirectToAction(nameof(Details), new { id });
+    //    }
+    //}
+
+
+    /// <summary>
+    /// Action pour dispenser une prescription (avec décrément de stock)
+    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [MedicalStaff]
@@ -405,12 +447,39 @@ public class PrescriptionController : BaseController
     {
         try
         {
-            var result = await _prescriptionService.DisposePrescriptionAsync(id, CurrentUserId!.Value);
+            // Vérifier d'abord si le stock est suffisant
+            var stockCheck = await _stockService.CheckPrescriptionStockAvailabilityAsync(id, CurrentCenterId.Value);
+
+            if (!stockCheck.IsAvailable)
+            {
+                // Préparer la vue des produits en rupture
+                var shortageViewModel = new StockShortageViewModel
+                {
+                    PrescriptionId = id,
+                    ShortageItems = stockCheck.ShortageItems
+                };
+
+                // Journaliser la tentative échouée
+                await _logger.LogWarningAsync("Prescription", "DispenseStockShortage",
+                    $"Tentative de dispensation avec stock insuffisant - Prescription {id}",
+                    CurrentUserId, CurrentCenterId,
+                    details: new { ShortageCount = stockCheck.ShortageItems.Count });
+
+                return View("StockShortage", shortageViewModel);
+            }
+
+            // Stock suffisant, procéder à la dispensation avec décrément stock
+            var result = await _stockService.RecordPrescriptionDispensationAsync(id, CurrentUserId.Value);
 
             if (result.IsSuccess)
             {
+                // Si la dispensation a réussi, montrer le récapitulatif des mouvements de stock
                 TempData["SuccessMessage"] = "Prescription dispensée avec succès";
-                return RedirectToAction(nameof(Details), new { id });
+
+                // Stocker le résultat de suivi dans TempData pour l'afficher dans la vue suivante
+                TempData["StockMovements"] = System.Text.Json.JsonSerializer.Serialize(result.Data);
+
+                return RedirectToAction(nameof(DispenseResult), new { id });
             }
 
             TempData["ErrorMessage"] = result.ErrorMessage ?? "Erreur lors de la dispensation de la prescription";
@@ -427,6 +496,111 @@ public class PrescriptionController : BaseController
             return RedirectToAction(nameof(Details), new { id });
         }
     }
+
+
+    /// <summary>
+    /// Affiche le résultat de la dispensation avec les mouvements de stock
+    /// </summary>
+    [MedicalStaff]
+    public async Task<IActionResult> DispenseResult(int id)
+    {
+        try
+        {
+            // Récupérer la prescription
+            var prescription = await _prescriptionService.GetByIdAsync(id);
+            if (prescription == null)
+            {
+                TempData["ErrorMessage"] = "Prescription introuvable";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Récupérer les mouvements de stock depuis TempData
+            StockMovementTrackingViewModel? movements = null;
+            if (TempData["StockMovements"] is string stockMovementsJson)
+            {
+                movements = System.Text.Json.JsonSerializer.Deserialize<StockMovementTrackingViewModel>(stockMovementsJson);
+            }
+
+            // Créer le ViewModel de résultat
+            var viewModel = new PrescriptionDispenseResultViewModel
+            {
+                Prescription = prescription,
+                StockMovements = movements
+            };
+
+            return View(viewModel);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Prescription", "DispenseResultError",
+                $"Erreur lors de l'affichage du résultat de dispensation {id}",
+                CurrentUserId, CurrentCenterId,
+                details: new { PrescriptionId = id, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Une erreur est survenue lors de l'affichage du résultat";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
+    /// <summary>
+    /// Force la dispensation même en cas de rupture de stock
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [SuperAdmin] // Seul un SuperAdmin peut forcer la dispensation
+    public async Task<IActionResult> ForceDispense(int id, string reason)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                TempData["ErrorMessage"] = "Une raison est requise pour forcer la dispensation";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            // Contourner la vérification de stock et dispenser directement
+            // Uniquement disponible pour les SuperAdmin
+            var result = await _prescriptionService.DisposePrescriptionAsync(id, CurrentUserId.Value);
+
+            if (result.IsSuccess)
+            {
+                // Journaliser cette action spéciale
+                await _logger.LogWarningAsync("Prescription", "ForcedDispense",
+                    $"Dispensation forcée de la prescription {id}",
+                    CurrentUserId, CurrentCenterId,
+                    details: new { Reason = reason });
+
+                // Audit spécifique
+                await _auditService.LogActionAsync(
+                    CurrentUserId.Value,
+                    "FORCED_DISPENSE",
+                    "Prescription",
+                    id,
+                    null,
+                    new { Reason = reason },
+                    $"Dispensation forcée sans vérification de stock: {reason}"
+                );
+
+                TempData["SuccessMessage"] = "Prescription dispensée avec succès (dispensation forcée)";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            TempData["ErrorMessage"] = result.ErrorMessage ?? "Erreur lors de la dispensation forcée";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Prescription", "ForceDispenseError",
+                $"Erreur lors de la dispensation forcée de la prescription {id}",
+                CurrentUserId, CurrentCenterId,
+                details: new { PrescriptionId = id, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Une erreur est survenue lors de la dispensation forcée";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
+
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -509,11 +683,11 @@ public class PrescriptionController : BaseController
     }
 
     // Méthode helper pour charger les produits disponibles
-    private async Task<List<ProductViewModel>> GetAvailableProductsForPrescriptionAsync()
+    private async Task<List<Models.ViewModels.Patients.ProductViewModel>> GetAvailableProductsForPrescriptionAsync()
     {
         // Cette méthode serait implémentée avec le ProductService
         // Pour l'instant, retournons des données fictives
-        return new List<ProductViewModel>
+        return new List<Models.ViewModels.Patients.ProductViewModel>
         {
             new() { Id = 1, Name = "Paracétamol 500mg", UnitOfMeasure = "boîte", SellingPrice = 1500 },
             new() { Id = 2, Name = "Amoxicilline 500mg", UnitOfMeasure = "boîte", SellingPrice = 3000 },

@@ -1,0 +1,145 @@
+﻿@using HManagSys.Models.ViewModels
+@model CareServiceResultViewModel
+@{
+    ViewData["Title"] = "Service de soin ajouté";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-action="Index">Épisodes de soins</a></li>
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@Model.CareService.CareEpisodeId">Détails</a></li>
+            <li class="breadcrumb-item active">Service ajouté</li>
+        </ol>
+    </nav>
+    <div>
+        <a asp-action="Details" asp-route-id="@Model.CareService.CareEpisodeId" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-success">
+    <div class="d-flex">
+        <div class="me-3">
+            <i class="fas fa-check-circle fa-2x"></i>
+        </div>
+        <div>
+            <h4 class="alert-heading">Service de soin ajouté avec succès!</h4>
+            <p class="mb-0">Le service a été enregistré et le stock a été mis à jour.</p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Informations sur le service de soin -->
+    <div class="col-md-5">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-stethoscope"></i> Informations sur le service</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Type de soin</label>
+                    <div class="fw-bold">@Model.CareService.CareTypeName</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">Administré par</label>
+                    <div class="fw-bold">@Model.CareService.AdministeredByName</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">Date du service</label>
+                    <div class="fw-bold">@Model.CareService.ServiceDate.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+
+                @if (Model.CareService.Duration.HasValue)
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Durée</label>
+                        <div class="fw-bold">@Model.CareService.Duration minutes</div>
+                    </div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">Coût</label>
+                    <div class="fw-bold">@Model.CareService.Cost.ToString("N0") FCFA</div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.CareService.Notes))
+                {
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Notes</label>
+                        <div class="bg-light p-2 rounded">@Model.CareService.Notes</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Produits utilisés -->
+        @if (Model.CareService.UsedProducts != null && Model.CareService.UsedProducts.Any())
+        {
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0"><i class="fas fa-pills"></i> Produits utilisés</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Produit</th>
+                                    <th>Quantité</th>
+                                    <th>Coût unitaire</th>
+                                    <th>Coût total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in Model.CareService.UsedProducts)
+                                {
+                                    <tr>
+                                        <td>@product.ProductName</td>
+                                        <td>@product.QuantityUsed.ToString("N2")</td>
+                                        <td>@product.UnitCost.ToString("N0") FCFA</td>
+                                        <td>@product.TotalCost.ToString("N0") FCFA</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="3" class="text-end">Total produits:</th>
+                                    <th>@Model.CareService.ProductCostTotal.ToString("N0") FCFA</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Mouvements de stock -->
+    <div class="col-md-7">
+        @await Html.PartialAsync("_StockMovementPartial", Model.StockMovements)
+
+        <div class="d-flex justify-content-end mt-4">
+            <div class="btn-group">
+                <a asp-action="Index" class="btn btn-outline-secondary">
+                    <i class="fas fa-list"></i> Liste des épisodes
+                </a>
+                <a asp-action="Details" asp-route-id="@Model.CareService.CareEpisodeId" class="btn btn-primary">
+                    <i class="fas fa-procedures"></i> Détails de l'épisode
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Ajouter ici si nécessaire du JavaScript pour améliorer l'interactivité
+        });
+    </script>
+}

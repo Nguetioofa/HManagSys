@@ -608,6 +608,51 @@ public class CareEpisodeService : ICareEpisodeService
         }
     }
 
+    public async Task<CareServiceViewModel> GetCareServiceByIdAsync(int serviceId)
+    {
+        try
+        {
+            return await _careServiceRepository.QuerySingleAsync(q =>
+                q.Where(s => s.Id == serviceId)
+                 .AsNoTracking().AsSingleQuery()
+                 .Include(s => s.CareType)
+                 .Include(s => s.AdministeredByNavigation)
+                 .Include(s => s.CareServiceProducts)
+                    .ThenInclude(p => p.Product)
+                 .Select(s => new CareServiceViewModel
+                 {
+                     Id = s.Id,
+                     CareEpisodeId = s.CareEpisodeId,
+                     CareTypeId = s.CareTypeId,
+                     CareTypeName = s.CareType.Name,
+                     AdministeredById = s.AdministeredBy,
+                     AdministeredByName = $"{s.AdministeredByNavigation.FirstName} {s.AdministeredByNavigation.LastName}",
+                     ServiceDate = s.ServiceDate,
+                     Duration = s.Duration,
+                     Notes = s.Notes,
+                     Cost = s.Cost,
+                     UsedProducts = s.CareServiceProducts.Select(p => new CareServiceProductViewModel
+                     {
+                         Id = p.Id,
+                         CareServiceId = p.CareServiceId,
+                         ProductId = p.ProductId,
+                         ProductName = p.Product.Name,
+                         QuantityUsed = p.QuantityUsed,
+                         UnitCost = p.UnitCost,
+                         TotalCost = p.TotalCost
+                     }).ToList()
+                 }));
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("CareEpisodeService", "GetCareServiceByIdError",
+                $"Erreur lors de la récupération du service de soins {serviceId}",
+                details: new { ServiceId = serviceId, Error = ex.Message });
+            throw;
+        }
+    }
+
+
     // Récupérer les services de soins d'un épisode
     public async Task<List<CareServiceViewModel>> GetCareServicesAsync(int episodeId)
     {
@@ -615,6 +660,7 @@ public class CareEpisodeService : ICareEpisodeService
         {
             return await _careServiceRepository.QueryListAsync(q =>
                 q.Where(s => s.CareEpisodeId == episodeId)
+                 .AsNoTracking().AsSingleQuery()
                  .Include(s => s.CareType)
                  .Include(s => s.AdministeredByNavigation)
                  .Include(s => s.CareServiceProducts)
