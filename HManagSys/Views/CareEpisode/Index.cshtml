@@ -1,0 +1,334 @@
+﻿@using HManagSys.Models.ViewModels.Patients
+@model PagedViewModel<CareEpisodeViewModel, CareEpisodeFilters>
+
+@{
+    ViewData["Title"] = "Épisodes de Soins";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-procedures"></i> Épisodes de Soins
+        </h1>
+    </div>
+    
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total des Épisodes
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.Pagination.TotalCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-procedures fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Épisodes Actifs
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.Items.Count(e => e.Status == "Active")
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-heartbeat fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Épisodes Terminés
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.Items.Count(e => e.Status == "Completed")
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Épisodes Interrompus
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.Items.Count(e => e.Status == "Interrupted")
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filtres -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filtres</h6>
+        </div>
+        <div class="card-body">
+            <form asp-action="Index" method="get" id="filterForm">
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            </div>
+                            <input type="text" class="form-control" asp-for="Filters.SearchTerm" 
+                                   placeholder="Rechercher...">
+                        </div>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <select class="form-control" asp-for="Filters.Status">
+                            <option value="">Tous les statuts</option>
+                            <option value="Active">Actif</option>
+                            <option value="Completed">Terminé</option>
+                            <option value="Interrupted">Interrompu</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <input type="date" class="form-control" asp-for="Filters.FromDate" 
+                               placeholder="Date début">
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <input type="date" class="form-control" asp-for="Filters.ToDate" 
+                               placeholder="Date fin">
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <div class="d-flex">
+                            <button type="submit" class="btn btn-primary mr-2">
+                                <i class="fas fa-filter"></i> Filtrer
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-redo"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Liste des épisodes -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Liste des Épisodes de Soins</h6>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.HasItems)
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Patient</th>
+                                <th>Diagnostic</th>
+                                <th>Date début</th>
+                                <th>Soignant</th>
+                                <th>Statut</th>
+                                <th>Coût</th>
+                                <th>Soldé</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var episode in Model.Items)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-controller="Patient" asp-action="Details" 
+                                           asp-route-id="@episode.PatientId" class="font-weight-bold">
+                                            @episode.PatientName
+                                        </a>
+                                    </td>
+                                    <td>@episode.DiagnosisName</td>
+                                    <td>@episode.EpisodeStartDate.ToString("dd/MM/yyyy")</td>
+                                    <td>@episode.PrimaryCaregiverName</td>
+                                    <td>
+                                        <span class="badge badge-@GetStatusBadge(episode.Status)">
+                                            @GetStatusName(episode.Status)
+                                        </span>
+                                    </td>
+                                    <td>@episode.TotalCost.ToString("N0") FCFA</td>
+                                    <td>
+                                        @if (episode.RemainingBalance <= 0)
+                                        {
+                                            <span class="badge badge-success">Oui</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge badge-warning">Non</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a asp-action="Details" asp-route-id="@episode.Id" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            @if (episode.Status == "Active")
+                                            {
+                                                <a asp-action="AddCareService" asp-route-episodeId="@episode.Id" 
+                                                   class="btn btn-sm btn-outline-success">
+                                                    <i class="fas fa-plus"></i> Soin
+                                                </a>
+                                                <a asp-action="Complete" asp-route-id="@episode.Id" 
+                                                   class="btn btn-sm btn-outline-info">
+                                                    <i class="fas fa-check"></i> Terminer
+                                                </a>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                @if (Model.Pagination.TotalPages > 1)
+                {
+                    <div class="card-footer">
+                        <nav>
+                            <ul class="pagination justify-content-center mb-0">
+                                <li class="page-item @(!Model.Pagination.HasPreviousPage ? "disabled" : "")">
+                                    <a class="page-link" asp-action="Index" 
+                                       asp-all-route-data="@GetRouteData(Model.Pagination.PreviousPage)">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                                
+                                @for (int i = Math.Max(1, Model.Pagination.CurrentPage - 2); 
+                                      i <= Math.Min(Model.Pagination.TotalPages, Model.Pagination.CurrentPage + 2); 
+                                      i++)
+                                {
+                                    <li class="page-item @(i == Model.Pagination.CurrentPage ? "active" : "")">
+                                        <a class="page-link" asp-action="Index" 
+                                           asp-all-route-data="@GetRouteData(i)">
+                                            @i
+                                        </a>
+                                    </li>
+                                }
+                                
+                                <li class="page-item @(!Model.Pagination.HasNextPage ? "disabled" : "")">
+                                    <a class="page-link" asp-action="Index" 
+                                       asp-all-route-data="@GetRouteData(Model.Pagination.NextPage)">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="fas fa-procedures fa-4x text-gray-300"></i>
+                    </div>
+                    <h5 class="text-gray-500 mb-0">Aucun épisode de soins trouvé</h5>
+                    @if (!string.IsNullOrEmpty(Model.Filters.SearchTerm) || 
+                         !string.IsNullOrEmpty(Model.Filters.Status) || 
+                         Model.Filters.FromDate.HasValue || 
+                         Model.Filters.ToDate.HasValue)
+                    {
+                        <p class="text-muted mt-2">Essayez de modifier vos critères de recherche</p>
+                        <a asp-action="Index" class="btn btn-outline-primary mt-2">
+                            <i class="fas fa-redo"></i> Réinitialiser les filtres
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetStatusBadge(string status)
+    {
+        return status switch
+        {
+            "Active" => "success",
+            "Completed" => "primary",
+            "Interrupted" => "warning",
+            _ => "secondary"
+        };
+    }
+    
+    private string GetStatusName(string status)
+    {
+        return status switch
+        {
+            "Active" => "Actif",
+            "Completed" => "Terminé",
+            "Interrupted" => "Interrompu",
+            _ => status
+        };
+    }
+    
+    private Dictionary<string, string> GetRouteData(int pageIndex)
+    {
+        var routeData = new Dictionary<string, string>
+        {
+            ["pageIndex"] = pageIndex.ToString()
+        };
+        
+        if (!string.IsNullOrEmpty(Model.Filters.SearchTerm))
+            routeData["SearchTerm"] = Model.Filters.SearchTerm;
+            
+        if (!string.IsNullOrEmpty(Model.Filters.Status))
+            routeData["Status"] = Model.Filters.Status;
+            
+        if (Model.Filters.FromDate.HasValue)
+            routeData["FromDate"] = Model.Filters.FromDate.Value.ToString("yyyy-MM-dd");
+            
+        if (Model.Filters.ToDate.HasValue)
+            routeData["ToDate"] = Model.Filters.ToDate.Value.ToString("yyyy-MM-dd");
+            
+        if (Model.Filters.PatientId.HasValue)
+            routeData["PatientId"] = Model.Filters.PatientId.Value.ToString();
+            
+        return routeData;
+    }
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Soumission auto du formulaire lors d'un changement
+            $('#filterForm select, #filterForm input[type="date"]').change(function() {
+                $('#filterForm').submit();
+            });
+        });
+    </script>
+}

@@ -41,7 +41,9 @@ builder.Services.AddScoped<ITransferService, TransferService>();
 
 //
 builder.Services.AddScoped<IPatientService, PatientService>();
-
+builder.Services.AddScoped<ICareEpisodeService, CareEpisodeService>();
+builder.Services.AddScoped<IExaminationService, ExaminationService>();
+builder.Services.AddScoped<IPrescriptionService, PrescriptionService>();
 
 // Configuration de la session
 builder.Services.AddSession(options =>

@@ -1,0 +1,513 @@
+﻿@model CareEpisodeViewModel
+
+@{
+    ViewData["Title"] = $"Épisode de soins - {Model.PatientName}";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-procedures"></i> Détails de l'Épisode de Soins
+        </h1>
+        <div>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Retour à la liste
+            </a>
+            @if (Model.Status == "Active")
+            {
+                <div class="btn-group ml-2">
+                    <a asp-action="AddCareService" asp-route-episodeId="@Model.Id" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Ajouter un soin
+                    </a>
+                    <button type="button" class="btn btn-success dropdown-toggle dropdown-toggle-split"
+                            data-toggle="dropdown">
+                        <span class="sr-only">Options</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a asp-controller="Examination" asp-action="Create"
+                           asp-route-patientId="@Model.PatientId" asp-route-careEpisodeId="@Model.Id"
+                           class="dropdown-item">
+                            <i class="fas fa-microscope fa-fw"></i> Ajouter un examen
+                        </a>
+                        <a asp-controller="Prescription" asp-action="Create"
+                           asp-route-patientId="@Model.PatientId" asp-route-careEpisodeId="@Model.Id"
+                           class="dropdown-item">
+                            <i class="fas fa-prescription fa-fw"></i> Ajouter une prescription
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a asp-action="Complete" asp-route-id="@Model.Id" class="dropdown-item">
+                            <i class="fas fa-check fa-fw"></i> Terminer l'épisode
+                        </a>
+                        <a href="#" class="dropdown-item text-danger"
+                           onclick="showInterruptModal()">
+                            <i class="fas fa-times fa-fw"></i> Interrompre l'épisode
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Informations de l'épisode -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Informations de l'épisode</h6>
+                    <span class="badge badge-@GetStatusBadge(Model.Status)">
+                        @GetStatusName(Model.Status)
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong>Patient:</strong>
+                                <a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.PatientId">
+                                    @Model.PatientName
+                                </a>
+                            </p>
+                            <p class="mb-2">
+                                <strong>Diagnostic:</strong> @Model.DiagnosisName
+                            </p>
+                            <p class="mb-2">
+                                <strong>Soignant principal:</strong> @Model.PrimaryCaregiverName
+                            </p>
+                            <p class="mb-2">
+                                <strong>Centre hospitalier:</strong> @Model.HospitalCenterName
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong>Date de début:</strong> @Model.EpisodeStartDate.ToString("dd/MM/yyyy HH:mm")
+                            </p>
+                            <p class="mb-2">
+                                <strong>Date de fin:</strong>
+                                @(Model.EpisodeEndDate?.ToString("dd/MM/yyyy HH:mm") ?? "En cours")
+                            </p>
+                            <p class="mb-2">
+                                <strong>Durée:</strong> @Model.DurationDays jour(s)
+                            </p>
+                            @if (Model.Status == "Interrupted" && !string.IsNullOrEmpty(Model.InterruptionReason))
+                            {
+                                <p class="mb-2">
+                                    <strong>Raison d'interruption:</strong> @Model.InterruptionReason
+                                </p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Informations financières</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span>Coût total:</span>
+                            <span class="font-weight-bold">@Model.TotalCost.ToString("N0") FCFA</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span>Montant payé:</span>
+                            <span class="font-weight-bold text-success">@Model.AmountPaid.ToString("N0") FCFA</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span>Solde restant:</span>
+                            <span class="font-weight-bold @(Model.RemainingBalance > 0 ? "text-danger" : "text-success")">
+                                @Model.RemainingBalance.ToString("N0") FCFA
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="progress mb-3">
+                        @{
+                            var paymentPercentage = Model.TotalCost > 0
+                            ? (int)Math.Min(100, (Model.AmountPaid / Model.TotalCost) * 100)
+                            : 100;
+                        }
+                        <div class="progress-bar bg-success" role="progressbar"
+                             style="width: @paymentPercentage%"
+                             aria-valuenow="@paymentPercentage" aria-valuemin="0" aria-valuemax="100">
+                            @paymentPercentage%
+                        </div>
+                    </div>
+
+                    @if (Model.Status == "Active" && Model.RemainingBalance > 0)
+                    {
+                        <a href="#" class="btn btn-block btn-primary" onclick="showPaymentModal()">
+                            <i class="fas fa-money-bill-wave"></i> Enregistrer un paiement
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Services de soins -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Services de soins</h6>
+            @if (Model.Status == "Active")
+            {
+                <a asp-action="AddCareService" asp-route-episodeId="@Model.Id" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus"></i> Ajouter un service
+                </a>
+            }
+        </div>
+        <div class="card-body">
+            @if (Model.CareServices != null && Model.CareServices.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type de soin</th>
+                                <th>Soignant</th>
+                                <th>Durée</th>
+                                <th>Produits utilisés</th>
+                                <th>Coût</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var service in Model.CareServices.OrderByDescending(s => s.ServiceDate))
+                            {
+                                <tr>
+                                    <td>@service.ServiceDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                    <td>@service.CareTypeName</td>
+                                    <td>@service.AdministeredByName</td>
+                                    <td>@(service.Duration.HasValue ? $"{service.Duration} min" : "-")</td>
+                                    <td>
+                                        @if (service.UsedProducts != null && service.UsedProducts.Any())
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-info"
+                                                    onclick="showProductsModal(@service.Id)">
+                                                <i class="fas fa-pills"></i> @service.UsedProducts.Count produit(s)
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span>Aucun</span>
+                                        }
+                                    </td>
+                                    <td>@service.Cost.ToString("N0") FCFA</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(service.Notes))
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                    data-toggle="tooltip" title="@service.Notes">
+                                                <i class="fas fa-info-circle"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-4">
+                    <p class="text-muted mb-0">Aucun service de soins enregistré</p>
+                    @if (Model.Status == "Active")
+                    {
+                        <a asp-action="AddCareService" asp-route-episodeId="@Model.Id" class="btn btn-primary mt-2">
+                            <i class="fas fa-plus"></i> Ajouter un service de soins
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour les produits utilisés -->
+<div class="modal fade" id="productsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Produits utilisés</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="productsContainer" class="table-responsive">
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Chargement...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour l'interruption -->
+<div class="modal fade" id="interruptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Interrompre l'épisode de soins</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="interruptForm">
+                    <div class="form-group">
+                        <label for="interruptionReason">Raison de l'interruption <span class="text-danger">*</span></label>
+                        <textarea id="interruptionReason" class="form-control" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-danger" id="confirmInterruption">
+                    <i class="fas fa-times"></i> Interrompre
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour le paiement -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Enregistrer un paiement</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="paymentForm">
+                    <div class="form-group">
+                        <label for="paymentAmount">Montant <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="number" id="paymentAmount" class="form-control"
+                                   min="100" max="@Model.RemainingBalance" value="@Model.RemainingBalance" required>
+                            <div class="input-group-append">
+                                <span class="input-group-text">FCFA</span>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">
+                            Solde restant: @Model.RemainingBalance.ToString("N0") FCFA
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label for="paymentMethod">Méthode de paiement <span class="text-danger">*</span></label>
+                        <select id="paymentMethod" class="form-control" required>
+                            <option value="">Sélectionner...</option>
+                            <option value="1">Espèces</option>
+                            <option value="2">Orange Money</option>
+                            <option value="3">MTN Mobile Money</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="transactionReference">Référence de transaction</label>
+                        <input type="text" id="transactionReference" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="paymentNotes">Notes</label>
+                        <textarea id="paymentNotes" class="form-control" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="confirmPayment">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetStatusBadge(string status)
+    {
+        return status switch
+        {
+            "Active" => "success",
+            "Completed" => "primary",
+            "Interrupted" => "warning",
+            _ => "secondary"
+        };
+    }
+
+    private string GetStatusName(string status)
+    {
+        return status switch
+        {
+            "Active" => "Actif",
+            "Completed" => "Terminé",
+            "Interrupted" => "Interrompu",
+            _ => status
+        };
+    }
+}
+
+@section Scripts {
+    <script>
+        // Afficher les détails des produits utilisés
+        function showProductsModal(serviceId) {
+            $('#productsModal').modal('show');
+
+            // Récupérer les produits via AJAX
+            $.get('@Url.Action("GetServiceProducts")?serviceId=' + serviceId, function(data) {
+                if (data.success) {
+                    var html = '<table class="table table-sm table-bordered">';
+                    html += '<thead><tr>';
+                    html += '<th>Produit</th>';
+                    html += '<th>Quantité</th>';
+                    html += '<th>Prix unitaire</th>';
+                    html += '<th>Prix total</th>';
+                    html += '</tr></thead><tbody>';
+
+                    var products = data.products;
+                    if (products && products.length > 0) {
+                        products.forEach(function(product) {
+                            html += '<tr>';
+                            html += '<td>' + product.productName + '</td>';
+                            html += '<td>' + product.quantityUsed + '</td>';
+                            html += '<td>' + formatCurrency(product.unitCost) + '</td>';
+                            html += '<td>' + formatCurrency(product.totalCost) + '</td>';
+                            html += '</tr>';
+                        });
+
+                        html += '</tbody><tfoot>';
+                        html += '<tr class="font-weight-bold">';
+                        html += '<td colspan="3" class="text-right">Total:</td>';
+                        html += '<td>' + formatCurrency(data.totalCost) + '</td>';
+                        html += '</tr>';
+                        html += '</tfoot>';
+                    } else {
+                        html += '<tr><td colspan="4" class="text-center">Aucun produit utilisé</td></tr>';
+                        html += '</tbody>';
+                    }
+
+                    html += '</table>';
+                    $('#productsContainer').html(html);
+                } else {
+                    $('#productsContainer').html('<div class="alert alert-danger">Erreur: ' + data.message + '</div>');
+                }
+            }).fail(function() {
+                $('#productsContainer').html('<div class="alert alert-danger">Erreur lors du chargement des produits</div>');
+            });
+        }
+
+        // Afficher modal d'interruption
+        function showInterruptModal() {
+            $('#interruptModal').modal('show');
+        }
+
+        // Confirmer l'interruption
+        $('#confirmInterruption').click(function() {
+            var reason = $('#interruptionReason').val().trim();
+            if (!reason) {
+                alert('Veuillez fournir une raison d\'interruption');
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("Interrupt", "CareEpisode")',
+                type: 'POST',
+                data: {
+                    id: @Model.Id,
+                    interruptionReason: reason,
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(data) {
+                    if (data.success) {
+                        showToast('Succès', data.message, 'success');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showToast('Erreur', data.message, 'error');
+                    }
+                    $('#interruptModal').modal('hide');
+                },
+                error: function() {
+                    showToast('Erreur', 'Une erreur est survenue', 'error');
+                    $('#interruptModal').modal('hide');
+                }
+            });
+        });
+
+        // Afficher modal de paiement
+        function showPaymentModal() {
+            $('#paymentModal').modal('show');
+        }
+
+        // Confirmer le paiement
+        $('#confirmPayment').click(function() {
+            var amount = $('#paymentAmount').val();
+            var methodId = $('#paymentMethod').val();
+            var reference = $('#transactionReference').val();
+            var notes = $('#paymentNotes').val();
+
+            if (!amount || !methodId) {
+                alert('Veuillez remplir tous les champs obligatoires');
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("AddPayment", "Payment")',
+                type: 'POST',
+                data: {
+                    referenceType: 'CareEpisode',
+                    referenceId: @Model.Id,
+                    patientId: @Model.PatientId,
+                    amount: amount,
+                    paymentMethodId: methodId,
+                    transactionReference: reference,
+                    notes: notes,
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(data) {
+                    if (data.success) {
+                        showToast('Succès', data.message, 'success');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showToast('Erreur', data.message, 'error');
+                    }
+                    $('#paymentModal').modal('hide');
+                },
+                error: function() {
+                    showToast('Erreur', 'Une erreur est survenue', 'error');
+                    $('#paymentModal').modal('hide');
+                }
+            });
+        });
+
+        // Formatter les prix
+        function formatCurrency(value) {
+            return parseFloat(value).toLocaleString('fr-FR') + ' FCFA';
+        }
+
+        // Afficher des toast notifications
+        function showToast(title, message, type) {
+            // Implementation du toast
+        }
+
+        // Initialize tooltips
+        $(function () {
+            $('[data-toggle="tooltip"]').tooltip()
+        });
+    </script>
+}

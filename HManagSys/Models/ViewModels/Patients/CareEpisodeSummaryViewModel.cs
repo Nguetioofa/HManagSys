@@ -12,6 +12,7 @@ public class CareEpisodeViewModel
     public string DiagnosisName { get; set; } = string.Empty;
     public int HospitalCenterId { get; set; }
     public string HospitalCenterName { get; set; } = string.Empty;
+    public string PatientName { get; set; } = string.Empty;
     public int PrimaryCaregiverId { get; set; }
     public string PrimaryCaregiverName { get; set; } = string.Empty;
     public DateTime EpisodeStartDate { get; set; }
