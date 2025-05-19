@@ -1,8 +1,10 @@
 ﻿using HManagSys.Attributes;
 using HManagSys.Data.Repositories.Interfaces;
 using HManagSys.Models;
+using HManagSys.Models.EfModels;
 using HManagSys.Models.ViewModels;
 using HManagSys.Models.ViewModels.Payments;
+using HManagSys.Services.Implementations;
 using HManagSys.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,6 +20,8 @@ public class PaymentController : BaseController
     private readonly IExaminationService _examinationService;
     private readonly IApplicationLogger _logger;
     private readonly IUserRepository _userRepository;
+    private readonly IDocumentGenerationService _documentGenerationService;
+    private readonly IWorkflowService _workflowService;
 
     public PaymentController(
         IPaymentService paymentService,
@@ -25,6 +29,8 @@ public class PaymentController : BaseController
         ICareEpisodeService careEpisodeService,
         IExaminationService examinationService,
         IApplicationLogger logger,
+        IDocumentGenerationService documentGenerationService,
+        IWorkflowService workflowService,
         IUserRepository userRepository)
     {
         _paymentService = paymentService;
@@ -32,7 +38,40 @@ public class PaymentController : BaseController
         _careEpisodeService = careEpisodeService;
         _examinationService = examinationService;
         _logger = logger;
+        _documentGenerationService = documentGenerationService;
         _userRepository = userRepository;
+        _workflowService = workflowService;
+    }
+
+
+
+    [MedicalStaff]
+    public async Task<IActionResult> DownloadReceipt(int id)
+    {
+        try
+        {
+            var payment = await _paymentService.GetByIdAsync(id);
+            if (payment == null)
+            {
+                TempData["ErrorMessage"] = "Paiement introuvable";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var pdfBytes = await _documentGenerationService.GenerateReceiptPdfAsync(id);
+
+
+            return File(pdfBytes, "application/pdf", $"Recu_Paiement_{id}.pdf");
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "ReceiptPdfError",
+                $"Erreur lors de la génération du PDF du reçu de paiement {id}",
+                CurrentUserId, CurrentCenterId,
+                details: new { PaymentId = id, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Erreur lors de la génération du PDF";
+            return RedirectToAction(nameof(Details), new { id });
+        }
     }
 
     [MedicalStaff]
@@ -88,10 +127,11 @@ public class PaymentController : BaseController
                 return RedirectToAction(nameof(Index));
             }
 
-            // Journalisation de l'accès
-            await _logger.LogInfoAsync("Payment", "DetailsAccessed",
-                $"Accès aux détails du paiement {id}",
-                CurrentUserId, CurrentCenterId);
+            var actions = await _workflowService.GetNextActionsAsync(nameof(Payment), id);
+            var relatedEntities = await _workflowService.GetRelatedEntitiesAsync(nameof(Payment), id);
+
+            ViewBag.WorkflowActions = actions;
+            ViewBag.RelatedEntities = relatedEntities;
 
             return View(payment);
         }
@@ -160,6 +200,59 @@ public class PaymentController : BaseController
             return RedirectToAction(nameof(Index));
         }
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [MedicalStaff]
+    public async Task<IActionResult> AddPayment(string referenceType, int referenceId, int patientId,
+        decimal amount, int paymentMethodId, string transactionReference, string notes)
+    {
+        try
+        {
+            var model = new CreatePaymentViewModel
+            {
+                ReferenceType = referenceType,
+                ReferenceId = referenceId,
+                PatientId = patientId,
+                HospitalCenterId = CurrentCenterId.Value,
+                PaymentDate = DateTime.Now,
+                Amount = amount,
+                PaymentMethodId = paymentMethodId,
+                ReceivedById = CurrentUserId.Value,
+                TransactionReference = transactionReference,
+                Notes = notes
+            };
+
+            var result = await _paymentService.CreatePaymentAsync(model, CurrentUserId.Value);
+
+            if (result.IsSuccess)
+            {
+                await _logger.LogInfoAsync("Payment", "AjaxPaymentCreated",
+                    "Paiement créé par AJAX",
+                    CurrentUserId, CurrentCenterId,
+                    details: new { PaymentId = result.Data.Id });
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Paiement enregistré avec succès",
+                    paymentId = result.Data.Id
+                });
+            }
+
+            return Json(new { success = false, message = result.ErrorMessage });
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "AjaxPaymentError",
+                "Erreur lors de la création du paiement par AJAX",
+                CurrentUserId, CurrentCenterId,
+                details: new { Error = ex.Message });
+
+            return Json(new { success = false, message = "Une erreur est survenue lors de l'enregistrement du paiement" });
+        }
+    }
+
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -233,33 +326,33 @@ public class PaymentController : BaseController
         }
     }
 
-    [MedicalStaff]
-    public async Task<IActionResult> DownloadReceipt(int id)
-    {
-        try
-        {
-            var payment = await _paymentService.GetByIdAsync(id);
-            if (payment == null)
-            {
-                TempData["ErrorMessage"] = "Paiement introuvable";
-                return RedirectToAction(nameof(Index));
-            }
+    //[MedicalStaff]
+    //public async Task<IActionResult> DownloadReceipt(int id)
+    //{
+    //    try
+    //    {
+    //        var payment = await _paymentService.GetByIdAsync(id);
+    //        if (payment == null)
+    //        {
+    //            TempData["ErrorMessage"] = "Paiement introuvable";
+    //            return RedirectToAction(nameof(Index));
+    //        }
 
-            var pdfBytes = await _paymentService.GenerateReceiptAsync(id);
+    //        var pdfBytes = await _paymentService.GenerateReceiptAsync(id);
 
-            return File(pdfBytes, "application/pdf", $"Recu_{payment.ReferenceType}_{payment.ReferenceId}_{payment.Id}.pdf");
-        }
-        catch (Exception ex)
-        {
-            await _logger.LogErrorAsync("Payment", "DownloadReceiptError",
-                $"Erreur lors du téléchargement du reçu du paiement {id}",
-                CurrentUserId, CurrentCenterId,
-                details: new { PaymentId = id, Error = ex.Message });
+    //        return File(pdfBytes, "application/pdf", $"Recu_{payment.ReferenceType}_{payment.ReferenceId}_{payment.Id}.pdf");
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        await _logger.LogErrorAsync("Payment", "DownloadReceiptError",
+    //            $"Erreur lors du téléchargement du reçu du paiement {id}",
+    //            CurrentUserId, CurrentCenterId,
+    //            details: new { PaymentId = id, Error = ex.Message });
 
-            TempData["ErrorMessage"] = "Erreur lors de la génération du reçu";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-    }
+    //        TempData["ErrorMessage"] = "Erreur lors de la génération du reçu";
+    //        return RedirectToAction(nameof(Details), new { id });
+    //    }
+    //}
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -382,12 +475,3 @@ public class PaymentController : BaseController
     }
 }
 
-/// <summary>
-/// ViewModel pour la page des paiements d'un patient
-/// </summary>
-public class PatientPaymentsViewModel
-{
-    public Models.ViewModels.Patients.PatientViewModel Patient { get; set; } = null!;
-    public List<PaymentViewModel> Payments { get; set; } = new List<PaymentViewModel>();
-    public PaymentSummaryViewModel Summary { get; set; } = null!;
-}

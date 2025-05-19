@@ -225,6 +225,9 @@
             }
         </div>
     </div>
+
+    @await Html.PartialAsync("_WorkflowComponents")
+
 </div>
 
 <!-- Modal pour les produits utilisés -->
@@ -293,6 +296,8 @@
             </div>
             <div class="modal-body">
                 <form id="paymentForm">
+                    @Html.AntiForgeryToken()
+
                     <div class="form-group">
                         <label for="paymentAmount">Montant <span class="text-danger">*</span></label>
                         <div class="input-group">
@@ -362,51 +367,46 @@
 @section Scripts {
     <script>
         // Afficher les détails des produits utilisés
-        function showProductsModal(serviceId) {
+         function showProductsModal(serviceId) {
             $('#productsModal').modal('show');
 
             // Récupérer les produits via AJAX
-            $.get('@Url.Action("GetServiceProducts")?serviceId=' + serviceId, function(data) {
-                if (data.success) {
-                    var html = '<table class="table table-sm table-bordered">';
-                    html += '<thead><tr>';
-                    html += '<th>Produit</th>';
-                    html += '<th>Quantité</th>';
-                    html += '<th>Prix unitaire</th>';
-                    html += '<th>Prix total</th>';
-                    html += '</tr></thead><tbody>';
+            $.ajax({
+                url: '@Url.Action("GetServiceProducts", "CareEpisode")',
+                type: 'GET',
+                data: { serviceId: serviceId },
+                success: function(data) {
+                    console.log("Données reçues :", data); // Affiche les données pour diagnostic
 
-                    var products = data.products;
-                    if (products && products.length > 0) {
-                        products.forEach(function(product) {
-                            html += '<tr>';
-                            html += '<td>' + product.productName + '</td>';
+                    if (data.success && Array.isArray(data.products) && data.products.length > 0) {
+                        var html = '<table class="table table-sm table-bordered">';
+                        html += '<thead><tr><th>Produit</th><th>Quantité</th><th>Prix unitaire</th><th>Prix total</th></tr></thead><tbody>';
+
+                        data.products.forEach(function(product) {
+                            html += '<tr><td>' + product.productName + '</td>';
                             html += '<td>' + product.quantityUsed + '</td>';
                             html += '<td>' + formatCurrency(product.unitCost) + '</td>';
                             html += '<td>' + formatCurrency(product.totalCost) + '</td>';
                             html += '</tr>';
                         });
 
-                        html += '</tbody><tfoot>';
-                        html += '<tr class="font-weight-bold">';
+                        html += '</tbody><tfoot><tr class="font-weight-bold">';
                         html += '<td colspan="3" class="text-right">Total:</td>';
                         html += '<td>' + formatCurrency(data.totalCost) + '</td>';
-                        html += '</tr>';
-                        html += '</tfoot>';
-                    } else {
-                        html += '<tr><td colspan="4" class="text-center">Aucun produit utilisé</td></tr>';
-                        html += '</tbody>';
-                    }
+                        html += '</tr></tfoot></table>';
 
-                    html += '</table>';
-                    $('#productsContainer').html(html);
-                } else {
-                    $('#productsContainer').html('<div class="alert alert-danger">Erreur: ' + data.message + '</div>');
+                        $('#productsContainer').html(html);
+                    } else {
+                        $('#productsContainer').html('<div class="alert alert-danger">Erreur : ' + data.message + '</div>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("Erreur AJAX :", error);
+                    $('#productsContainer').html('<div class="alert alert-danger">Erreur lors du chargement des produits</div>');
                 }
-            }).fail(function() {
-                $('#productsContainer').html('<div class="alert alert-danger">Erreur lors du chargement des produits</div>');
             });
         }
+    
 
         // Afficher modal d'interruption
         function showInterruptModal() {
@@ -452,6 +452,7 @@
             $('#paymentModal').modal('show');
         }
 
+                // Corriger la partie AJAX dans votre formulaire
         // Confirmer le paiement
         $('#confirmPayment').click(function() {
             var amount = $('#paymentAmount').val();
@@ -484,7 +485,7 @@
                             location.reload();
                         }, 1500);
                     } else {
-                        showToast('Erreur', data.message, 'error');
+                        showToast('Erreur', data.message || 'Erreur lors de l\'enregistrement', 'error');
                     }
                     $('#paymentModal').modal('hide');
                 },
@@ -494,6 +495,49 @@
                 }
             });
         });
+
+        // // Confirmer le paiement
+        // $('#confirmPayment').click(function() {
+        //     var amount = $('#paymentAmount').val();
+        //     var methodId = $('#paymentMethod').val();
+        //     var reference = $('#transactionReference').val();
+        //     var notes = $('#paymentNotes').val();
+
+        //     if (!amount || !methodId) {
+        //         alert('Veuillez remplir tous les champs obligatoires');
+        //         return;
+        //     }
+
+        //     $.ajax({
+        //         url: 'Url.Action("AddPayment", "Payment")',
+        //         type: 'POST',
+        //         data: {
+        //             referenceType: 'CareEpisode',
+        //             referenceId: Model.Id,
+        //             patientId: Model.PatientId,
+        //             amount: amount,
+        //             paymentMethodId: methodId,
+        //             transactionReference: reference,
+        //             notes: notes,
+        //             __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+        //         },
+        //         success: function(data) {
+        //             if (data.success) {
+        //                 showToast('Succès', data.message, 'success');
+        //                 setTimeout(function() {
+        //                     location.reload();
+        //                 }, 1500);
+        //             } else {
+        //                 showToast('Erreur', data.message, 'error');
+        //             }
+        //             $('#paymentModal').modal('hide');
+        //         },
+        //         error: function() {
+        //             showToast('Erreur', 'Une erreur est survenue', 'error');
+        //             $('#paymentModal').modal('hide');
+        //         }
+        //     });
+        // });
 
         // Formatter les prix
         function formatCurrency(value) {

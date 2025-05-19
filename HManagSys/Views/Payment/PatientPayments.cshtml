@@ -1,0 +1,449 @@
+﻿@using HManagSys.Models.ViewModels.Payments
+@model PatientPaymentsViewModel
+@{
+    ViewData["Title"] = $"Historique des paiements - {Model.Patient.FullName}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Patient" asp-action="Index">Patients</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.Patient.Id">@Model.Patient.FullName</a></li>
+            <li class="breadcrumb-item active">Historique des paiements</li>
+        </ol>
+    </nav>
+    <div>
+        <a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.Patient.Id" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<!-- Carte d'information du patient -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-user"></i> Information patient
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Nom:</strong> @Model.Patient.FullName</p>
+                        @if (Model.Patient.DateOfBirth.HasValue)
+                        {
+                            <p class="mb-1"><strong>Date de naissance:</strong> @Model.Patient.DateOfBirth.Value.ToString("dd/MM/yyyy") (@Model.Patient.Age ans)</p>
+                        }
+                        <p class="mb-1"><strong>Téléphone:</strong> @Model.Patient.PhoneNumber</p>
+                        @if (!string.IsNullOrEmpty(Model.Patient.Email))
+                        {
+                            <p class="mb-1"><strong>Email:</strong> @Model.Patient.Email</p>
+                        }
+                    </div>
+                    <div class="col-md-6">
+                        @if (!string.IsNullOrEmpty(Model.Patient.Gender))
+                        {
+                            <p class="mb-1"><strong>Genre:</strong> @Model.Patient.Gender</p>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Patient.BloodType))
+                        {
+                            <p class="mb-1"><strong>Groupe sanguin:</strong> @Model.Patient.BloodType</p>
+                        }
+                        <p class="mb-1"><strong>Épisodes de soins:</strong> @Model.Patient.CareEpisodeCount</p>
+                        <p class="mb-1"><strong>Diagnostics:</strong> @Model.Patient.DiagnosisCount</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-money-bill-wave"></i> Résumé financier
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <p class="text-muted mb-1">Total payé</p>
+                            <h3 class="text-success mb-0">@Model.Summary.FormattedTotalPaid</h3>
+                        </div>
+                        <div class="mb-3">
+                            <p class="text-muted mb-1">Total dû</p>
+                            <h3 class="mb-0">@Model.Summary.FormattedTotalDue</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <p class="text-muted mb-1">Solde</p>
+                            <h3 class="@Model.Summary.BalanceClass mb-0">@Model.Summary.FormattedBalance</h3>
+                        </div>
+                        <div class="mb-3">
+                            <p class="text-muted mb-1">Nombre de paiements</p>
+                            <h3 class="mb-0">@Model.Summary.PaymentCount</h3>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="progress mt-2 mb-3">
+                    @{
+                        var paymentPercentage = Model.Summary.TotalDue > 0
+                        ? (int)Math.Min(100, (Model.Summary.TotalPaid / Model.Summary.TotalDue) * 100)
+                        : 100;
+                    }
+                    <div class="progress-bar bg-success" role="progressbar"
+                         style="width: @paymentPercentage%"
+                         aria-valuenow="@paymentPercentage" aria-valuemin="0" aria-valuemax="100">
+                        @paymentPercentage%
+                    </div>
+                </div>
+
+                @if (Model.Summary.HasDebt)
+                {
+                    <a href="#" class="btn btn-primary btn-sm mt-2" onclick="showNewPaymentModal()">
+                        <i class="fas fa-plus-circle"></i> Nouveau paiement
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analyse des paiements -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie"></i> Répartition par type
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th class="text-end">Montant</th>
+                                <th class="text-end">Pourcentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var payment in Model.Summary.PaymentsByType)
+                            {
+                                var typePercentage = Model.Summary.TotalPaid > 0
+                                ? (payment.Value / Model.Summary.TotalPaid) * 100
+                                : 0;
+                                <tr>
+                                    <td>
+                                        @(payment.Key == "CareEpisode" ? "Épisode de soins" :
+                                                                            payment.Key == "Examination" ? "Examen" : payment.Key)
+                                </td>
+                                <td class="text-end">@payment.Value.ToString("N0") FCFA</td>
+                                <td class="text-end">@typePercentage.ToString("N1")%</td>
+                            </tr>
+                                                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-credit-card"></i> Répartition par méthode
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Méthode</th>
+                                <th class="text-end">Montant</th>
+                                <th class="text-end">Pourcentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var payment in Model.Summary.PaymentsByMethod)
+                            {
+                                var methodPercentage = Model.Summary.TotalPaid > 0
+                                ? (payment.Value / Model.Summary.TotalPaid) * 100
+                                : 0;
+                                <tr>
+                                    <td>@payment.Key</td>
+                                    <td class="text-end">@payment.Value.ToString("N0") FCFA</td>
+                                    <td class="text-end">@methodPercentage.ToString("N1")%</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Historique des paiements -->
+<div class="card shadow-sm">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-history"></i> Historique des paiements
+        </h5>
+        <div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleCancelledBtn">
+                <i class="fas fa-eye-slash"></i> Masquer annulés
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (Model.Payments.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover" id="paymentsTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Date</th>
+                            <th>Référence</th>
+                            <th>Méthode</th>
+                            <th class="text-end">Montant</th>
+                            <th>Reçu par</th>
+                            <th>Statut</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var payment in Model.Payments.OrderByDescending(p => p.PaymentDate))
+                        {
+                            <tr class="@(payment.IsCancelled ? "table-danger cancelled-row" : "")">
+                                <td>@payment.Id</td>
+                                <td>@payment.FormattedDate</td>
+                                <td>
+                                    <span>@payment.ReferenceDescription</span>
+                                    <small class="d-block text-muted">@payment.ReferenceText</small>
+                                </td>
+                                <td>@payment.PaymentMethodName</td>
+                                <td class="text-end">@payment.FormattedAmount</td>
+                                <td>@payment.ReceivedByName</td>
+                                <td>
+                                    <span class="@payment.StatusBadge">@payment.StatusText</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                        <a asp-controller="Payment" asp-action="Details" asp-route-id="@payment.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a asp-controller="Payment" asp-action="Receipt" asp-route-id="@payment.Id" class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-receipt"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> Aucun paiement enregistré pour ce patient.
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal pour un nouveau paiement -->
+<div class="modal fade" id="newPaymentModal" tabindex="-1" aria-labelledby="newPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newPaymentModalLabel">Nouveau paiement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newPaymentForm">
+                    <div class="form-group mb-3">
+                        <label for="referenceType" class="form-label">Type de référence</label>
+                        <select id="referenceType" class="form-select" required>
+                            <option value="">-- Sélectionner --</option>
+                            <option value="CareEpisode">Épisode de soins</option>
+                            <option value="Examination">Examen</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="referenceId" class="form-label">Référence</label>
+                        <select id="referenceId" class="form-select" required disabled>
+                            <option value="">-- Sélectionner d'abord un type --</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="amount" class="form-label">Montant</label>
+                        <div class="input-group">
+                            <input type="number" id="amount" class="form-control" min="1" required>
+                            <span class="input-group-text">FCFA</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="paymentMethodId" class="form-label">Méthode de paiement</label>
+                        <select id="paymentMethodId" class="form-select" required>
+                            <option value="">-- Sélectionner --</option>
+                            <option value="1">Espèces</option>
+                            <option value="2">Orange Money</option>
+                            <option value="3">MTN Mobile Money</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="transactionReference" class="form-label">Référence de transaction</label>
+                        <input type="text" id="transactionReference" class="form-control">
+                        <div class="form-text">Pour les paiements mobiles</div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea id="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="saveNewPayment">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Toggle affichage des paiements annulés
+            let showCancelled = true;
+            $("#toggleCancelledBtn").click(function() {
+                showCancelled = !showCancelled;
+                if (showCancelled) {
+                    $(".cancelled-row").show();
+                    $(this).html('<i class="fas fa-eye-slash"></i> Masquer annulés');
+                } else {
+                    $(".cancelled-row").hide();
+                    $(this).html('<i class="fas fa-eye"></i> Afficher annulés');
+                }
+            });
+
+            // Gestion changement type de référence
+            $("#referenceType").change(function() {
+                const type = $(this).val();
+                if (type) {
+                    $('#referenceId').prop('disabled', false);
+                    loadReferences(type);
+                } else {
+                    $('#referenceId').prop('disabled', true);
+                    $('#referenceId').html('<option value="">-- Sélectionner d\'abord un type --</option>');
+                }
+            });
+
+        // Confirmer le paiement
+            $('#saveNewPayment').click(function() {
+                var amount = $('#paymentAmount').val();
+                var methodId = $('#paymentMethod').val();
+                var reference = $('#transactionReference').val();
+                var notes = $('#paymentNotes').val();
+
+                if (!amount || !methodId) {
+                    alert('Veuillez remplir tous les champs obligatoires');
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("AddPayment", "Payment")',
+                    type: 'POST',
+                    data: {
+                        referenceType: 'CareEpisode',
+                        referenceId: @Model.Patient,
+                        patientId: @Model.Summary.PatientId,
+                        amount: amount,
+                        paymentMethodId: methodId,
+                        transactionReference: reference,
+                        notes: notes,
+                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(data) {
+                        if (data.success) {
+                            showToast('Succès', data.message, 'success');
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            showToast('Erreur', data.message || 'Erreur lors de l\'enregistrement', 'error');
+                        }
+                        $('#paymentModal').modal('hide');
+                    },
+                    error: function() {
+                        showToast('Erreur', 'Une erreur est survenue', 'error');
+                        $('#paymentModal').modal('hide');
+                    }
+                });
+            });
+        });
+
+        // Afficher modal nouveau paiement
+        function showNewPaymentModal() {
+            $('#newPaymentModal').modal('show');
+        }
+
+        // Charger les références selon le type
+        function loadReferences(type) {
+            $.ajax({
+                url: '@Url.Action("GetReferences", "Payment")',
+                type: 'GET',
+                data: {
+                    type: type,
+                    patientId: @Model.Patient.Id
+                },
+                success: function(data) {
+                    if (data.success) {
+                        let options = '<option value="">-- Sélectionner --</option>';
+                        data.references.forEach(function(ref) {
+                            options += `<option value="${ref.id}" data-amount="${ref.remainingAmount}">${ref.description}</option>`;
+                        });
+                        $('#referenceId').html(options);
+
+                        // Événement sur changement de référence
+                        $('#referenceId').change(function() {
+                            const option = $(this).find('option:selected');
+                            const amount = option.data('amount');
+                            if (amount) {
+                                $('#amount').val(amount);
+                            }
+                        });
+                    } else {
+                        $('#referenceId').html('<option value="">Aucune référence disponible</option>');
+                    }
+                },
+                error: function() {
+                    $('#referenceId').html('<option value="">Erreur lors du chargement</option>');
+                }
+            });
+        }
+
+        // Fonction toast
+        function showToast(title, message, type) {
+            // Implémentation selon votre système de notification
+            // Si vous utilisez bootstrap toast ou une autre librairie
+        }
+    </script>
+}

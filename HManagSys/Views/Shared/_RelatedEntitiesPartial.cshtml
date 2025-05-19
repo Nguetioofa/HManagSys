@@ -1,0 +1,143 @@
+﻿@using HManagSys.Models.ViewModels.Workflow
+@model List<RelatedEntityViewModel>
+
+@if (Model != null && Model.Any())
+{
+    <div class="related-entities">
+        <h5 class="mb-3">
+            <i class="fas fa-link"></i> Éléments liés
+        </h5>
+
+        <div class="related-entities-grid">
+            @foreach (var entity in Model)
+            {
+                <div class="entity-card" data-date="@entity.RelationshipDate.ToString("yyyy-MM-dd")">
+                    <div class="entity-icon">
+                        <i class="@entity.IconClass"></i>
+                    </div>
+                    <div class="entity-content">
+                        <div class="entity-header">
+                            <h6 class="mb-0"><a href="@entity.DetailUrl">@entity.DisplayName</a></h6>
+                            <span class="badge @entity.BadgeClass">@entity.RelationshipType</span>
+                        </div>
+                        <p class="entity-desc">@entity.Description</p>
+                        <small class="entity-date">@entity.FormattedDate</small>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<style>
+    .related-entities-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 10px;
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+
+    .entity-card {
+        display: flex;
+        background: #fff;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        padding: 10px;
+        margin-bottom: 10px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+        border-left: 3px solid #ddd;
+    }
+
+        .entity-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+    .entity-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+        color: #6c757d;
+    }
+
+    .entity-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .entity-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 5px;
+    }
+
+        .entity-header h6 {
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 70%;
+        }
+
+    .entity-desc {
+        font-size: 0.8rem;
+        margin-bottom: 5px;
+        color: #6c757d;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .entity-date {
+        font-size: 0.7rem;
+        color: #adb5bd;
+    }
+
+    /* Timeline effect */
+    .entity-card::before {
+        content: "";
+        position: absolute;
+        left: -8px;
+        top: 15px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #6c757d;
+        border: 2px solid #fff;
+        z-index: 1;
+    }
+
+    .badge-primary {
+        background-color: #007bff;
+    }
+
+    .badge-success {
+        background-color: #28a745;
+    }
+
+    .badge-info {
+        background-color: #17a2b8;
+    }
+
+    .badge-warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
+
+    .badge-danger {
+        background-color: #dc3545;
+    }
+
+    .badge-secondary {
+        background-color: #6c757d;
+    }
+</style>

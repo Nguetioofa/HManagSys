@@ -8,6 +8,7 @@ namespace HManagSys.Services.Interfaces;
 public interface IPrescriptionService
 {
     Task<PrescriptionViewModel?> GetByIdAsync(int id);
+    Task<List<PrescriptionViewModel>> GetByEpisodeAsync(int episodeId);
     Task<(List<PrescriptionViewModel> Items, int TotalCount)> GetPrescriptionsAsync(PrescriptionFilters filters);
     Task<OperationResult<PrescriptionViewModel>> CreatePrescriptionAsync(CreatePrescriptionViewModel model, int createdBy);
     Task<OperationResult<PrescriptionViewModel>> UpdatePrescriptionAsync(int id, EditPrescriptionViewModel model, int modifiedBy);

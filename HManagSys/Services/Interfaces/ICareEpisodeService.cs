@@ -8,6 +8,7 @@ namespace HManagSys.Services.Interfaces
     public interface ICareEpisodeService
     {
         Task<CareEpisodeViewModel?> GetByIdAsync(int id);
+        Task<CareServiceProductModalsViewModel?> GetServiceProducts(int serviceId);
         Task<(List<CareEpisodeViewModel> Items, int TotalCount)> GetCareEpisodesAsync(CareEpisodeFilters filters);
         Task<OperationResult<CareEpisodeViewModel>> CreateCareEpisodeAsync(CreateCareEpisodeViewModel model, int createdBy);
         Task<OperationResult<CareEpisodeViewModel>> UpdateCareEpisodeAsync(int id, EditCareEpisodeViewModel model, int modifiedBy);

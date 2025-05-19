@@ -172,7 +172,7 @@
                                         <div class="d-flex align-items-center">
                                             @if (patient.HasRecentDiagnosis)
                                             {
-                                                <span class="badge badge-pill badge-success mr-2" title="Diagnostic récent">
+                                                <span class="badge bg-pill bg-success mr-2" title="Diagnostic récent">
                                                     <i class="fas fa-circle"></i>
                                                 </span>
                                             }
@@ -187,7 +187,7 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="badge @(patient.Gender == "M" ? "badge-info" : (patient.Gender == "F" ? "badge-pink" : "badge-secondary"))">
+                                        <span class="badge @(patient.Gender == "M" ? "bg-info" : (patient.Gender == "F" ? "bg-pink" : "bg-secondary"))">
                                             @(patient.Gender == "M" ? "M" : (patient.Gender == "F" ? "F" : "?"))
                                         </span>
                                         @if (patient.Age.HasValue)
@@ -211,7 +211,7 @@
                                     <td>
                                         @if (!string.IsNullOrEmpty(patient.BloodType))
                                         {
-                                            <span class="badge badge-danger">@patient.BloodType</span>
+                                            <span class="badge bg-danger">@patient.BloodType</span>
                                         }
                                         else
                                         {
@@ -221,16 +221,16 @@
                                     <td>
                                         @if (patient.IsActive)
                                         {
-                                            <span class="badge badge-success">Actif</span>
+                                            <span class="badge bg-success">Actif</span>
                                         }
                                         else
                                         {
-                                            <span class="badge badge-secondary">Inactif</span>
+                                            <span class="badge bg-secondary">Inactif</span>
                                         }
                                     </td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <span class="badge badge-pill badge-primary mr-2">@patient.DiagnosisCount</span>
+                                            <span class="badge bg-pill bg-primary mr-2">@patient.DiagnosisCount</span>
                                             @if (patient.DiagnosisCount > 0)
                                             {
                                                 <a href="javascript:void(0)" class="text-primary"
@@ -270,7 +270,7 @@
                                                     title="@(patient.IsActive ? "Désactiver" : "Activer")">
                                                 <i class="fas @(patient.IsActive ? "fa-user-slash" : "fa-user-check")"></i>
                                             </button>
-                                            <a href="javascript:void(0)" class="btn btn-sm btn-outline-dark dropdown-toggle" data-toggle="dropdown">
+                                            <a href="javascript:void(0)" class="btn btn-sm btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
                                                 <i class="fas fa-ellipsis-v"></i>
                                             </a>
                                             <div class="dropdown-menu dropdown-menu-right">
@@ -421,6 +421,15 @@
         let currentPatientId = null;
         let currentPatientStatus = null;
 
+                // Pour Bootstrap 5
+        document.addEventListener('DOMContentLoaded', function() {
+            var dropdowns = document.querySelectorAll('.dropdown-toggle');
+            dropdowns.forEach(function(dropdown) {
+                new bootstrap.Dropdown(dropdown);
+            });
+        });
+
+
         // Fonction pour changer le statut d'un patient
         function togglePatientStatus(patientId, newStatus, patientName) {
             currentPatientId = patientId;
@@ -479,7 +488,7 @@
             $('#diagnosesModal').modal('show');
 
             $.ajax({
-                url: '@Url.Action("GetPatientDiagnoses")',
+                url: '@Url.Action("GetPatientDiagnoses", "CareEpisode")',
                 type: 'GET',
                 data: { patientId: patientId },
                 success: function(response) {
@@ -504,7 +513,7 @@
                                 <p class="mb-1">${diagnosis.description || 'Aucune description'}</p>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted">
-                                        <span class="badge badge-${getSeverityClass(diagnosis.severity)}">${diagnosis.severity || 'Non spécifiée'}</span>
+                                        <span class="${diagnosis.severityClass}">${diagnosis.severity || 'Non spécifiée'}</span>
                                         - Dr. ${diagnosis.diagnosedByName}
                                     </small>
                                     <small>${diagnosis.hospitalCenterName}</small>
@@ -581,6 +590,20 @@
             right: 20px;
             z-index: 1050;
         }
+
+        .table-responsive {
+            overflow: visible; 
+        }
+
+        .card-body {
+            overflow: visible; 
+        }
+
+        .dropdown-menu {
+            position: fixed; 
+            z-index: 1050;
+        }
+
     </style>
 
     <div class="toast-container"></div>

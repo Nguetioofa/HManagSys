@@ -42,7 +42,7 @@ namespace HManagSys.Services.Interfaces
         /// <summary>
         /// Génère un reçu de paiement
         /// </summary>
-        Task<byte[]> GenerateReceiptAsync(int paymentId);
+       // Task<byte[]> GenerateReceiptAsync(int paymentId);
 
         /// <summary>
         /// Récupère les paiements avec pagination et filtres

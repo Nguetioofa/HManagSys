@@ -135,6 +135,17 @@
                             <i class="fas fa-times-circle"></i> Annuler l'examen
                         </button>
                     }
+                    else
+                    @if (Model.Status == "Completed")
+                    {
+
+                        <a asp-action="PrintResult" asp-route-id="@Model.Id" class="btn btn-outline-primary" target="_blank">
+                            <i class="fas fa-print"></i> Imprimer
+                        </a>
+                    }
+
+
+
                 </div>
             </div>
         </div>
@@ -220,6 +231,9 @@
             </div>
         </div>
     </div>
+
+    @await Html.PartialAsync("_WorkflowComponents")
+
 </div>
 
 <!-- Modal d'annulation -->

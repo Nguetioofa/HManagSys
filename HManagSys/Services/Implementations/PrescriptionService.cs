@@ -99,6 +99,62 @@ public class PrescriptionService : IPrescriptionService
         }
     }
 
+
+    // Récupérer toutes les prescriptions par episode id GetByEpisodeAsync
+    public async Task<List<PrescriptionViewModel>> GetByEpisodeAsync(int episodeId)
+    {
+        try
+        {
+            var prescriptions = await _prescriptionRepository.QueryListAsync<PrescriptionViewModel>(q =>
+                q.Where(p => p.CareEpisodeId == episodeId)
+                 .Include(p => p.Patient)
+                 .Include(p => p.Diagnosis)
+                 .Include(p => p.HospitalCenter)
+                 .Include(p => p.PrescribedByNavigation)
+                 .Include(p => p.PrescriptionItems)
+                    .ThenInclude(i => i.Product)
+                    .AsSplitQuery().AsNoTracking()
+                 .OrderByDescending(p => p.PrescriptionDate)
+                 .Select(p => new PrescriptionViewModel
+                 {
+                     Id = p.Id,
+                     PatientId = p.PatientId,
+                     PatientName = $"{p.Patient.FirstName} {p.Patient.LastName}",
+                     DiagnosisId = p.DiagnosisId,
+                     DiagnosisName = p.Diagnosis != null ? p.Diagnosis.DiagnosisName : null,
+                     CareEpisodeId = p.CareEpisodeId,
+                     HospitalCenterId = p.HospitalCenterId,
+                     HospitalCenterName = p.HospitalCenter.Name,
+                     PrescribedById = p.PrescribedBy,
+                     PrescribedByName = $"{p.PrescribedByNavigation.FirstName} {p.PrescribedByNavigation.LastName}",
+                     PrescriptionDate = p.PrescriptionDate,
+                     Instructions = p.Instructions,
+                     Status = p.Status,
+                     Items = p.PrescriptionItems.Select(i => new PrescriptionItemViewModel
+                     {
+                         Id = i.Id,
+                         PrescriptionId = i.PrescriptionId,
+                         ProductId = i.ProductId,
+                         ProductName = i.Product.Name,
+                         Quantity = i.Quantity,
+                         Dosage = i.Dosage,
+                         Frequency = i.Frequency,
+                         Duration = i.Duration,
+                         Instructions = i.Instructions
+                     }).ToList()
+                 }));
+            return prescriptions;
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("PrescriptionService", "GetByEpisodeError",
+                $"Erreur lors de la récupération des prescriptions pour l'épisode {episodeId}",
+                details: new { EpisodeId = episodeId, Error = ex.Message });
+            throw;
+        }
+    }
+
+
     // Récupérer les prescriptions avec pagination et filtres
     public async Task<(List<PrescriptionViewModel> Items, int TotalCount)> GetPrescriptionsAsync(PrescriptionFilters filters)
     {

@@ -173,9 +173,9 @@
                     <button class="btn btn-outline-primary" onclick="window.print()">
                         <i class="fas fa-print"></i> Imprimer
                     </button>
-                    <button class="btn btn-outline-primary" id="btnExportPdf">
-                        <i class="fas fa-file-pdf"></i> Exporter en PDF
-                    </button>
+                    <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-outline-primary">
+                        <i class="fas fa-download"></i> Télécharger PDF
+                    </a>
                     <button class="btn btn-outline-primary" id="btnShareEmail">
                         <i class="fas fa-envelope"></i> Envoyer par email
                     </button>
@@ -183,6 +183,9 @@
             </div>
         </div>
     </div>
+
+    @await Html.PartialAsync("_WorkflowComponents")
+
 </div>
 
 <!-- Modal de dispensation -->

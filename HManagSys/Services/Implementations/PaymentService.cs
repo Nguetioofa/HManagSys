@@ -410,43 +410,43 @@ namespace HManagSys.Services.Implementations
         /// <summary>
         /// Génère un reçu de paiement en PDF
         /// </summary>
-        public async Task<byte[]> GenerateReceiptAsync(int paymentId)
-        {
-            try
-            {
-                var payment = await GetByIdAsync(paymentId);
-                if (payment == null)
-                {
-                    throw new Exception($"Paiement {paymentId} introuvable");
-                }
+        //public async Task<byte[]> GenerateReceiptAsync(int paymentId)
+        //{
+        //    try
+        //    {
+        //        var payment = await GetByIdAsync(paymentId);
+        //        if (payment == null)
+        //        {
+        //            throw new Exception($"Paiement {paymentId} introuvable");
+        //        }
 
-                var center = await _hospitalCenterRepository.GetByIdAsync(payment.HospitalCenterId);
-                if (center == null)
-                {
-                    throw new Exception($"Centre hospitalier {payment.HospitalCenterId} introuvable");
-                }
+        //        var center = await _hospitalCenterRepository.GetByIdAsync(payment.HospitalCenterId);
+        //        if (center == null)
+        //        {
+        //            throw new Exception($"Centre hospitalier {payment.HospitalCenterId} introuvable");
+        //        }
 
-                // Créer le modèle pour le reçu
-                var receiptModel = new ReceiptViewModel
-                {
-                    Payment = payment,
-                    HospitalName = center.Name,
-                    HospitalAddress = center.Address,
-                    HospitalContact = $"Tel: {center.PhoneNumber} | Email: {center.Email}"
-                };
+        //        // Créer le modèle pour le reçu
+        //        var receiptModel = new ReceiptViewModel
+        //        {
+        //            Payment = payment,
+        //            HospitalName = center.Name,
+        //            HospitalAddress = center.Address,
+        //            HospitalContact = $"Tel: {center.PhoneNumber} | Email: {center.Email}"
+        //        };
 
-                // Générer le PDF avec QuestPDF
-                var document = new PaymentReceiptDocument(receiptModel);
-                return document.GeneratePdf();
-            }
-            catch (Exception ex)
-            {
-                await _logger.LogErrorAsync("PaymentService", "GenerateReceiptError",
-                    $"Erreur lors de la génération du reçu pour le paiement {paymentId}",
-                    details: new { PaymentId = paymentId, Error = ex.Message });
-                throw;
-            }
-        }
+        //        // Générer le PDF avec QuestPDF
+        //        var document = new PaymentReceiptDocument(receiptModel);
+        //        return document.GeneratePdf();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await _logger.LogErrorAsync("PaymentService", "GenerateReceiptError",
+        //            $"Erreur lors de la génération du reçu pour le paiement {paymentId}",
+        //            details: new { PaymentId = paymentId, Error = ex.Message });
+        //        throw;
+        //    }
+        //}
 
         /// <summary>
         /// Récupère les paiements avec pagination et filtres

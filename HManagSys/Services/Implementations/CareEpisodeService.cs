@@ -1,4 +1,5 @@
-﻿using HManagSys.Data.Repositories.Interfaces;
+﻿using DocumentFormat.OpenXml.Office2010.Excel;
+using HManagSys.Data.Repositories.Interfaces;
 using HManagSys.Helpers;
 using HManagSys.Models.EfModels;
 using HManagSys.Models.ViewModels;
@@ -52,6 +53,31 @@ public class CareEpisodeService : ICareEpisodeService
         _stockInventoryRepository = stockInventoryRepository;
         _logger = logger;
         _auditService = auditService;
+    }
+
+
+    public async Task<CareServiceProductModalsViewModel> GetServiceProducts(int serviceId)
+    {
+            var products =  await _careServiceRepository.QuerySingleAsync(q =>
+                             q.Where(s => s.CareEpisodeId == serviceId)
+                              .Include(s => s.CareServiceProducts)
+                                 .ThenInclude(p => p.Product)
+                              .OrderByDescending(s => s.ServiceDate)
+                              .Select(s => new CareServiceProductModalsViewModel
+                              {
+                                  products = s.CareServiceProducts.Select(p => new CareServiceProductItemViewModel
+                                  {
+                                      ProductId = p.ProductId,
+                                      ProductName = p.Product.Name,
+                                      QuantityUsed = p.QuantityUsed,
+                                      UnitCost = p.UnitCost,
+                                      //TotalCost = p.TotalCost
+                                  }).ToList()
+                              }));
+
+        products.success = true;
+
+        return products;
     }
 
     // Récupérer un épisode de soins par ID avec toutes les relations

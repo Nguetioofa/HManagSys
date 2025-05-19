@@ -1,0 +1,71 @@
+﻿@using HManagSys.Models.ViewModels.Workflow
+@model List<WorkflowActionViewModel>
+
+@if (Model != null && Model.Any())
+{
+    <div class="workflow-actions">
+        <h5 class="mb-3">
+            <i class="fas fa-tasks"></i> Actions suggérées
+        </h5>
+
+        <div class="workflow-actions-container">
+            @foreach (var action in Model)
+            {
+                <a href="@Url.Action(action.ActionName, action.ControllerName, action.RouteValues)"
+                   class="action-button @action.ButtonClass @action.RecommendedClass"
+                   title="@action.Description">
+                    <i class="@action.IconClass"></i>
+                    <span>@action.DisplayName</span>
+                </a>
+            }
+        </div>
+    </div>
+}
+
+<style>
+    .workflow-actions-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .action-button {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .action-button i {
+            margin-right: 8px;
+            font-size: 0.9rem;
+        }
+
+    .recommended-action {
+        position: relative;
+        border-width: 2px;
+    }
+
+        .recommended-action::after {
+            content: "Recommandé";
+            position: absolute;
+            top: -8px;
+            right: 5px;
+            font-size: 0.65rem;
+            background: #28a745;
+            color: white;
+            padding: 0 5px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+</style>

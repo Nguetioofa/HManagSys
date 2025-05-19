@@ -1,7 +1,10 @@
 ﻿using HManagSys.Attributes;
+using HManagSys.Data.Repositories.Interfaces;
 using HManagSys.Models;
+using HManagSys.Models.EfModels;
 using HManagSys.Models.ViewModels;
 using HManagSys.Models.ViewModels.Patients;
+using HManagSys.Services.Implementations;
 using HManagSys.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,17 +18,112 @@ public class ExaminationController : BaseController
     private readonly IPatientService _patientService;
     private readonly ICareEpisodeService _careEpisodeService;
     private readonly IApplicationLogger _logger;
+    private readonly IHospitalCenterRepository _hospitalCenterService;
+    private readonly IDocumentGenerationService _documentGenerationService;
+    private readonly IWorkflowService _workflowService;
 
     public ExaminationController(
         IExaminationService examinationService,
         IPatientService patientService,
         ICareEpisodeService careEpisodeService,
+        IHospitalCenterRepository hospitalCenterService,
+        IDocumentGenerationService documentGenerationService,
+        IWorkflowService workflowService,
         IApplicationLogger logger)
     {
         _examinationService = examinationService;
         _patientService = patientService;
         _careEpisodeService = careEpisodeService;
         _logger = logger;
+        _workflowService = workflowService;
+        _documentGenerationService = documentGenerationService;
+        _hospitalCenterService = hospitalCenterService;
+    }
+
+
+
+    [HttpGet]
+    [MedicalStaff]
+    public async Task<IActionResult> PrintResult(int id)
+    {
+        try
+        {
+            var examination = await _examinationService.GetByIdAsync(id);
+            if (examination == null)
+            {
+                TempData["ErrorMessage"] = "Examen introuvable";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (examination.Result == null)
+            {
+                TempData["ErrorMessage"] = "Aucun résultat disponible pour cet examen";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var center = await _hospitalCenterService.GetByIdAsync(examination.HospitalCenterId);
+
+            // Ajout des informations du centre dans ViewBag
+            ViewBag.HospitalName = center.Name;
+            ViewBag.HospitalAddress = center.Address;
+            ViewBag.HospitalPhone = center.PhoneNumber;
+            ViewBag.HospitalEmail = center.Email;
+
+            await _logger.LogInfoAsync("Examination", "PrintResultAccessed",
+                $"Impression du résultat de l'examen {id}",
+                CurrentUserId, CurrentCenterId);
+
+            return View(examination);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Examination", "PrintResultError",
+                $"Erreur lors de l'impression du résultat de l'examen {id}",
+                CurrentUserId, CurrentCenterId,
+                details: new { ExaminationId = id, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Erreur lors du chargement du résultat pour impression";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
+    [HttpGet]
+    [MedicalStaff]
+    public async Task<IActionResult> DownloadResultPdf(int id)
+    {
+        try
+        {
+            var examination = await _examinationService.GetByIdAsync(id);
+            if (examination == null)
+            {
+                TempData["ErrorMessage"] = "Examen introuvable";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (examination.Result == null)
+            {
+                TempData["ErrorMessage"] = "Aucun résultat disponible pour cet examen";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var pdfBytes = await _documentGenerationService.GenerateExaminationResultPdfAsync(id);
+
+            await _logger.LogInfoAsync("Examination", "ResultPdfDownloaded",
+                $"Téléchargement du PDF du résultat de l'examen {id}",
+                CurrentUserId, CurrentCenterId);
+
+            return File(pdfBytes, "application/pdf", $"Resultat_Examen_{id}.pdf");
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Examination", "ResultPdfError",
+                $"Erreur lors de la génération du PDF du résultat de l'examen {id}",
+                CurrentUserId, CurrentCenterId,
+                details: new { ExaminationId = id, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Erreur lors de la génération du PDF";
+            return RedirectToAction(nameof(Details), new { id });
+        }
     }
 
     [MedicalStaff]
@@ -80,9 +178,11 @@ public class ExaminationController : BaseController
                 return RedirectToAction(nameof(Index));
             }
 
-            await _logger.LogInfoAsync("Examination", "DetailsAccessed",
-                $"Détails de l'examen {id} consultés",
-                CurrentUserId, CurrentCenterId);
+            var actions = await _workflowService.GetNextActionsAsync(nameof(Examination), id);
+            var relatedEntities = await _workflowService.GetRelatedEntitiesAsync(nameof(Examination), id);
+
+            ViewBag.WorkflowActions = actions;
+            ViewBag.RelatedEntities = relatedEntities;
 
             return View(examination);
         }

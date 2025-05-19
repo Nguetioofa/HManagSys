@@ -174,7 +174,7 @@
                                     <td>@episode.EpisodeStartDate.ToString("dd/MM/yyyy")</td>
                                     <td>@episode.PrimaryCaregiverName</td>
                                     <td>
-                                        <span class="badge badge-@GetStatusBadge(episode.Status)">
+                                        <span class="badge bg-@GetStatusBadge(episode.Status)">
                                             @GetStatusName(episode.Status)
                                         </span>
                                     </td>
@@ -182,11 +182,11 @@
                                     <td>
                                         @if (episode.RemainingBalance <= 0)
                                         {
-                                            <span class="badge badge-success">Oui</span>
+                                            <span class="badge bg-success">Oui</span>
                                         }
                                         else
                                         {
-                                            <span class="badge badge-warning">Non</span>
+                                            <span class="badge bg-warning">Non</span>
                                         }
                                     </td>
                                     <td>
@@ -204,6 +204,10 @@
                                                 <a asp-action="Complete" asp-route-id="@episode.Id" 
                                                    class="btn btn-sm btn-outline-info">
                                                     <i class="fas fa-check"></i> Terminer
+                                                </a>
+                                                <a asp-action="Interrupt" asp-route-id="@episode.Id" 
+                                                   class="btn btn-sm btn-outline-danger">
+                                                    <i class="fas fa-times"></i> Interrompre
                                                 </a>
                                             }
                                         </div>

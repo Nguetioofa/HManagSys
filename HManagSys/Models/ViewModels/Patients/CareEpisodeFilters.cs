@@ -1,4 +1,5 @@
-﻿using HManagSys.Models.ViewModels.Stock;
+﻿using HManagSys.Models.EfModels;
+using HManagSys.Models.ViewModels.Stock;
 using System.ComponentModel.DataAnnotations;
 
 namespace HManagSys.Models.ViewModels.Patients;
@@ -98,4 +99,17 @@ public class CareServiceProductItemViewModel
 
     public decimal UnitCost { get; set; }
     public decimal TotalCost => QuantityUsed * UnitCost;
+}
+
+public class CareServiceProductModalsViewModel
+{
+
+    public bool success { get; set; }
+
+    public string message { get; set; } 
+
+    public List<CareServiceProductItemViewModel> products = new();
+
+    public decimal totalCost => products?.Sum(p => p.TotalCost) ?? 0;
+
 }

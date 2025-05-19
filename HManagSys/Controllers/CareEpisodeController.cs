@@ -2,6 +2,7 @@
 using HManagSys.Attributes;
 using HManagSys.Data.Repositories.Interfaces;
 using HManagSys.Models;
+using HManagSys.Models.EfModels;
 using HManagSys.Models.ViewModels;
 using HManagSys.Models.ViewModels.Patients;
 using HManagSys.Models.ViewModels.Stock;
@@ -22,6 +23,7 @@ public class CareEpisodeController : BaseController
     private readonly IProductService _productService;
     private readonly IStockService _stockService;
     private readonly IAuditService _auditService;
+    private readonly IWorkflowService _workflowService;
 
     public CareEpisodeController(
         ICareEpisodeService careEpisodeService,
@@ -30,6 +32,7 @@ public class CareEpisodeController : BaseController
         IApplicationLogger logger,
         IStockService stockService,
         IAuditService auditService,
+        IWorkflowService workflowService,
         IProductService productService)
     {
         _careEpisodeService = careEpisodeService;
@@ -38,6 +41,7 @@ public class CareEpisodeController : BaseController
         _userRepository = userRepository;
         _stockService = stockService;
         _auditService = auditService;
+        _workflowService = workflowService;
         _productService = productService;
     }
 
@@ -63,9 +67,9 @@ public class CareEpisodeController : BaseController
                 }
             };
 
-            await _logger.LogInfoAsync("CareEpisode", "IndexAccessed",
-                "Liste des épisodes de soins consultée",
-                CurrentUserId, CurrentCenterId);
+            //await _logger.LogInfoAsync("CareEpisode", "IndexAccessed",
+            //    "Liste des épisodes de soins consultée",
+            //    CurrentUserId, CurrentCenterId);
 
             return View(viewModel);
         }
@@ -93,9 +97,15 @@ public class CareEpisodeController : BaseController
                 return RedirectToAction(nameof(Index));
             }
 
-            await _logger.LogInfoAsync("CareEpisode", "DetailsAccessed",
-                $"Détails de l'épisode de soins {id} consultés",
-                CurrentUserId, CurrentCenterId);
+            //await _logger.LogInfoAsync("CareEpisode", "DetailsAccessed",
+            //    $"Détails de l'épisode de soins {id} consultés",
+            //    CurrentUserId, CurrentCenterId);
+
+            var actions = await _workflowService.GetNextActionsAsync(nameof(CareEpisode), id);
+            var relatedEntities = await _workflowService.GetRelatedEntitiesAsync(nameof(CareEpisode), id);
+
+            ViewBag.WorkflowActions = actions;
+            ViewBag.RelatedEntities = relatedEntities;
 
             return View(episode);
         }
@@ -110,6 +120,104 @@ public class CareEpisodeController : BaseController
             return RedirectToAction(nameof(Index));
         }
     }
+
+
+    [HttpGet]
+    [MedicalStaff]
+    public async Task<IActionResult> Interrupt(int id)
+    {
+        try
+        {
+            var episode = await _careEpisodeService.GetByIdAsync(id);
+            if (episode == null)
+            {
+                TempData["ErrorMessage"] = "Épisode de soins introuvable";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (episode.Status != "Active")
+            {
+                TempData["ErrorMessage"] = "Impossible d'interrompre un épisode non actif";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var model = new InterruptCareEpisodeViewModel
+            {
+                CareEpisodeId = id,
+                PatientName = episode.PatientName,
+                InterruptionDate = DateTime.Now
+            };
+
+            return View(model);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("CareEpisode", "InterruptGetError",
+                "Erreur lors du chargement du formulaire d'interruption",
+                CurrentUserId, CurrentCenterId,
+                details: new { EpisodeId = id, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Erreur lors du chargement du formulaire";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [MedicalStaff]
+    public async Task<IActionResult> Interrupt(InterruptCareEpisodeViewModel model)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var result = await _careEpisodeService.InterruptCareEpisodeAsync(model.CareEpisodeId, model, CurrentUserId!.Value);
+
+            if (result.IsSuccess)
+            {
+                TempData["SuccessMessage"] = "Épisode de soins interrompu avec succès";
+                return RedirectToAction(nameof(Details), new { id = model.CareEpisodeId });
+            }
+
+            ModelState.AddModelError("", result.ErrorMessage ?? "Erreur lors de l'interruption de l'épisode");
+            return View(model);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("CareEpisode", "InterruptPostError",
+                "Erreur lors de l'interruption de l'épisode",
+                CurrentUserId, CurrentCenterId,
+                details: new { Model = model, Error = ex.Message });
+
+            ModelState.AddModelError("", "Une erreur est survenue lors de l'interruption de l'épisode");
+            return View(model);
+        }
+    }
+
+
+    [HttpGet]
+    [MedicalStaff]
+    public async Task<IActionResult> GetPatientDiagnoses(int patientId)
+    {
+        try
+        {
+            var diagnoses = await _patientService.GetPatientDiagnosesAsync(patientId);
+            return Json(diagnoses);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("CareEpisode", "GetPatientDiagnosesError",
+                $"Erreur lors de la récupération des diagnostics du patient {patientId}",
+                CurrentUserId, CurrentCenterId,
+                details: new { PatientId = patientId, Error = ex.Message });
+
+            return Json(new List<DiagnosisViewModel>());
+        }
+    }
+
 
     [HttpGet]
     [MedicalStaff]
@@ -333,6 +441,37 @@ public class CareEpisodeController : BaseController
             return RedirectToAction(nameof(Details), new { id });
         }
     }
+
+
+
+    
+    [HttpGet]
+    [MedicalStaff]
+    public async Task<IActionResult> GetServiceProducts(int serviceId)
+    {
+        try
+        {
+
+
+            var result = await _careEpisodeService.GetServiceProducts(serviceId);
+
+            return Json(new { success = true, products = result.products,  message = "success", result.totalCost });
+
+
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("CareEpisode", "GetServiceProducts",
+                "Erreur lors de la recuperation des produits du service",
+                CurrentUserId, CurrentCenterId,
+                details: new { serviceId = serviceId, Error = ex.Message });
+
+            return Json(new { success = false, message = "Une erreur est survenue lors de la recuperation des produits du service" });
+        }
+    }
+
+
+
 
     [HttpPost]
     [ValidateAntiForgeryToken]

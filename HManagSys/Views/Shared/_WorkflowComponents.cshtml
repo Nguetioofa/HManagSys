@@ -1,0 +1,36 @@
+﻿@using HManagSys.Models.ViewModels.Workflow
+@model object
+
+<div class="workflow-components">
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    @await Html.PartialAsync("_WorkflowActionsPartial", (List<WorkflowActionViewModel>)ViewBag.WorkflowActions)
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    @await Html.PartialAsync("_RelatedEntitiesPartial", (List<RelatedEntityViewModel>)ViewBag.RelatedEntities)
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .workflow-components {
+        margin-bottom: 20px;
+    }
+
+    @@media (max-width: 767.98px) {
+        .workflow-components .row > div:first-child
+
+    {
+        margin-bottom: 0;
+    }
+
+    }
+</style>

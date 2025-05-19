@@ -8,6 +8,7 @@ namespace HManagSys.Services.Interfaces
     public interface IExaminationService
     {
         Task<ExaminationViewModel?> GetByIdAsync(int id);
+        Task<List<ExaminationViewModel>> GetByEpisodeAsync(int episodeId);
         Task<(List<ExaminationViewModel> Items, int TotalCount)> GetExaminationsAsync(ExaminationFilters filters);
         Task<OperationResult<ExaminationViewModel>> CreateExaminationAsync(CreateExaminationViewModel model, int createdBy);
         Task<OperationResult<ExaminationViewModel>> ScheduleExaminationAsync(int id, ScheduleExaminationViewModel model, int modifiedBy);

@@ -1,0 +1,253 @@
+﻿@model ExaminationViewModel
+@{
+    ViewData["Title"] = "Imprimer Résultat d'Examen";
+    Layout = "_PrintLayout";
+}
+
+<div class="print-document examination-document">
+    <div class="print-header">
+        <div class="hospital-info">
+            <h2>@ViewBag.HospitalName</h2>
+            <p>@ViewBag.HospitalAddress</p>
+            <p>Tel: @ViewBag.HospitalPhone | Email: @ViewBag.HospitalEmail</p>
+        </div>
+        <div class="document-info">
+            <h1>RÉSULTAT D'EXAMEN</h1>
+            <p>N° @($"EXAM-{Model.Id:D6}")</p>
+            <p>@(Model.PerformedDate?.ToString("dd/MM/yyyy HH:mm") ?? Model.RequestDate.ToString("dd/MM/yyyy HH:mm"))</p>
+        </div>
+    </div>
+
+    <div class="print-content">
+        <div class="patient-exam-info">
+            <div class="patient-info">
+                <h3>PATIENT</h3>
+                <p><strong>@Model.PatientName</strong></p>
+                <p>ID: @Model.PatientId</p>
+            </div>
+            <div class="exam-info">
+                <h3>TYPE D'EXAMEN</h3>
+                <p><strong>@Model.ExaminationTypeName</strong></p>
+            </div>
+        </div>
+
+        <div class="dates-info">
+            <div class="request-info">
+                <h3>DEMANDÉ PAR</h3>
+                <p>@Model.RequestedByName</p>
+                <p>Le @Model.RequestDate.ToString("dd/MM/yyyy HH:mm")</p>
+            </div>
+            <div class="performed-info">
+                <h3>RÉALISÉ PAR</h3>
+                <p>@(Model.PerformedByName ?? "Non assigné")</p>
+                <p>Le @(Model.PerformedDate?.ToString("dd/MM/yyyy HH:mm") ?? "Non effectué")</p>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        @if (Model.Result != null)
+        {
+            <div class="result-data">
+                <h3>RÉSULTATS</h3>
+                <div class="result-box">
+                    <p>@Html.Raw(Model.Result.ResultData?.Replace("\n", "<br>") ?? "Aucun résultat spécifié")</p>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Result.ResultNotes))
+            {
+                <div class="result-notes">
+                    <h3>NOTES ADDITIONNELLES</h3>
+                    <div class="notes-box">
+                        <p>@Html.Raw(Model.Result.ResultNotes.Replace("\n", "<br>"))</p>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.Result.AttachmentPath))
+            {
+                <div class="attachment-info">
+                    <p><strong>Document annexe disponible:</strong> @Model.Result.AttachmentPath</p>
+                </div>
+            }
+
+            <div class="signature">
+                <p>Signature et cachet</p>
+                <div class="signature-line"></div>
+                <p>@Model.Result.ReportedByName</p>
+            </div>
+        }
+        else
+        {
+            <div class="no-result">
+                <p><strong>Aucun résultat n'est disponible pour cet examen.</strong></p>
+                <p>L'examen n'a pas encore été effectué ou les résultats n'ont pas été enregistrés.</p>
+            </div>
+        }
+    </div>
+
+    <div class="print-footer">
+        <p>Document généré le @DateTime.Now.ToString("dd/MM/yyyy à HH:mm")</p>
+        <p>@ViewBag.HospitalName - @ViewBag.HospitalAddress</p>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        /* Styles spécifiques à l'impression */
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.5;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .print-document {
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 15mm 10mm;
+        }
+
+        .print-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 15px;
+        }
+
+        .hospital-info h2 {
+            margin: 0 0 5px 0;
+            color: #2c3e50;
+        }
+
+        .hospital-info p {
+            margin: 2px 0;
+            font-size: 11px;
+        }
+
+        .document-info {
+            text-align: right;
+        }
+
+            .document-info h1 {
+                margin: 0 0 10px 0;
+                font-size: 18px;
+                color: #2980b9;
+            }
+
+            .document-info p {
+                margin: 2px 0;
+                font-size: 12px;
+            }
+
+        .patient-exam-info, .dates-info {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .patient-info, .exam-info, .request-info, .performed-info {
+            flex: 1;
+        }
+
+        h3 {
+            font-size: 14px;
+            margin: 0 0 10px 0;
+            color: #2980b9;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 15px 0;
+        }
+
+        .result-data, .result-notes {
+            margin-bottom: 20px;
+        }
+
+        .result-box {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #eee;
+        }
+
+        .notes-box {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #eee;
+        }
+
+        .attachment-info {
+            padding: 10px;
+            background-color: #fff9db;
+            border: 1px solid #ffd966;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .no-result {
+            text-align: center;
+            padding: 30px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #eee;
+            margin: 30px 0;
+        }
+
+        .signature {
+            text-align: right;
+            margin-top: 40px;
+        }
+
+        .signature-line {
+            width: 150px;
+            height: 1px;
+            background-color: #999;
+            margin: 30px 0 5px auto;
+        }
+
+        .print-footer {
+            margin-top: 50px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+            font-size: 9px;
+            color: #777;
+            text-align: center;
+        }
+
+        @@media print {
+            body
+
+        {
+            margin: 0;
+            padding: 0;
+        }
+
+        .print-document {
+            margin: 0;
+            padding: 0;
+        }
+
+        .no-print {
+            display: none;
+        }
+
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Auto-imprimer quand la page est chargée
+            window.print();
+        });
+    </script>
+}

@@ -1,5 +1,6 @@
 ﻿using HManagSys.Attributes;
 using HManagSys.Models;
+using HManagSys.Models.EfModels;
 using HManagSys.Models.ViewModels;
 using HManagSys.Models.ViewModels.Patients;
 using HManagSys.Services.Interfaces;
@@ -16,12 +17,15 @@ public class PatientController : BaseController
 {
     private readonly IPatientService _patientService;
     private readonly IApplicationLogger _appLogger;
+    private readonly IWorkflowService _workflowService;
 
     public PatientController(
         IPatientService patientService,
+        IWorkflowService workflowService,
         IApplicationLogger appLogger)
     {
         _patientService = patientService;
+        _workflowService = workflowService;
         _appLogger = appLogger;
     }
 
@@ -168,6 +172,12 @@ public class PatientController : BaseController
                 TempData["ErrorMessage"] = "Patient introuvable";
                 return RedirectToAction(nameof(Index));
             }
+
+            var actions = await _workflowService.GetNextActionsAsync(nameof(Patient), id);
+            var relatedEntities = await _workflowService.GetRelatedEntitiesAsync(nameof(Patient), id);
+
+            ViewBag.WorkflowActions = actions;
+            ViewBag.RelatedEntities = relatedEntities;
 
             return View(patient);
         }

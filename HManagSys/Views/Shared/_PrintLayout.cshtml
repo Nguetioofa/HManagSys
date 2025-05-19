@@ -1,0 +1,37 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - HManagSys</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    @RenderSection("Styles", required: false)
+</head>
+<body>
+    <div class="container print-container">
+        <div class="no-print mb-3">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="javascript:window.history.back();">Retour</a></li>
+                    <li class="breadcrumb-item active">Impression</li>
+                </ol>
+            </nav>
+            <div class="d-flex justify-content-end mb-3">
+                <button type="button" class="btn btn-primary me-2" onclick="window.print()">
+                    <i class="fas fa-print"></i> Imprimer
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                    <i class="fas fa-arrow-left"></i> Annuler
+                </button>
+            </div>
+        </div>
+
+        @RenderBody()
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

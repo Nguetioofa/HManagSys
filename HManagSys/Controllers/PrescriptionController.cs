@@ -1,9 +1,12 @@
 ﻿using HManagSys.Attributes;
+using HManagSys.Data.Repositories.Interfaces;
 using HManagSys.Models;
+using HManagSys.Models.EfModels;
 using HManagSys.Models.ViewModels;
 using HManagSys.Models.ViewModels.Patients;
 using HManagSys.Models.ViewModels.Stock;
 using HManagSys.Services;
+using HManagSys.Services.Implementations;
 using HManagSys.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,9 +20,13 @@ public class PrescriptionController : BaseController
     private readonly IPatientService _patientService;
     private readonly IProductService _productService;
     private readonly ICareEpisodeService _careEpisodeService;
+    private readonly IHospitalCenterRepository _hospitalCenterService;
     private readonly IApplicationLogger _logger;
     private readonly IStockService _stockService;
     private readonly IAuditService _auditService;
+    private readonly IDocumentGenerationService _documentGenerationService;
+    private readonly IWorkflowService _workflowService;
+
 
     public PrescriptionController(
         IPrescriptionService prescriptionService,
@@ -28,6 +35,9 @@ public class PrescriptionController : BaseController
         ICareEpisodeService careEpisodeService,
         IStockService stockService,
         IAuditService auditService,
+        IHospitalCenterRepository hospitalCenterService,
+        IDocumentGenerationService documentGenerationService,
+        IWorkflowService workflowService,
         IApplicationLogger logger)
     {
         _prescriptionService = prescriptionService;
@@ -37,6 +47,79 @@ public class PrescriptionController : BaseController
         _logger = logger;
         _auditService = auditService;
         _stockService = stockService;
+        _documentGenerationService = documentGenerationService;
+        _hospitalCenterService = hospitalCenterService;
+        _workflowService = workflowService;
+    }
+
+
+    [HttpGet]
+    [MedicalStaff]
+    public async Task<IActionResult> Print(int id)
+    {
+        try
+        {
+            var prescription = await _prescriptionService.GetByIdAsync(id);
+            if (prescription == null)
+            {
+                TempData["ErrorMessage"] = "Prescription introuvable";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var center = await _hospitalCenterService.GetByIdAsync(prescription.HospitalCenterId);
+
+            // Ajout des informations du centre dans ViewBag
+            ViewBag.HospitalName = center.Name;
+            ViewBag.HospitalAddress = center.Address;
+            ViewBag.HospitalPhone = center.PhoneNumber;
+            ViewBag.HospitalEmail = center.Email;
+
+
+            return View(prescription);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Prescription", "PrintError",
+                $"Erreur lors de l'impression de la prescription {id}",
+                CurrentUserId, CurrentCenterId,
+                details: new { PrescriptionId = id, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Erreur lors du chargement de la prescription pour impression";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
+    [HttpGet]
+    [MedicalStaff]
+    public async Task<IActionResult> DownloadPdf(int id)
+    {
+        try
+        {
+            var prescription = await _prescriptionService.GetByIdAsync(id);
+            if (prescription == null)
+            {
+                TempData["ErrorMessage"] = "Prescription introuvable";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var pdfBytes = await _documentGenerationService.GeneratePrescriptionPdfAsync(id);
+
+            //await _logger.LogInfoAsync("Prescription", "PdfDownloaded",
+            //    $"Téléchargement du PDF de la prescription {id}",
+            //    CurrentUserId, CurrentCenterId);
+
+            return File(pdfBytes, "application/pdf", $"Prescription_{id}.pdf");
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Prescription", "PdfError",
+                $"Erreur lors de la génération du PDF de la prescription {id}",
+                CurrentUserId, CurrentCenterId,
+                details: new { PrescriptionId = id, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Erreur lors de la génération du PDF";
+            return RedirectToAction(nameof(Details), new { id });
+        }
     }
 
     [MedicalStaff]
@@ -91,9 +174,11 @@ public class PrescriptionController : BaseController
                 return RedirectToAction(nameof(Index));
             }
 
-            await _logger.LogInfoAsync("Prescription", "DetailsAccessed",
-                $"Détails de la prescription {id} consultés",
-                CurrentUserId, CurrentCenterId);
+            var actions = await _workflowService.GetNextActionsAsync(nameof(Prescription), id);
+            var relatedEntities = await _workflowService.GetRelatedEntitiesAsync(nameof(Prescription), id);
+
+            ViewBag.WorkflowActions = actions;
+            ViewBag.RelatedEntities = relatedEntities;
 
             return View(prescription);
         }

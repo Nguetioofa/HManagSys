@@ -111,6 +111,53 @@ public class ExaminationService : IExaminationService
         }
     }
 
+
+    public async Task<List<ExaminationViewModel>> GetByEpisodeAsync(int episodeId)
+    {
+        try
+        {
+            return await _examinationRepository.QueryListAsync(q =>
+                q.Where(e => e.CareEpisodeId == episodeId)
+                 .Include(e => e.Patient)
+                 .Include(e => e.ExaminationType)
+                 .Include(e => e.HospitalCenter)
+                 .Include(e => e.RequestedByNavigation)
+                 .Include(e => e.PerformedByNavigation)
+                 .OrderByDescending(e => e.RequestDate)
+                 .Select(e => new ExaminationViewModel
+                 {
+                     Id = e.Id,
+                     PatientId = e.PatientId,
+                     PatientName = $"{e.Patient.FirstName} {e.Patient.LastName}",
+                     ExaminationTypeId = e.ExaminationTypeId,
+                     ExaminationTypeName = e.ExaminationType.Name,
+                     CareEpisodeId = e.CareEpisodeId,
+                     HospitalCenterId = e.HospitalCenterId,
+                     HospitalCenterName = e.HospitalCenter.Name,
+                     RequestedById = e.RequestedBy,
+                     RequestedByName = $"{e.RequestedByNavigation.FirstName} {e.RequestedByNavigation.LastName}",
+                     PerformedById = e.PerformedBy,
+                     PerformedByName = e.PerformedBy.HasValue ? $"{e.PerformedByNavigation.FirstName} {e.PerformedByNavigation.LastName}" : null,
+                     RequestDate = e.RequestDate,
+                     ScheduledDate = e.ScheduledDate,
+                     PerformedDate = e.PerformedDate,
+                     Status = e.Status,
+                     FinalPrice = e.FinalPrice,
+                     DiscountAmount = e.DiscountAmount,
+                     Notes = e.Notes
+                 }));
+
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("ExaminationService", "GetExaminationsError",
+                "Erreur lors de la récupération des examens",
+                details: new { episodeId = episodeId, Error = ex.Message});
+            throw;
+        }
+    }
+
+
     // Récupérer les examens avec pagination et filtres
     public async Task<(List<ExaminationViewModel> Items, int TotalCount)> GetExaminationsAsync(ExaminationFilters filters)
     {
