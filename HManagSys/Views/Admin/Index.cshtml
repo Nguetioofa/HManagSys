@@ -1,4 +1,5 @@
-﻿@model HManagSys.Models.ViewModels.AdminDashboardViewModel
+﻿
+@model HManagSys.Models.ViewModels.AdminDashboardViewModel
 
 
 @{
@@ -762,3 +763,978 @@
         }
     </style>
 }
+
+
+@* 
+@using HManagSys.Models.ViewModels.Users
+@model HManagSys.Models.ViewModels.AdminDashboardViewModel
+
+@{
+    ViewData["Title"] = "Tableau de Bord Administrateur";
+    var currentRole = Context.Session.GetString("CurrentRole");
+    var isSuperAdmin = currentRole == "SuperAdmin";
+    var currentUserId = Context.Session.GetInt32("UserId");
+}
+
+@if (!isSuperAdmin)
+{
+    <div class="alert alert-danger-soft p-3 d-flex align-items-center">
+        <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+        <div>
+            <h4 class="alert-heading mb-1">Accès Refusé</h4>
+            <p class="mb-2">Cette page est réservée aux Super Administrateurs.</p>
+            <a asp-controller="Dashboard" asp-action="Index" class="btn btn-sm btn-primary">
+                <i class="fas fa-arrow-left me-1"></i> Retour au Tableau de Bord Principal
+            </a>
+        </div>
+    </div>
+    return;
+}
+
+<div class="container-fluid">
+    @Html.AntiForgeryToken()
+
+    <!-- En-tête de la page -->
+    <div class="pt-3 mb-4">
+        <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center">
+            <div class="mb-2 mb-sm-0">
+                <h1 class="h2 mb-0 text-gray-800 font-weight-bold">
+                    <i class="fas fa-users-cog text-primary me-2"></i>Tableau de Bord Administrateur
+                </h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb breadcrumb-custom">
+                        <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Tableau de Bord Principal</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Administration des Utilisateurs</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="btn-group btn-group-sm">
+                <a asp-action="CreateUser" class="btn btn-primary">
+                    <i class="fas fa-user-plus me-1"></i> Nouvel Utilisateur
+                </a>
+                <button type="button" class="btn btn-outline-secondary" onclick="exportUsers()">
+                    <i class="fas fa-file-excel me-1"></i> Exporter la Liste
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cartes de Statistiques (KPIs) -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card card-kpi shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0"><i class="fas fa-users fa-2x text-primary-soft"></i></div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted mb-0 small text-uppercase">Total Utilisateurs</p>
+                            <h4 class="mb-0">@Model.Statistics.TotalUsers</h4>
+                            @if (Model.Statistics.TotalUsers > 0)
+                            {
+                                <small class="text-muted">@Model.Statistics.ActiveUsersPercentage.ToString("F0")% actifs</small>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card card-kpi shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0"><i class="fas fa-user-check fa-2x text-success-soft"></i></div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted mb-0 small text-uppercase">Utilisateurs Actifs</p>
+                            <h4 class="mb-0 text-success">@Model.Statistics.ActiveUsers</h4>
+                            <small class="text-muted">@Model.Statistics.UsersLoggedToday connectés aujourd'hui</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card card-kpi shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0"><i class="fas fa-key fa-2x text-warning-soft"></i></div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted mb-0 small text-uppercase">MDP à Changer</p>
+                            <h4 class="mb-0 text-warning">@Model.Statistics.UsersRequiringPasswordChange</h4>
+                            <small class="text-muted">Requiert attention</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card card-kpi shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0"><i class="fas fa-network-wired fa-2x text-info-soft"></i></div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted mb-0 small text-uppercase">Sessions Actives</p>
+                            <h4 class="mb-0 text-info">@Model.Statistics.TotalActiveSessions</h4>
+                            <small class="text-muted">Utilisateurs en ligne</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres de Recherche -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-transparent py-2 border-bottom-0 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-filter me-2"></i>Filtrer les Utilisateurs</h6>
+            <button class="btn btn-sm btn-link text-secondary p-0" type="button" data-bs-toggle="collapse" data-bs-target="#userFiltersCollapse" aria-expanded="@(Model.Filters.HasActiveFilters ? "true" : "false")" aria-controls="userFiltersCollapse">
+                @(Model.Filters.HasActiveFilters ? "Modifier les filtres" : "Afficher les filtres")
+            </button>
+        </div>
+        <div class="collapse @(Model.Filters.HasActiveFilters ? "show" : "")" id="userFiltersCollapse">
+            <div class="card-body pt-2 pb-3">
+                <form asp-action="Index" method="get" id="userFiltersForm">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-lg-3 col-md-6">
+                            <label asp-for="Filters.SearchTerm" class="form-label form-label-sm visually-hidden">Recherche</label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="search" class="form-control form-control-sm" asp-for="Filters.SearchTerm" placeholder="Nom, Email, Tél...">
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-3">
+                            <label asp-for="Filters.IsActive" class="form-label form-label-sm visually-hidden">Statut</label>
+                            <select class="form-select form-select-sm" asp-for="Filters.IsActive">
+                                <option value="">Tous Statuts</option>
+                                <option value="true">Actifs</option>
+                                <option value="false">Inactifs</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-2 col-md-3">
+                            <label asp-for="Filters.RoleFilter" class="form-label form-label-sm visually-hidden">Rôle</label>
+                            <select class="form-select form-select-sm" asp-for="Filters.RoleFilter">
+                                <option value="">Tous Rôles</option>
+                                <option value="SuperAdmin">SuperAdmin</option>
+                                <option value="Admin">Admin</option>
+                                <option value="MedicalStaff">Personnel Médical</option>
+                                <option value="Receptionist">Réception</option>
+                                <option value="Pharmacist">Pharmacien</option>
+                            </select>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <label asp-for="Filters.HospitalCenterId" class="form-label form-label-sm visually-hidden">Centre Hospitalier</label>
+                            <select class="form-select form-select-sm" asp-for="Filters.HospitalCenterId">
+                                <option value="">Tous Centres</option>
+                                @foreach (var center in Model.AvailableCenters.OrderBy(c => c.Name))
+                                {
+                                    <option value="@center.Id">@center.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-lg-2 col-md-12 text-lg-end">
+                            <div class="btn-group btn-group-sm">
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-check me-1"></i> Appliquer</button>
+                                <a asp-action="Index" class="btn btn-outline-secondary" title="Réinitialiser"><i class="fas fa-times"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                    @if (Model.Filters.HasActiveFilters)
+                    {
+                        <div class="mt-2">
+                            <small class="text-muted">Filtres actifs: @Model.Filters.ActiveFiltersText</small>
+                        </div>
+                    }
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau des Utilisateurs -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-transparent py-2 border-bottom-0 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-list-ul me-2"></i>Liste des Utilisateurs (@Model.Pagination.TotalCount)</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover table-nowrap mb-0" id="usersTableList">
+                    <thead class="table-light-custom">
+                        <tr>
+                            <th>Utilisateur</th>
+                            <th>Contact</th>
+                            <th>Centres / Rôles</th>
+                            <th>Dern. Connexion</th>
+                            <th class="text-center">Statut</th>
+                            <th class="text-center">Sessions</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Users.Any())
+                        {
+                            @foreach (var user in Model.Users)
+                            {
+                                <tr class="@(!user.IsActive ? "opacity-75" : "")">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-placeholder-sm me-2 @(user.IsActive ? "bg-primary-soft" : "bg-secondary-soft")" title="@user.FullName">
+                                                @user.FullName.Substring(0, 1).ToUpper()
+                                            </div>
+                                            <div>
+                                                <a asp-action="EditUser" asp-route-id="@user.Id" class="fw-bold text-dark-emphasis text-decoration-none">@user.FullName</a>
+                                                <small class="d-block text-muted">ID: @user.Id</small>
+                                            </div>
+                                            @if (user.MustChangePassword)
+                                            {
+                                                <span class="badge bg-warning-soft fs-xs ms-2" title="Doit changer son mot de passe">
+                                                    <i class="fas fa-key"></i> MDP
+                                                </span>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="small">
+                                            <a href="mailto:@user.Email" class="text-decoration-none text-dark-emphasis">@user.Email</a>
+                                            <span class="d-block text-muted">@user.PhoneNumber</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (user.Assignments.Any())
+                                        {
+                                            foreach (var assignment in user.Assignments.Take(2))
+                                            {
+                                                <div class="mb-1 small">
+                                                    <span class="badge @GetRoleBadgeClass(assignment.RoleType) fs-xs">@assignment.RoleDisplayName</span>
+                                                    <span class="text-muted ms-1">@assignment.HospitalCenterName</span>
+                                                </div>
+                                            }
+                                            if (user.Assignments.Count > 2)
+                                            {
+                                                <small><a href="#" class="text-muted-light" onclick="viewAllAssignments(@user.Id, '@Html.Encode(user.FullName)'); return false;" title="Voir tous les assignements de @user.FullName">(+ @(user.Assignments.Count - 2) autres)</a></small>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Non assigné</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="small @(user.LastLoginDate.HasValue && user.LastLoginDate > DateTime.Now.AddDays(-7) ? "text-dark-emphasis" : "text-muted")"
+                                              title="@(user.LastLoginDate.HasValue? user.LastLoginDate.Value.ToString("dd/MM/yyyy HH:mm") : "Jamais connecté")">
+                                            @user.LastLoginText
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge @GetStatusBadgeClass(user.IsActive) fs-sm">@user.StatusText</span>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (user.ActiveSessionsCount > 0)
+                                        {
+                                            <a href="javascript:void(0)" onclick="viewUserActiveSessions(@user.Id, '@Html.Encode(user.FullName)')" class="text-decoration-none">
+                                                <span class="badge bg-success-soft fs-sm" title="@user.ActiveSessionsCount sessions actives">
+                                                    <i class="fas fa-circle text-success fs-xs me-1"></i>@user.ActiveSessionsCount
+                                                </span>
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Aucune</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group">
+                                            <a asp-action="EditUser" asp-route-id="@user.Id" class="btn btn-xs btn-outline-primary" title="Modifier Utilisateur"><i class="fas fa-user-edit"></i></a>
+                                            <button class="btn btn-xs btn-outline-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Plus d'actions">
+                                                <i class="fas fa-cog"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end fs-sm py-1">
+                                                <li><h6 class="dropdown-header fs-xs text-uppercase">Gestion de Compte</h6></li>
+                                                <li>
+                                                    <a class="dropdown-item" href="javascript:void(0)" onclick="resetPassword(@user.Id, '@Html.Encode(user.FullName)')">
+                                                        <i class="fas fa-key fa-fw me-2"></i>Réinitialiser MDP
+                                                    </a>
+                                                </li>
+                                                @if (user.Id != currentUserId)
+                                                {
+                                                    <li>
+                                                        <a class="dropdown-item @(user.IsActive ? "text-danger" : "text-success")" href="javascript:void(0)"
+                                                           onclick="confirmToggleUserStatus(@user.Id, @user.IsActive.ToString().ToLower(), '@Html.Encode(user.FullName)')">
+                                                            <i class="fas @(user.IsActive ? "fa-user-slash" : "fa-user-check") fa-fw me-2"></i>@(user.IsActive ? "Désactiver" : "Activer") Compte
+                                                        </a>
+                                                    </li>
+                                                }
+                                                @if (user.ActiveSessionsCount > 0)
+                                                {
+                                                    <li>
+                                                        <a class="dropdown-item text-warning" href="javascript:void(0)" onclick="confirmForceLogout(@user.Id, '@Html.Encode(user.FullName)')">
+                                                            <i class="fas fa-sign-out-alt fa-fw me-2"></i>Forcer Déconnexion
+                                                        </a>
+                                                    </li>
+                                                }
+                                                <li><hr class="dropdown-divider my-1"></li>
+                                                <li><h6 class="dropdown-header fs-xs text-uppercase">Historiques & Logs</h6></li>
+                                                <li>
+                                                    <a class="dropdown-item" href="javascript:void(0)" onclick="viewUserLoginHistory(@user.Id, '@Html.Encode(user.FullName)')">
+                                                        <i class="fas fa-history fa-fw me-2"></i>Historique Connexions
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-5">
+                                    <div class="text-muted">
+                                        <i class="fas fa-users-slash fa-3x mb-3"></i>
+                                        <h5>Aucun utilisateur trouvé</h5>
+                                        <p>Modifiez vos filtres ou <a asp-action="Index">réinitialisez la recherche</a>.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @if (Model.Pagination.TotalPages > 1)
+        {
+            <div class="card-footer bg-transparent d-flex justify-content-between align-items-center py-2">
+                <small class="text-muted">
+                    Affichage @((Model.Pagination.CurrentPage - 1) * Model.Pagination.PageSize + 1)-@Math.Min(Model.Pagination.CurrentPage * Model.Pagination.PageSize, Model.Pagination.TotalCount) sur @Model.Pagination.TotalCount
+                </small>
+                <nav aria-label="User list pagination">
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(!Model.Pagination.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link" asp-all-route-data="GetRouteDataForPagination(Model.Filters, Model.Pagination.PreviousPage)" aria-label="Précédent">
+                                <span aria-hidden="true">«</span>
+                            </a>
+                        </li>
+                        @for (int i = 1; i <= Model.Pagination.TotalPages; i++)
+                        {
+                            bool showPage = (i == Model.Pagination.CurrentPage) ||
+                            (i <= 2) || (i >= Model.Pagination.TotalPages - 1) ||
+                            (i >= Model.Pagination.CurrentPage - 1 && i <= Model.Pagination.CurrentPage + 1);
+                            bool showEllipsisBefore = (i == Model.Pagination.CurrentPage - 2 && i > 2);
+                            bool showEllipsisAfter = (i == Model.Pagination.CurrentPage + 2 && i < Model.Pagination.TotalPages - 1);
+
+                            if (showEllipsisBefore || showEllipsisAfter)
+                            {
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            }
+                            if (showPage)
+                            {
+                                <li class="page-item @(i == Model.Pagination.CurrentPage ? "active" : "")">
+                                    <a class="page-link" asp-all-route-data="GetRouteDataForPagination(Model.Filters, i)">@i</a>
+                                </li>
+                            }
+                        }
+                        <li class="page-item @(!Model.Pagination.HasNextPage ? "disabled" : "")">
+                            <a class="page-link" asp-all-route-data="GetRouteDataForPagination(Model.Filters, Model.Pagination.NextPage)" aria-label="Suivant">
+                                <span aria-hidden="true">»</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal: Réinitialisation Mot de Passe -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fs-sm" id="resetPasswordModalLabel"><i class="fas fa-key me-2"></i>Réinitialiser Mot de Passe</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body small">
+                <p>Réinitialiser le mot de passe pour <strong id="resetPasswordUserNameModal"></strong> ?</p>
+                <p class="text-warning-emphasis small"><i class="fas fa-exclamation-triangle me-1"></i>Un nouveau mot de passe temporaire sera généré. L'utilisateur devra le changer à sa prochaine connexion.</p>
+                <div id="temporaryPasswordResultDisplay" class="alert alert-success-soft p-2 d-none">
+                    <strong class="d-block mb-1">Mot de passe temporaire :</strong>
+                    <div class="input-group input-group-sm">
+                        <input type="text" id="temporaryPasswordValueInput" class="form-control form-control-sm font-monospace" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyPasswordToClipboard('temporaryPasswordValueInput')" title="Copier">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-sm btn-warning" id="confirmResetPasswordBtn"><i class="fas fa-check me-1"></i>Oui, Réinitialiser</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Confirmation Changement Statut Utilisateur -->
+<div class="modal fade" id="toggleUserStatusModal" tabindex="-1" aria-labelledby="toggleUserStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fs-sm" id="toggleUserStatusModalLabel">Modifier Statut</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body small" id="toggleUserStatusModalBody">
+                Message de confirmation...
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-sm" id="confirmToggleUserStatusBtn">Confirmer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Historique des Connexions -->
+<div class="modal fade" id="userLoginHistoryModal" tabindex="-1" aria-labelledby="userLoginHistoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fs-sm" id="userLoginHistoryModalLabel"><i class="fas fa-history me-2"></i>Historique des Connexions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="userLoginHistoryModalBody">
+                <div class="text-center p-3"><div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Chargement...</span></div></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Sessions Actives Utilisateur -->
+<div class="modal fade" id="userActiveSessionsModal" tabindex="-1" aria-labelledby="userActiveSessionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fs-sm" id="userActiveSessionsModalLabel"><i class="fas fa-network-wired me-2"></i>Sessions Actives</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="userActiveSessionsModalBody">
+                <div class="text-center p-3"><div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Chargement...</span></div></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-danger" id="forceLogoutAllSessionsBtn" style="display:none;"><i class="fas fa-sign-out-alt me-1"></i>Forcer Déconnexion (Toutes)</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Tous les Assignements -->
+<div class="modal fade" id="allAssignmentsModal" tabindex="-1" aria-labelledby="allAssignmentsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fs-sm" id="allAssignmentsModalLabel"><i class="fas fa-briefcase me-2"></i>Tous les Assignements</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="allAssignmentsModalBody">
+                <!-- Le contenu sera chargé ici -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .breadcrumb-custom {
+            background-color: transparent;
+            padding: 0.25rem 0;
+            font-size: 0.8rem;
+            margin-bottom: 0;
+        }
+
+            .breadcrumb-custom .breadcrumb-item a {
+                color: #4e73df;
+                text-decoration: none;
+            }
+
+                .breadcrumb-custom .breadcrumb-item a:hover {
+                    text-decoration: underline;
+                }
+
+            .breadcrumb-custom .breadcrumb-item.active {
+                color: #858796;
+            }
+
+        .card-kpi .card-body {
+            padding: 1rem;
+        }
+
+        .card-kpi i.fa-2x {
+            opacity: 0.3;
+        }
+
+        .text-primary-soft i {
+            color: #4e73df;
+        }
+
+        .text-success-soft i {
+            color: #1cc88a;
+        }
+
+        .text-info-soft i {
+            color: #36b9cc;
+        }
+
+        .text-warning-soft i {
+            color: #f6c23e;
+        }
+
+        .text-danger-soft i {
+            color: #e74a3b;
+        }
+
+        .form-label-sm {
+            font-size: 0.75rem;
+            margin-bottom: 0.2rem;
+            font-weight: 500;
+        }
+
+        .table-light-custom th {
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #6e707e;
+            background-color: #f8f9fc !important;
+            letter-spacing: 0.5px;
+        }
+
+        .table-nowrap th, .table-nowrap td {
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .btn-xs {
+            padding: 0.2rem 0.45rem;
+            font-size: 0.75rem;
+            border-radius: 0.2rem;
+        }
+
+        .fs-xs {
+            font-size: .7rem !important;
+        }
+
+        .fs-sm {
+            font-size: .8rem !important;
+        }
+
+        .badge.bg-success-soft {
+            color: #17a673;
+            background-color: rgba(28,200,138,0.1);
+            border: 1px solid rgba(28,200,138,0.2);
+        }
+
+        .badge.bg-primary-soft {
+            color: #4e73df;
+            background-color: rgba(78,115,223,0.1);
+            border: 1px solid rgba(78,115,223,0.2);
+        }
+
+        .badge.bg-secondary-soft {
+            color: #757783;
+            background-color: rgba(133,135,150,0.1);
+            border: 1px solid rgba(133,135,150,0.2);
+        }
+
+        .badge.bg-info-soft {
+            color: #2c9faf;
+            background-color: rgba(54,185,204,0.1);
+            border: 1px solid rgba(54,185,204,0.2);
+        }
+
+        .badge.bg-pink-soft {
+            color: #e83e8c;
+            background-color: rgba(232,62,140,0.1);
+            border: 1px solid rgba(232,62,140,0.2);
+        }
+
+        .badge.bg-danger-soft {
+            color: #cc3c2c;
+            background-color: rgba(231,74,59,0.1);
+            border: 1px solid rgba(231,74,59,0.2);
+        }
+
+        .badge.bg-warning-soft {
+            color: #dda20a;
+            background-color: rgba(246,194,62,0.1);
+            border: 1px solid rgba(246,194,62,0.2);
+        }
+
+        .badge.bg-purple-soft {
+            color: #6f42c1;
+            background-color: rgba(111,66,193,0.1);
+            border: 1px solid rgba(111,66,193,0.2);
+        }
+        /* Nouvelle couleur pour pharmacien */
+        .opacity-75 {
+            opacity: .75 !important;
+        }
+
+        .text-dark-emphasis {
+            color: #343a40 !important;
+        }
+
+        .text-warning-emphasis {
+            color: #b98100 !important;
+        }
+
+        .text-muted-light {
+            color: #a5a5c1 !important;
+        }
+
+        .alert-danger-soft {
+            color: #e74a3b;
+            background-color: rgba(231,74,59,0.07);
+            border: 1px solid rgba(231,74,59,0.2);
+        }
+
+        .alert-success-soft {
+            color: #17a673;
+            background-color: rgba(28,200,138,0.07);
+            border: 1px solid rgba(28,200,138,0.2);
+        }
+
+        .avatar-placeholder-sm {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: currentColor;
+        }
+
+        .bg-primary-soft {
+            color: #4e73df;
+            background-color: rgba(78,115,223,0.1);
+        }
+
+        .bg-secondary-soft {
+            color: #757783;
+            background-color: rgba(133,135,150,0.1);
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 1.25rem;
+            right: 1.25rem;
+            z-index: 1090;
+        }
+
+        .dropdown-menu.fs-sm .dropdown-item {
+            font-size: 0.8rem;
+            padding: 0.35rem 1rem;
+        }
+
+        .dropdown-menu.fs-sm .dropdown-header {
+            font-size: 0.7rem;
+            padding: 0.35rem 1rem 0.1rem;
+            text-transform: uppercase;
+            color: #858796;
+        }
+
+        .dropdown-menu.fs-sm .dropdown-divider {
+            margin: 0.3rem 0;
+        }
+
+        #allAssignmentsModalBody .list-group-item {
+            font-size: 0.85rem;
+        }
+
+        #allAssignmentsModalBody .badge {
+            font-size: 0.75rem;
+        }
+    </style>
+    <div class="toast-container"></div>
+}
+
+@section Scripts {
+    <script>
+        let resetPasswordModalInstance, toggleUserStatusModalInstance, userLoginHistoryModalInstance, userActiveSessionsModalInstance, allAssignmentsModalInstance;
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
+            dropdownElementList.map(function (dropdownToggleEl) { return new bootstrap.Dropdown(dropdownToggleEl); });
+
+            resetPasswordModalInstance = document.getElementById('resetPasswordModal') ? new bootstrap.Modal(document.getElementById('resetPasswordModal')) : null;
+            toggleUserStatusModalInstance = document.getElementById('toggleUserStatusModal') ? new bootstrap.Modal(document.getElementById('toggleUserStatusModal')) : null;
+            userLoginHistoryModalInstance = document.getElementById('userLoginHistoryModal') ? new bootstrap.Modal(document.getElementById('userLoginHistoryModal')) : null;
+            userActiveSessionsModalInstance = document.getElementById('userActiveSessionsModal') ? new bootstrap.Modal(document.getElementById('userActiveSessionsModal')) : null;
+            allAssignmentsModalInstance = document.getElementById('allAssignmentsModal') ? new bootstrap.Modal(document.getElementById('allAssignmentsModal')) : null;
+
+            const filtersCollapseElement = document.getElementById('userFiltersCollapse');
+            if (filtersCollapseElement) {
+                const urlParams = new URLSearchParams(window.location.search);
+                let hasActiveFilters = false;
+                ['SearchTerm', 'IsActive', 'RoleFilter', 'HospitalCenterId', 'RequiresPasswordChange', 'HasActiveSessions'].forEach(param => {
+                    const value = urlParams.get(param);
+                    if (value && value !== '') { hasActiveFilters = true; }
+                });
+                // La classe 'show' est déjà gérée par `aria-expanded` et `Model.Filters.HasActiveFilters` dans le HTML.
+                // On pourrait forcer l'ouverture si des filtres sont présents, même si l'utilisateur l'a fermé manuellement.
+                // if (hasActiveFilters && !filtersCollapseElement.classList.contains('show')) {
+                //     new bootstrap.Collapse(filtersCollapseElement, { toggle: false }).show();
+                // }
+            }
+        });
+
+        let currentOperationUser = { id: null, name: '', isActive: null };
+
+        function getCsrfToken() { return document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''; }
+
+        async function performFetch(url, method = 'POST', body = null) {
+            const headers = { 'X-Requested-With': 'XMLHttpRequest', 'RequestVerificationToken': getCsrfToken() };
+            if (body && method.toUpperCase() !== 'GET') { headers['Content-Type'] = 'application/json'; } // Conditionner Content-Type
+            const config = { method, headers };
+            if (body && method.toUpperCase() !== 'GET') { config.body = JSON.stringify(body); }
+
+            const response = await fetch(url, config);
+            if (!response.ok) {
+                let errorText = `Erreur HTTP: ${response.status}`;
+                try { const errorData = await response.json(); errorText = errorData.message || errorData.title || errorText; } catch (e) { /* ignore */ }
+                throw new Error(errorText);
+            }
+            // Gérer le cas où la réponse est vide (ex: 204 No Content) avant de tenter .json()
+            if (response.status === 204) { return { success: true, message: "Opération réussie (pas de contenu)." }; }
+            return response.json();
+        }
+
+        function resetPassword(userId, userName) {
+            currentOperationUser = { id: userId, name: userName };
+            document.getElementById('resetPasswordUserNameModal').textContent = userName;
+            document.getElementById('temporaryPasswordResultDisplay').classList.add('d-none');
+            document.getElementById('temporaryPasswordValueInput').value = '';
+            document.getElementById('confirmResetPasswordBtn').style.display = 'inline-block';
+            if (resetPasswordModalInstance) resetPasswordModalInstance.show();
+        }
+
+        document.getElementById('confirmResetPasswordBtn')?.addEventListener('click', async function() {
+            if (!currentOperationUser.id) return;
+            const btn = this; btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Réinit...';
+            try {
+                const result = await performFetch(`@Url.Action("ResetPassword", "Admin", new { area = "Administration" })?userId=${currentOperationUser.id}`); // Assurez-vous que l'URL inclut l'area si nécessaire
+                if (result.success) {
+                    document.getElementById('temporaryPasswordValueInput').value = result.temporaryPassword;
+                    document.getElementById('temporaryPasswordResultDisplay').classList.remove('d-none');
+                    btn.style.display = 'none';
+                    showAppToast('Succès!', 'Mot de passe réinitialisé.', 'success');
+                } else { showAppToast('Erreur', result.message || 'Échec.', 'danger'); btn.style.display = 'inline-block';}
+            } catch (error) { showAppToast('Erreur Tech.', error.message, 'danger'); btn.style.display = 'inline-block'; }
+            finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check me-1"></i>Oui, Réinitialiser'; }
+        });
+
+        function copyPasswordToClipboard(inputId) {
+            const input = document.getElementById(inputId);
+            if(input) {
+                input.select(); input.setSelectionRange(0, 99999);
+                navigator.clipboard.writeText(input.value)
+                    .then(() => showAppToast('Copié!', 'Mot de passe copié.', 'info'))
+                    .catch(err => showAppToast('Erreur Copie', 'Impossible: ' + err, 'danger'));
+            }
+        }
+
+        function confirmToggleUserStatus(userId, isActive, userName) {
+            currentOperationUser = { id: userId, name: userName, isActive: isActive };
+            const actionText = isActive ? 'désactiver' : 'activer';
+            const modalTitle = document.getElementById('toggleUserStatusModalLabel');
+            const modalBody = document.getElementById('toggleUserStatusModalBody');
+            const confirmBtn = document.getElementById('confirmToggleUserStatusBtn');
+            if (modalTitle) modalTitle.textContent = `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} le Compte`;
+            if (modalBody) modalBody.innerHTML = `Sûr de vouloir <strong>${actionText}</strong> le compte de <strong>${userName}</strong> ?`;
+            if (confirmBtn) {
+                confirmBtn.className = `btn btn-sm ${isActive ? 'btn-danger' : 'btn-success'}`;
+                confirmBtn.innerHTML = `<i class="fas ${isActive ? 'fa-user-slash' : 'fa-user-check'} me-1"></i>Oui, ${actionText.charAt(0).toUpperCase() + actionText.slice(1)}`;
+            }
+            if (toggleUserStatusModalInstance) toggleUserStatusModalInstance.show();
+        }
+
+        document.getElementById('confirmToggleUserStatusBtn')?.addEventListener('click', async function() {
+            if (!currentOperationUser.id) return;
+            const btn = this; btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Modif...';
+            try {
+                const result = await performFetch(`@Url.Action("ToggleUserStatus", "Admin", new { area = "Administration" })?userId=${currentOperationUser.id}&isActive=${!currentOperationUser.isActive}`);
+                if (result.success) { showAppToast('Succès!', result.message || 'Statut mis à jour.', 'success'); setTimeout(() => location.reload(), 1200); }
+                else { showAppToast('Erreur', result.message || 'Échec.', 'danger'); }
+            } catch (error) { showAppToast('Erreur Tech.', error.message, 'danger'); }
+            finally { btn.disabled = false; if (toggleUserStatusModalInstance) toggleUserStatusModalInstance.hide(); }
+        });
+
+        function confirmForceLogout(userId, userName) {
+            currentOperationUser = { id: userId, name: userName};
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({ title: 'Forcer Déconnexion', html: `Sûr de déconnecter toutes sessions de <strong>${userName}</strong> ?`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'Oui, Déconnecter!', cancelButtonText: 'Annuler', customClass: { popup: 'fs-sm' }})
+                .then((result) => { if (result.isConfirmed) { executeForceLogout(userId); } });
+            } else { if (confirm(`Sûr de déconnecter ${userName} ?`)) { executeForceLogout(userId); } }
+        }
+        async function executeForceLogout(userId) {
+            try {
+                const result = await performFetch(`@Url.Action("ForceLogoutUser", "Admin", new { area = "Administration" })?userId=${userId}`);
+                if (result.success) { showAppToast('Succès!', result.message || 'Utilisateur déconnecté.', 'success'); setTimeout(() => location.reload(), 1200); }
+                else { showAppToast('Erreur', result.message || 'Échec.', 'danger'); }
+            } catch (error) { showAppToast('Erreur Tech.', error.message, 'danger'); }
+        }
+
+        async function viewUserLoginHistory(userId, userName) {
+            currentOperationUser = { id: userId, name: userName};
+            const modalTitle = document.getElementById('userLoginHistoryModalLabel');
+            const modalBody = document.getElementById('userLoginHistoryModalBody');
+            if (modalTitle) modalTitle.innerHTML = `<i class="fas fa-history me-2"></i>Connexions - <strong>${userName}</strong>`;
+            if (modalBody) modalBody.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+            if (userLoginHistoryModalInstance) userLoginHistoryModalInstance.show();
+            try {
+                // Utiliser votre fonction originale qui attendait du JSON
+                const result = await performFetch(`@Url.Action("UserLoginHistory", "Admin", new { area = "Administration" })?userId=${userId}`, 'GET'); // GET pour récupérer les données
+                if (result.success && Array.isArray(result.data)) {
+                    displayLoginHistory(result.data, modalBody); // Passer modalBody à la fonction d'affichage
+                } else {
+                    throw new Error(result.message || 'Aucun historique trouvé ou erreur de format.');
+                }
+            } catch (error) { if (modalBody) modalBody.innerHTML = `<div class="alert alert-danger-soft p-2 small text-center m-3">${error.message}</div>`; }
+        }
+
+        function displayLoginHistory(history, targetElement) { // Ajout de targetElement
+            if (!history || history.length === 0) {
+                targetElement.innerHTML = '<div class="alert alert-info-soft p-2 small text-center m-3">Aucun historique de connexion disponible.</div>';
+                return;
+            }
+            let html = '<div class="table-responsive"><table class="table table-sm table-striped table-hover fs-sm">';
+            html += '<thead class="table-light"><tr><th>Date/Heure</th><th>Centre</th><th>IP</th><th>Agent Utilisateur</th><th>Statut</th></tr></thead><tbody>';
+            history.forEach(item => {
+                const loginDate = new Date(item.loginTime);
+                // S'assurer que les propriétés de item correspondent à votre modèle SessionInfo
+                html += `<tr>
+                    <td>${loginDate.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                    <td>${item.currentCenterName || 'N/A'}</td>
+                    <td>${item.ipAddress || 'N/A'}</td>
+                    <td class="text-truncate" style="max-width: 200px;" title="${item.userAgent || ''}">${item.userAgent || 'N/A'}</td>
+                    <td>
+                        ${item.isCurrentSession || (item.expiresAt && new Date(item.expiresAt) > new Date()) // Simuler "current" si pas expiré
+                            ? '<span class="badge bg-success-soft">Active</span>'
+                            : '<span class="badge bg-secondary-soft">Terminée</span>'}
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table></div>';
+            targetElement.innerHTML = html;
+        }
+
+
+        async function viewUserActiveSessions(userId, userName) {
+            currentOperationUser = { id: userId, name: userName};
+            const modalTitle = document.getElementById('userActiveSessionsModalLabel');
+            const modalBody = document.getElementById('userActiveSessionsModalBody');
+            const forceLogoutBtn = document.getElementById('forceLogoutAllSessionsBtn');
+            if (modalTitle) modalTitle.innerHTML = `<i class="fas fa-network-wired me-2"></i>Sessions Actives - <strong>${userName}</strong>`;
+            if (modalBody) modalBody.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+            if (forceLogoutBtn) forceLogoutBtn.style.display = 'none';
+            if (userActiveSessionsModalInstance) userActiveSessionsModalInstance.show();
+            try {
+                // Supposons que GetUserActiveSessionsHtml retourne du HTML direct
+                const response = await fetch(`@Url.Action("GetUserActiveSessionsHtml", "AdminApi", new { area = "Administration" })?userId=${userId}`);
+                if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`);
+                const htmlContent = await response.text();
+                if (modalBody) modalBody.innerHTML = htmlContent;
+
+                // Vérifier si du contenu a été ajouté et s'il indique des sessions actives
+                // Ceci est un exemple, adaptez le sélecteur à votre HTML retourné
+                const hasSessions = modalBody.querySelector('.list-group-item'); // ou un autre sélecteur pertinent
+                if (hasSessions && forceLogoutBtn) {
+                    forceLogoutBtn.style.display = 'inline-block';
+                    forceLogoutBtn.onclick = () => {
+                        userActiveSessionsModalInstance.hide();
+                        confirmForceLogout(userId, userName);
+                    };
+                }
+            } catch (error) { if (modalBody) modalBody.innerHTML = `<div class="alert alert-danger-soft p-2 small text-center m-3">${error.message}</div>`; }
+        }
+
+        async function viewAllAssignments(userId, userName) {
+            const modalTitle = document.getElementById('allAssignmentsModalLabel');
+            const modalBody = document.getElementById('allAssignmentsModalBody');
+            if(modalTitle) modalTitle.innerHTML = `<i class="fas fa-briefcase me-2"></i>Assignements - <strong>${userName}</strong>`;
+            if(modalBody) modalBody.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+            if(allAssignmentsModalInstance) allAssignmentsModalInstance.show();
+            try {
+                // Appelle l'API qui retourne directement du HTML
+                const response = await fetch(`@Url.Action("GetUserAssignmentsHtml", "AdminApi", new { area = "Administration" })?userId=${userId}`);
+                if (!response.ok) throw new Error(`Erreur HTTP: ${response.status}`);
+                const htmlContent = await response.text();
+                if(modalBody) modalBody.innerHTML = htmlContent;
+            } catch (error) {
+                if(modalBody) modalBody.innerHTML = `<div class="alert alert-danger-soft p-2 small text-center m-3">Erreur: ${error.message}</div>`;
+            }
+        }
+
+        function exportUsers() {
+            const currentFilters = new URLSearchParams(new FormData(document.getElementById('userFiltersForm'))).toString();
+            window.location.href = `@Url.Action("ExportUsers", "Admin", new { area = "Administration" })?${currentFilters}`;
+        }
+        function clearFilters() { window.location.href = '@Url.Action("Index", "Admin", new { area = "Administration" })'; }
+
+        function showAppToast(title, message, type = 'info') {
+            const toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) return;
+            const toastId = 'appToast-' + Date.now();
+            const toastHtml = `<div class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true" id="${toastId}" data-bs-delay="5000"><div class="d-flex"><div class="toast-body"><strong>${title}:</strong> ${message}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div></div>`;
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+            toastElement.addEventListener('hidden.bs.toast', function () { this.remove(); });
+        }
+
+        document.querySelectorAll('#userFiltersForm select').forEach(selectEl => {
+            selectEl.addEventListener('change', function() { document.getElementById('userFiltersForm').submit(); });
+        });
+        document.querySelector('#userFiltersForm input[name="SearchTerm"]')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') { e.preventDefault(); document.getElementById('userFiltersForm').submit(); }
+        });
+    </script>
+}
+
+@functions {
+    public Dictionary<string, string> GetRouteDataForPagination(UserManagementFilters filters, int page)
+    {
+        var routeData = new Dictionary<string, string>();
+        routeData["pageIndex"] = page.ToString();
+        if (!string.IsNullOrWhiteSpace(filters.SearchTerm)) routeData["searchTerm"] = filters.SearchTerm;
+        if (filters.IsActive.HasValue) routeData["isActive"] = filters.IsActive.Value.ToString();
+        if (!string.IsNullOrWhiteSpace(filters.RoleFilter)) routeData["roleFilter"] = filters.RoleFilter;
+        if (filters.HospitalCenterId.HasValue) routeData["hospitalCenterId"] = filters.HospitalCenterId.Value.ToString();
+        if (filters.RequiresPasswordChange.HasValue) routeData["requiresPasswordChange"] = filters.RequiresPasswordChange.Value.ToString();
+        if (filters.HasActiveSessions.HasValue) routeData["hasActiveSessions"] = filters.HasActiveSessions.Value.ToString();
+        return routeData;
+    }
+
+    public string GetStatusBadgeClass(bool isActive)
+    {
+        return isActive ? "bg-success-soft" : "bg-secondary-soft";
+    }
+
+    public string GetRoleBadgeClass(string roleType)
+    {
+        return roleType?.ToLowerInvariant() switch
+        { // Ajout de ?. pour la robustesse
+            "superadmin" => "bg-danger-soft",
+            "admin" => "bg-warning-soft",
+            "medicalstaff" => "bg-primary-soft",
+            "receptionist" => "bg-info-soft",
+            "pharmacist" => "bg-purple-soft",
+            _ => "bg-secondary-soft"
+        };
+    }
+} *@
