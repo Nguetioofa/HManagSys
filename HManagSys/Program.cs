@@ -25,6 +25,7 @@ builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepositor
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IHospitalCenterRepository, HospitalCenterRepository>();
 builder.Services.AddScoped<IUserCenterAssignmentRepository, UserCenterAssignmentRepository>();
+builder.Services.AddScoped<IPaymentMethodRepository, PaymentMethodRepository>();
 
 
 // Configuration des services
@@ -39,6 +40,7 @@ builder.Services.AddScoped<IProductCategoryService, ProductCategoryService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ITransferService, TransferService>();
 builder.Services.AddScoped<IStockService, StockService>();
+builder.Services.AddScoped<ISaleService, SaleService>();
 
 //
 builder.Services.AddScoped<IPatientService, PatientService>();

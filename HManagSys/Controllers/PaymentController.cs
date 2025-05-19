@@ -22,6 +22,8 @@ public class PaymentController : BaseController
     private readonly IUserRepository _userRepository;
     private readonly IDocumentGenerationService _documentGenerationService;
     private readonly IWorkflowService _workflowService;
+    private readonly IPaymentMethodRepository _paymentMethodRepository;
+
 
     public PaymentController(
         IPaymentService paymentService,
@@ -30,6 +32,7 @@ public class PaymentController : BaseController
         IExaminationService examinationService,
         IApplicationLogger logger,
         IDocumentGenerationService documentGenerationService,
+        IPaymentMethodRepository paymentMethodRepository,
         IWorkflowService workflowService,
         IUserRepository userRepository)
     {
@@ -39,6 +42,7 @@ public class PaymentController : BaseController
         _examinationService = examinationService;
         _logger = logger;
         _documentGenerationService = documentGenerationService;
+        _paymentMethodRepository = paymentMethodRepository;
         _userRepository = userRepository;
         _workflowService = workflowService;
     }
@@ -107,6 +111,33 @@ public class PaymentController : BaseController
             return Json(new { success = false, message = "Une erreur est survenue lors de la récupération des références" });
         }
     }
+
+
+
+    [HttpGet]
+    [MedicalStaff]
+    public async Task<IActionResult> GetPaymentMethods()
+    {
+        try
+        {
+            var methods = await _paymentMethodRepository.QueryListAsync(x=>x.Where(x=>x.IsActive == true));
+
+            var result = methods.Select(m => new
+            {
+                id = m.Id,
+                name = m.Name
+            }).ToList();
+
+            return Json(result);
+
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = "Une erreur est survenue" });
+        }
+    }
+
+
 
     [MedicalStaff]
     public async Task<IActionResult> DownloadReceipt(int id)

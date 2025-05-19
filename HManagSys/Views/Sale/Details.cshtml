@@ -1,0 +1,575 @@
+﻿@using HManagSys.Models.ViewModels.Sales
+@model SaleViewModel
+
+@{
+    ViewData["Title"] = $"Détails vente {Model.SaleNumber}";
+}
+
+<div class="container-fluid">
+    <!-- En-tête avec titre et boutons d'action -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-receipt"></i> Détails vente @Model.SaleNumber
+        </h1>
+        <div>
+            <a asp-action="Receipt" asp-route-id="@Model.Id" class="btn btn-outline-info me-2">
+                <i class="fas fa-print"></i> Reçu
+            </a>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour à la liste
+            </a>
+        </div>
+    </div>
+
+    <!-- Informations sur la vente -->
+    <div class="row">
+        <!-- Colonne gauche: Infos générales -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-info-circle"></i> Informations générales
+                    </h6>
+                    <span class="badge @Model.StatusBadgeClass">@Model.StatusText</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">N° vente</label>
+                        <div class="col-sm-8">
+                            <p class="form-control-plaintext font-weight-bold">@Model.SaleNumber</p>
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">Date</label>
+                        <div class="col-sm-8">
+                            <p class="form-control-plaintext">@Model.SaleDate.ToString("dd/MM/yyyy HH:mm")</p>
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">Client</label>
+                        <div class="col-sm-8">
+                            @if (Model.PatientId.HasValue)
+                            {
+                                <p class="form-control-plaintext">
+                                    <a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.PatientId">
+                                        @Model.PatientName
+                                    </a>
+                                </p>
+                            }
+                            else
+                            {
+                                <p class="form-control-plaintext text-muted">Client occasionnel</p>
+                            }
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">Centre</label>
+                        <div class="col-sm-8">
+                            <p class="form-control-plaintext">@Model.HospitalCenterName</p>
+                        </div>
+                    </div>
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">Vendeur</label>
+                        <div class="col-sm-8">
+                            <p class="form-control-plaintext">@Model.SoldByName</p>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.Notes))
+                    {
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label">Notes</label>
+                            <div class="col-sm-8">
+                                <p class="form-control-plaintext">@Model.Notes</p>
+                            </div>
+                        </div>
+                    }
+                    @if (Model.IsCancelled && !string.IsNullOrEmpty(Model.CancellationReason))
+                    {
+                        <div class="mb-3 border-top pt-3">
+                            <label class="form-label text-danger">Raison d'annulation</label>
+                            <div class="alert alert-danger">
+                                @Model.CancellationReason
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne centrale: Articles -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-shopping-cart"></i> Articles (@Model.Items.Count)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Produit</th>
+                                    <th>Qté</th>
+                                    <th class="text-end">P.U.</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Items)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div>@item.ProductName</div>
+                                            <small class="text-muted">@item.CategoryName</small>
+                                        </td>
+                                        <td>@item.FormattedQuantity</td>
+                                        <td class="text-end">@item.FormattedUnitPrice</td>
+                                        <td class="text-end">@item.FormattedTotalPrice</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="3" class="text-end">Sous-total</th>
+                                    <th class="text-end">@Model.TotalAmount.ToString("N0") FCFA</th>
+                                </tr>
+                                <tr>
+                                    <th colspan="3" class="text-end">Remise</th>
+                                    <th class="text-end text-danger">-@Model.DiscountAmount.ToString("N0") FCFA</th>
+                                </tr>
+                                <tr>
+                                    <th colspan="3" class="text-end">Total</th>
+                                    <th class="text-end">@Model.FinalAmount.ToString("N0") FCFA</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne droite: Paiements -->
+        <div class="col-md-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-money-bill"></i> Paiements (@Model.Payments.Count(p => !p.IsCancelled))
+                    </h6>
+
+                    @if (Model.PaymentStatus != "Paid" && Model.PaymentStatus != "Cancelled")
+                    {
+                        <button type="button" class="btn btn-sm btn-success add-payment-btn"
+                                data-sale-id="@Model.Id"
+                                data-remaining="@Model.RemainingAmount"
+                                data-patient="@Model.PatientName"
+                                data-sale-number="@Model.SaleNumber">
+                            <i class="fas fa-plus"></i> Paiement
+                        </button>
+                    }
+                </div>
+                <div class="card-body">
+                    @if (!Model.Payments.Any(p => !p.IsCancelled))
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> Aucun paiement enregistré
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Méthode</th>
+                                        <th class="text-end">Montant</th>
+                                        <th class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var payment in Model.Payments.Where(p => !p.IsCancelled).OrderByDescending(p => p.PaymentDate))
+                                    {
+                                        <tr>
+                                            <td>@payment.PaymentDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>
+                                                @payment.PaymentMethodName
+                                                @if (!string.IsNullOrEmpty(payment.TransactionReference))
+                                                {
+                                                    <small class="d-block text-muted">Réf: @payment.TransactionReference</small>
+                                                }
+                                            </td>
+                                            <td class="text-end font-weight-bold">@payment.Amount.ToString("N0") FCFA</td>
+                                            <td class="text-center">
+                                                <a asp-controller="Payment" asp-action="Details" asp-route-id="@payment.Id" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="2" class="text-end">Total payé</th>
+                                        <th class="text-end">@Model.PaidAmount.ToString("N0") FCFA</th>
+                                        <th></th>
+                                    </tr>
+                                    @if (Model.RemainingAmount > 0)
+                                    {
+                                        <tr>
+                                            <th colspan="2" class="text-end">Reste à payer</th>
+                                            <th class="text-end text-danger">@Model.RemainingAmount.ToString("N0") FCFA</th>
+                                            <th></th>
+                                        </tr>
+                                    }
+                                </tfoot>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions disponibles -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-cogs"></i> Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="btn-group">
+                        <a asp-action="Receipt" asp-route-id="@Model.Id" class="btn btn-info me-2">
+                            <i class="fas fa-print"></i> Afficher reçu
+                        </a>
+                        <a asp-action="DownloadReceipt" asp-route-id="@Model.Id" class="btn btn-primary me-2">
+                            <i class="fas fa-download"></i> Télécharger PDF
+                        </a>
+
+                        @if (Model.PatientId.HasValue)
+                        {
+                            <a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.PatientId" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-user-injured"></i> Fiche patient
+                            </a>
+                        }
+
+                        @if (User.IsInRole("SuperAdmin") && Model.PaymentStatus != "Cancelled")
+                        {
+                            <button type="button" class="btn btn-danger cancel-sale-btn"
+                                    data-sale-id="@Model.Id"
+                                    data-sale-number="@Model.SaleNumber">
+                                <i class="fas fa-ban"></i> Annuler la vente
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour ajouter un paiement -->
+<div class="modal fade" id="addPaymentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajouter un paiement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addPaymentForm">
+                    <input type="hidden" id="paymentSaleId" name="saleId">
+                    <input type="hidden" id="paymentPatientId" name="patientId" value="@Model.PatientId">
+
+                    <div class="mb-3">
+                        <label class="form-label">Vente</label>
+                        <input type="text" class="form-control" id="paymentSaleNumber" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Client</label>
+                        <input type="text" class="form-control" id="paymentPatientName" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Montant restant dû</label>
+                        <input type="text" class="form-control" id="paymentRemainingAmount" readonly>
+                    </div>
+
+@*                     <div class="mb-3">
+                        <label class="form-label">Montant du paiement <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="paymentAmount" name="amount" required min="1">
+                            <div class="input-group-append">
+                                <span class="input-group-text">FCFA</span>
+                            </div>
+                        </div>
+                    </div> *@
+
+                    <div class="mb-3">
+                        <label class="form-label">Méthode de paiement <span class="text-danger">*</span></label>
+                        <select class="form-control" id="paymentMethodId" name="paymentMethodId" required>
+                            <!-- Options chargées dynamiquement -->
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="transactionReferenceGroup" style="display: none;">
+                        <label class="form-label">Référence de transaction</label>
+                        <input type="text" class="form-control" id="transactionReference" name="transactionReference"
+                               placeholder="Référence Mobile Money...">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes (optionnel)</label>
+                        <textarea class="form-control" id="paymentNotes" name="notes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="submitPaymentBtn">Enregistrer le paiement</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pour annuler une vente -->
+<div class="modal fade" id="cancelSaleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Annuler la vente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="cancelSaleForm" asp-action="Cancel" method="post">
+                    <input type="hidden" id="cancelSaleId" name="id" value="@Model.Id">
+
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Attention : Cette action est irréversible et va restaurer le stock. Les paiements associés ne seront pas annulés automatiquement.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Vente à annuler</label>
+                        <input type="text" class="form-control" id="cancelSaleNumber" value="@Model.SaleNumber" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Raison de l'annulation <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="cancelReason" name="reason" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-danger" id="confirmCancelSaleBtn">Confirmer l'annulation</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Variables globales
+        let paymentMethods = [];
+        let currentSaleId = @Model.Id;
+        let maxPaymentAmount = @Model.RemainingAmount;
+
+        $(document).ready(function() {
+            // Charger les méthodes de paiement au chargement de la page
+            loadPaymentMethods();
+
+            // Ouvrir le modal pour ajouter un paiement
+            $('.add-payment-btn').on('click', function() {
+                const saleId = $(this).data('sale-id');
+                const remaining = parseFloat($(this).data('remaining'));
+                const patient = $(this).data('patient') || 'Client occasionnel';
+                const saleNumber = $(this).data('sale-number');
+
+                $('#paymentSaleId').val(saleId);
+                $('#paymentSaleNumber').val(saleNumber);
+                $('#paymentPatientName').val(patient);
+                $('#paymentRemainingAmount').val(remaining/*.toLocaleString('fr-FR') + ' FCFA'*/);
+                $('#paymentAmount').val(remaining);
+                $('#paymentAmount').attr('max', remaining);
+
+                maxPaymentAmount = remaining;
+
+                $('#addPaymentModal').modal('show');
+            });
+
+            // Gestion de la référence de transaction selon la méthode de paiement
+            $('#paymentMethodId').on('change', function() {
+                const methodName = $(this).find('option:selected').text().toLowerCase();
+
+                if (methodName.includes('mobile') || methodName.includes('orange') || methodName.includes('mtn')) {
+                    $('#transactionReferenceGroup').show();
+                    $('#transactionReference').attr('required', true);
+                } else {
+                    $('#transactionReferenceGroup').hide();
+                    $('#transactionReference').attr('required', false);
+                }
+            });
+
+            // Validation du montant de paiement
+            // $('#paymentAmount').on('input', function() {
+            //     const amount = parseFloat($(this).val());
+
+            //     if (amount > maxPaymentAmount) {
+            //         $(this).val(maxPaymentAmount);
+            //         showToast('Attention', 'Le montant ne peut pas dépasser le solde restant', 'warning');
+            //     }
+            // });
+
+            // Soumission du formulaire de paiement
+            $('#submitPaymentBtn').on('click', function() {
+                if (!validatePaymentForm()) return;
+
+                const formData = {
+                    referenceType: 'Sale',
+                    referenceId: parseInt($('#paymentSaleId').val()),
+                    patientId: $('#paymentPatientId').val() ? parseInt($('#paymentPatientId').val()) : null,
+                    amount: parseFloat($('#paymentRemainingAmount').val()),
+                    paymentMethodId: parseInt($('#paymentMethodId').val()),
+                    transactionReference: $('#transactionReference').val(),
+                    notes: $('#paymentNotes').val()
+                };
+
+                // Envoyer la requête
+                $.ajax({
+                    url: '@Url.Action("CreateModal", "Payment")',
+                    type: 'POST',
+                    data: formData,
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showToast('Succès', 'Paiement enregistré avec succès', 'success');
+                            $('#addPaymentModal').modal('hide');
+
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            showToast('Erreur', response.message || 'Erreur lors de l\'enregistrement du paiement', 'error');
+                        }
+                    },
+                    error: function() {
+                        showToast('Erreur', 'Une erreur est survenue lors de la communication avec le serveur', 'error');
+                    }
+                });
+            });
+
+            // Ouvrir le modal pour annuler une vente
+            $('.cancel-sale-btn').on('click', function() {
+                $('#cancelSaleModal').modal('show');
+            });
+
+            // Soumission du formulaire d'annulation
+            $('#confirmCancelSaleBtn').on('click', function() {
+                if (!$('#cancelReason').val().trim()) {
+                    showToast('Erreur', 'La raison de l\'annulation est requise', 'error');
+                    return;
+                }
+
+                $('#cancelSaleForm').submit();
+            });
+        });
+
+        // Fonction pour charger les méthodes de paiement
+        function loadPaymentMethods() {
+            $.ajax({
+                url: '@Url.Action("GetPaymentMethods", "Payment")',
+                type: 'GET',
+                success: function(methods) {
+                    paymentMethods = methods;
+
+                    let html = '';
+                    methods.forEach(function(method) {
+                        html += `<option value="${method.id}">${method.name}</option>`;
+                    });
+
+                    $('#paymentMethodId').html(html);
+
+                    // Trigger le changement pour gérer l'affichage de la référence
+                    $('#paymentMethodId').trigger('change');
+                },
+                error: function() {
+                    showToast('Erreur', 'Impossible de charger les méthodes de paiement', 'error');
+                }
+            });
+        }
+
+        // Validation du formulaire de paiement
+        function validatePaymentForm() {
+            // Récupérer les valeurs
+            const amount = parseFloat($('#paymentRemainingAmount').val());
+            const paymentMethodId = parseInt($('#paymentMethodId').val());
+            const transactionReference = $('#transactionReference').val();
+
+            // Validation du montant
+            if (isNaN(amount) || amount <= 0) {
+                showToast('Erreur', 'Le montant doit être supérieur à 0', 'error');
+                return false;
+            }
+
+            // Validation de la méthode de paiement
+            if (isNaN(paymentMethodId)) {
+                showToast('Erreur', 'Veuillez sélectionner une méthode de paiement', 'error');
+                return false;
+            }
+
+            // Validation de la référence pour Mobile Money
+            const methodName = $('#paymentMethodId option:selected').text().toLowerCase();
+            if ((methodName.includes('mobile') || methodName.includes('orange') || methodName.includes('mtn')) &&
+                !transactionReference.trim()) {
+                showToast('Erreur', 'La référence de transaction est requise pour ce mode de paiement', 'error');
+                return false;
+            }
+
+            return true;
+        }
+
+        // Fonction pour afficher des notifications toast
+        function showToast(title, message, type) {
+            const toast = $(`
+                <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
+                    <div class="toast-header bg-${type === 'success' ? 'success' : (type === 'warning' ? 'warning' : 'danger')} text-white">
+                        <strong class="me-auto">${title}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `);
+
+            $('.toast-container').append(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+
+            toast.on('hidden.bs.toast', function() {
+                $(this).remove();
+            });
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        /* Toast container */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+    </style>
+
+    <div class="toast-container"></div>
+}

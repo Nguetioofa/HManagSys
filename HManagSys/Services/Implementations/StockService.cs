@@ -52,6 +52,11 @@ namespace HManagSys.Services.Implementations
             _auditService = auditService;
         }
 
+
+
+
+
+
         /// <summary>
         /// Enregistre une dispensation de prescription avec décrément de stock
         /// </summary>
@@ -634,6 +639,16 @@ namespace HManagSys.Services.Implementations
         public Task<OperationResult<StockSyncReport>> SynchronizeStockDataAsync(List<int> centerIds, int requestedBy)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<StockInventory?> QuerySingleAsync(Func<IQueryable<StockInventory>, IQueryable<StockInventory>> queryBuilder)
+        {
+            return await _stockInventoryRepository.QuerySingleAsync(queryBuilder);
+        }
+
+        public async Task<List<StockInventory>> QueryListAsync(Func<IQueryable<StockInventory>, IQueryable<StockInventory>> queryBuilder)
+        {
+            return await _stockInventoryRepository.QueryListAsync(queryBuilder);
         }
     }
 }

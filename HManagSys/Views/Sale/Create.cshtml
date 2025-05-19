@@ -1,0 +1,937 @@
+﻿@using HManagSys.Models.ViewModels.Payments
+@using HManagSys.Models.ViewModels.Sales
+@model CreateSaleViewModel
+
+@{
+    ViewData["Title"] = "Nouvelle Vente";
+}
+
+<div class="container-fluid">
+    <!-- En-tête avec titre et boutons d'action -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-cash-register"></i> Nouvelle Vente
+        </h1>
+        <div>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour à la liste
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Colonne gauche: Sélection de produits -->
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Sélection des produits</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <div class="input-group">
+                                <input type="text" id="productSearch" class="form-control" placeholder="Rechercher un produit...">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="button" id="searchProductBtn">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <select id="categoryFilter" class="form-control">
+                                <option value="">Toutes les catégories</option>
+                                <!-- Options chargées dynamiquement -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="productResults" class="mb-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Recherchez un produit pour commencer
+                        </div>
+                    </div>
+
+                    <div id="cartItems">
+                        <div class="alert alert-secondary">
+                            <i class="fas fa-shopping-cart"></i> Votre panier est vide
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Colonne droite: Résumé et informations -->
+        <div class="col-md-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Résumé de la vente</h6>
+                </div>
+                <div class="card-body">
+                    <!-- Sélection de patient (optionnel) -->
+                    <div class="mb-3">
+                        <label class="form-label">Patient (optionnel)</label>
+                        <div class="input-group">
+                            <input type="hidden" id="patientId" name="PatientId" value="@Model.PatientId">
+                            <input type="text" id="patientSearch" class="form-control" placeholder="Rechercher un patient..." value="@Model.PatientName">
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button" id="clearPatientBtn">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="patientResults" class="d-none">
+                            <!-- Résultats de recherche patient -->
+                        </div>
+                    </div>
+
+                    <!-- Résumé du panier -->
+                    <div id="cartSummary">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Aucun article sélectionné
+                        </div>
+                    </div>
+
+                    <!-- Remise -->
+                    <div class="mb-3">
+                        <label class="form-label">Remise</label>
+                        <div class="input-group">
+                            <input type="number" id="discountAmount" class="form-control" value="0" min="0">
+                            <div class="input-group-append">
+                                <span class="input-group-text">FCFA</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Raison (optionnel)</label>
+                        <input type="text" id="discountReason" class="form-control" placeholder="Raison de la remise...">
+                    </div>
+                    <button id="applyDiscountBtn" class="btn btn-outline-primary btn-sm mb-3">
+                        <i class="fas fa-tag"></i> Appliquer la remise
+                    </button>
+
+                    <!-- Notes -->
+                    <div class="mb-3">
+                        <label class="form-label">Notes (optionnel)</label>
+                        <textarea id="saleNotes" class="form-control" rows="2" placeholder="Notes sur la vente..."></textarea>
+                    </div>
+
+                    <!-- Paiement immédiat -->
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="immediatePayment" checked>
+                        <label class="form-check-label" for="immediatePayment">
+                            Paiement immédiat
+                        </label>
+                    </div>
+
+                    <!-- Méthodes de paiement (affichées si paiement immédiat) -->
+                    <div id="paymentMethodsContainer" class="mb-3">
+                        <label class="form-label">Méthode de paiement</label>
+                        <select id="paymentMethod" class="form-control">
+                            @if (Model.PaymentMethods != null)
+                            {
+                                @foreach (var method in Model.PaymentMethods)
+                                {
+                                    <option value="@method.Value">@method.Text</option>
+                                }
+                            }
+                        </select>
+
+                        <div id="transactionReferenceContainer" class="mt-2 d-none">
+                            <label class="form-label">Référence de transaction</label>
+                            <input type="text" id="transactionReference" class="form-control" placeholder="Référence Mobile Money...">
+                        </div>
+                    </div>
+
+                    <!-- Boutons d'action -->
+                    <div class="d-grid gap-2">
+                        <button id="validateSaleBtn" class="btn btn-success btn-lg">
+                            <i class="fas fa-check-circle"></i> Valider la vente
+                        </button>
+                        <button id="resetCartBtn" class="btn btn-outline-danger">
+                            <i class="fas fa-trash"></i> Réinitialiser
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Variables globales
+        let cart = {
+            items: [],
+            patientId: @Html.Raw(Model.PatientId.HasValue ? Model.PatientId.Value.ToString() : "null"),
+            patientName: @Html.Raw(Json.Serialize(Model.PatientName)),
+            discountAmount: @(Model.DiscountAmount),
+            discountReason: @Html.Raw(Json.Serialize(Model.DiscountReason)),
+            notes: @Html.Raw(Json.Serialize(Model.Notes))
+        };
+
+        $(document).ready(function() {
+            // Initialisation
+            loadCategories();
+            initializeCart();
+            updateCartDisplay();
+
+            // Gestion de la référence de transaction pour mobile money
+            $('#paymentMethod').on('change', function() {
+                const methodName = $(this).find('option:selected').text().toLowerCase();
+
+                if (methodName.includes('mobile') || methodName.includes('orange') || methodName.includes('mtn')) {
+                    $('#transactionReferenceContainer').removeClass('d-none');
+                } else {
+                    $('#transactionReferenceContainer').addClass('d-none');
+                }
+            });
+
+            // Déclencher le changement pour initialiser l'affichage de la référence
+            $('#paymentMethod').trigger('change');
+
+            // Affichage/masquage des méthodes de paiement selon checkbox
+            $('#immediatePayment').on('change', function() {
+                if ($(this).prop('checked')) {
+                    $('#paymentMethodsContainer').show();
+                } else {
+                    $('#paymentMethodsContainer').hide();
+                }
+            });
+
+            // Recherche de produit
+            $('#searchProductBtn').on('click', searchProducts);
+            $('#productSearch').on('keypress', function(e) {
+                if (e.which === 13) {
+                    searchProducts();
+                    e.preventDefault();
+                }
+            });
+
+            // Filtrage par catégorie
+            $('#categoryFilter').on('change', searchProducts);
+
+            // Recherche de patient
+            $('#patientSearch').on('input', function() {
+                const searchTerm = $(this).val();
+                if (searchTerm.length >= 3) {
+                    searchPatients(searchTerm);
+                } else {
+                    $('#patientResults').addClass('d-none');
+                }
+            });
+
+            // Effacement du patient
+            $('#clearPatientBtn').on('click', function() {
+                $('#patientId').val('');
+                $('#patientSearch').val('');
+                cart.patientId = null;
+                cart.patientName = null;
+
+                updatePatientInfo();
+            });
+
+            // Application de remise
+            $('#applyDiscountBtn').on('click', function() {
+                const discountAmount = parseFloat($('#discountAmount').val()) || 0;
+                const discountReason = $('#discountReason').val() || '';
+
+                applyDiscount(discountAmount, discountReason);
+            });
+
+            // Sauvegarde des notes
+            $('#saleNotes').on('input', function() {
+                cart.notes = $(this).val();
+                updateCart();
+            });
+
+            // Validation de la vente
+            $('#validateSaleBtn').on('click', function() {
+                validateSale();
+            });
+
+            // Réinitialisation du panier
+            $('#resetCartBtn').on('click', function() {
+                if (confirm('Êtes-vous sûr de vouloir vider le panier ?')) {
+                    resetCart();
+                }
+            });
+
+            // Événements délégués
+            $(document).on('click', '.add-to-cart-btn', function() {
+                const productId = $(this).data('product-id');
+                const productName = $(this).data('product-name');
+                const categoryName = $(this).data('category');
+                const unitOfMeasure = $(this).data('unit');
+                const unitPrice = $(this).data('price');
+                const availableStock = $(this).data('stock');
+
+                addToCart(productId, productName, categoryName, unitOfMeasure, unitPrice, availableStock);
+            });
+
+            $(document).on('click', '.remove-item-btn', function() {
+                const productId = $(this).closest('.cart-item').data('product-id');
+                removeFromCart(productId);
+            });
+
+            $(document).on('click', '.increase-qty-btn', function() {
+                const productId = $(this).closest('.cart-item').data('product-id');
+                increaseQuantity(productId);
+            });
+
+            $(document).on('click', '.decrease-qty-btn', function() {
+                const productId = $(this).closest('.cart-item').data('product-id');
+                decreaseQuantity(productId);
+            });
+
+            $(document).on('change', '.item-qty', function() {
+                const productId = $(this).closest('.cart-item').data('product-id');
+                const newQty = parseFloat($(this).val()) || 0.1;
+                updateItemQuantity(productId, newQty);
+            });
+
+            $(document).on('click', '.patient-result-item', function() {
+                const patientId = $(this).data('patient-id');
+                const patientName = $(this).data('patient-name');
+
+                setPatient(patientId, patientName);
+            });
+        });
+
+        // Initialisation du panier depuis la session
+        function initializeCart() {
+            // Si le panier a des éléments déjà en session, les récupérer
+            // Sinon, utiliser les valeurs par défaut
+            $.ajax({
+                url: '@Url.Action("GetCartSummary")',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success && response.cartSummary) {
+                        cart.items = response.cartSummary.items || [];
+
+                        if (response.cartSummary.patientId) {
+                            cart.patientId = response.cartSummary.patientId;
+                            cart.patientName = response.cartSummary.patientName;
+                            $('#patientId').val(cart.patientId);
+                            $('#patientSearch').val(cart.patientName);
+                        }
+
+                        cart.discountAmount = response.cartSummary.discountAmount || 0;
+                        cart.discountReason = response.cartSummary.discountReason || '';
+                        cart.notes = response.cartSummary.notes || '';
+
+                        $('#discountAmount').val(cart.discountAmount);
+                        $('#discountReason').val(cart.discountReason);
+                        $('#saleNotes').val(cart.notes);
+
+                        updateCartDisplay();
+                        updateCartSummary();
+                    }
+                }
+            });
+        }
+
+        // Chargement des catégories
+        function loadCategories() {
+            $.ajax({
+                url: '@Url.Action("GetActiveCategoriesForSelect", "ProductCategory")',
+                type: 'GET',
+                success: function(categories) {
+                    let html = '<option value="">Toutes les catégories</option>';
+                    categories.forEach(function(category) {
+                        html += `<option value="${category.id}">${category.name}</option>`;
+                    });
+                    $('#categoryFilter').html(html);
+                }
+            });
+        }
+
+        // Recherche de produits
+        function searchProducts() {
+            const searchTerm = $('#productSearch').val();
+            const categoryId = $('#categoryFilter').val();
+
+            // Afficher un indicateur de chargement
+            $('#productResults').html('<div class="text-center py-3"><div class="spinner-border text-primary" role="status"></div></div>');
+
+            $.ajax({
+                url: '@Url.Action("SearchProducts")',
+                type: 'GET',
+                data: {
+                    searchTerm: searchTerm,
+                    categoryId: categoryId
+                },
+                success: function(results) {
+                    if (results.length === 0) {
+                        $('#productResults').html('<div class="alert alert-info">Aucun produit trouvé</div>');
+                        return;
+                    }
+
+                    let html = '';
+                    results.forEach(function(product) {
+                        const stockStatus = getStockStatusText(product.currentStock, product.minThreshold);
+                        const stockClass = getStockStatusClass(product.currentStock, product.minThreshold);
+                        const isAvailable = product.currentStock > 0;
+                        const buttonClass = isAvailable ? 'btn-primary' : 'btn-secondary disabled';
+
+                        html += `
+                            <div class="card mb-2 product-item">
+                                <div class="card-body py-2">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <h6 class="mb-0">${product.name}</h6>
+                                            <small class="text-muted">${product.categoryName} - ${product.unitOfMeasure}</small>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <span class="font-weight-bold">${product.sellingPrice.toLocaleString('fr-FR')} FCFA</span>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <span class="badge ${stockClass}">${stockStatus}</span>
+                                        </div>
+                                        <div class="col-md-2 text-end">
+                                            <button class="btn btn-sm ${buttonClass} add-to-cart-btn"
+                                                    data-product-id="${product.id}"
+                                                    data-product-name="${product.name}"
+                                                    data-category="${product.categoryName}"
+                                                    data-unit="${product.unitOfMeasure}"
+                                                    data-price="${product.sellingPrice}"
+                                                    data-stock="${product.currentStock}"
+                                                    ${!isAvailable ? 'disabled' : ''}>
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    $('#productResults').html(html);
+                },
+                error: function() {
+                    $('#productResults').html('<div class="alert alert-danger">Erreur lors de la recherche</div>');
+                }
+            });
+        }
+
+        // Recherche de patients
+        function searchPatients(searchTerm) {
+            $.ajax({
+                url: '@Url.Action("Search", "Patient")',
+                type: 'GET',
+                data: { term: searchTerm },
+                success: function(results) {
+                    if (results.length === 0) {
+                        $('#patientResults').html('<div class="alert alert-info">Aucun patient trouvé</div>');
+                        $('#patientResults').removeClass('d-none');
+                        return;
+                    }
+
+                    let html = '<div class="list-group">';
+                    results.forEach(function(patient) {
+                        html += `
+                            <a href="javascript:void(0)" class="list-group-item list-group-item-action patient-result-item"
+                               data-patient-id="${patient.id}"
+                               data-patient-name="${patient.text}">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">${patient.text}</h6>
+                                    <small class="${patient.isActive ? 'text-success' : 'text-danger'}">${patient.isActive ? 'Actif' : 'Inactif'}</small>
+                                </div>
+                                <p class="mb-1">${patient.phone}</p>
+                                <small>${patient.info || ''}</small>
+                            </a>
+                        `;
+                    });
+                    html += '</div>';
+
+                    $('#patientResults').html(html);
+                    $('#patientResults').removeClass('d-none');
+                },
+                error: function() {
+                    $('#patientResults').html('<div class="alert alert-danger">Erreur lors de la recherche</div>');
+                    $('#patientResults').removeClass('d-none');
+                }
+            });
+        }
+
+        // Ajout d'un produit au panier
+        function addToCart(productId, productName, categoryName, unitOfMeasure, unitPrice, availableStock) {
+            $.ajax({
+                url: '@Url.Action("AddToCart")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    productId: productId,
+                    quantity: 1
+                }),
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        cart = response.cartSummary;
+                        updateCartDisplay();
+                        updateCartSummary();
+                        showToast('Succès', 'Produit ajouté au panier', 'success');
+                    } else {
+                        showToast('Erreur', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    showToast('Erreur', 'Une erreur est survenue lors de l\'ajout au panier', 'error');
+                }
+            });
+        }
+
+        // Suppression d'un produit du panier
+        function removeFromCart(productId) {
+            $.ajax({
+                url: '@Url.Action("RemoveFromCart")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    productId: productId
+                }),
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        cart = response.cartSummary;
+                        updateCartDisplay();
+                        updateCartSummary();
+                        showToast('Succès', 'Produit supprimé du panier', 'success');
+                    } else {
+                        showToast('Erreur', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    showToast('Erreur', 'Une erreur est survenue lors de la suppression du panier', 'error');
+                }
+            });
+        }
+
+        // Augmentation de la quantité d'un produit
+        function increaseQuantity(productId) {
+            const item = cart.items.find(item => item.productId === productId);
+            if (!item) return;
+
+            updateItemQuantity(productId, item.quantity + 0.1);
+        }
+
+        // Diminution de la quantité d'un produit
+        function decreaseQuantity(productId) {
+            const item = cart.items.find(item => item.productId === productId);
+            if (!item || item.quantity <= 0.1) return;
+
+            updateItemQuantity(productId, item.quantity - 0.1);
+        }
+
+        // Mise à jour de la quantité d'un produit
+        function updateItemQuantity(productId, quantity) {
+            // Arrondir à 1 décimale
+            quantity = Math.round(quantity * 10) / 10;
+
+            if (quantity <= 0) {
+                removeFromCart(productId);
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("UpdateCartItemQuantity")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    productId: productId,
+                    quantity: quantity
+                }),
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        cart = response.cartSummary;
+                        updateCartDisplay();
+                        updateCartSummary();
+                    } else {
+                        showToast('Erreur', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    showToast('Erreur', 'Une erreur est survenue lors de la mise à jour de la quantité', 'error');
+                }
+            });
+        }
+
+        // Application d'une remise
+        function applyDiscount(discountAmount, discountReason) {
+            if (cart.items.length === 0) {
+                showToast('Attention', 'Le panier est vide', 'warning');
+                return;
+            }
+
+            const subTotal = cart.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+            if (discountAmount > subTotal) {
+                showToast('Erreur', 'La remise ne peut pas être supérieure au montant total', 'error');
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("ApplyDiscount")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    discountAmount: discountAmount,
+                    discountReason: discountReason
+                }),
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        cart.discountAmount = response.cartSummary.discountAmount;
+                        cart.discountReason = response.cartSummary.discountReason;
+                        updateCartSummary();
+                        showToast('Succès', 'Remise appliquée', 'success');
+                    } else {
+                        showToast('Erreur', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    showToast('Erreur', 'Une erreur est survenue lors de l\'application de la remise', 'error');
+                }
+            });
+        }
+
+        // Association d'un patient
+        function setPatient(patientId, patientName) {
+            $.ajax({
+                url: '@Url.Action("SetPatient")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    patientId: patientId
+                }),
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#patientId').val(patientId);
+                        $('#patientSearch').val(patientName);
+                        $('#patientResults').addClass('d-none');
+
+                        cart.patientId = patientId;
+                        cart.patientName = patientName;
+
+                        updatePatientInfo();
+                        showToast('Succès', 'Patient associé à la vente', 'success');
+                    } else {
+                        showToast('Erreur', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    showToast('Erreur', 'Une erreur est survenue lors de l\'association du patient', 'error');
+                }
+            });
+        }
+
+        // Mise à jour des notes
+        function updateNotes(notes) {
+            $.ajax({
+                url: '@Url.Action("UpdateNotes")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    notes: notes
+                }),
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        cart.notes = notes;
+                    } else {
+                        showToast('Erreur', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    showToast('Erreur', 'Une erreur est survenue lors de la mise à jour des notes', 'error');
+                }
+            });
+        }
+
+        // Réinitialisation du panier
+        function resetCart() {
+            $.ajax({
+                url: '@Url.Action("ResetCart")',
+                type: 'POST',
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        cart = {
+                            items: [],
+                            patientId: null,
+                            patientName: null,
+                            discountAmount: 0,
+                            discountReason: '',
+                            notes: ''
+                        };
+
+                        $('#patientId').val('');
+                        $('#patientSearch').val('');
+                        $('#discountAmount').val(0);
+                        $('#discountReason').val('');
+                        $('#saleNotes').val('');
+
+                        updateCartDisplay();
+                        updateCartSummary();
+                        showToast('Succès', 'Panier réinitialisé', 'success');
+                    } else {
+                        showToast('Erreur', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    showToast('Erreur', 'Une erreur est survenue lors de la réinitialisation du panier', 'error');
+                }
+            });
+        }
+
+        // Validation et création de la vente
+        function validateSale() {
+            // Vérifier que le panier n'est pas vide
+            if (cart.items.length === 0) {
+                showToast('Erreur', 'Le panier est vide', 'error');
+                return;
+            }
+
+            // Récupérer les infos de paiement immédiat
+            const immediatePayment = $('#immediatePayment').prop('checked');
+            const paymentMethodId = immediatePayment ? parseInt($('#paymentMethod').val()) : null;
+            const transactionReference = immediatePayment ? $('#transactionReference').val() : null;
+
+            // Vérifier la référence de transaction si nécessaire
+            if (immediatePayment) {
+                const methodName = $('#paymentMethod option:selected').text().toLowerCase();
+
+                if ((methodName.includes('mobile') || methodName.includes('orange') || methodName.includes('mtn')) &&
+                    !transactionReference) {
+                    showToast('Erreur', 'La référence de transaction est requise pour ce mode de paiement', 'error');
+                    return;
+                }
+            }
+
+            // Préparer les données
+            const saleData = {
+                patientId: cart.patientId,
+                patientName: cart.patientName,
+                discountAmount: cart.discountAmount,
+                discountReason: cart.discountReason,
+                notes: cart.notes,
+                items: cart.items,
+                immediatePayment: immediatePayment,
+                paymentMethodId: paymentMethodId,
+                transactionReference: transactionReference
+            };
+
+            // Désactiver le bouton pour éviter les soumissions multiples
+            $('#validateSaleBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Traitement en cours...');
+
+            // Envoyer la requête
+            $.ajax({
+                url: '@Url.Action("Create")',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(saleData),
+                headers: {
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        showToast('Succès', 'Vente créée avec succès', 'success');
+
+                        // Rediriger vers le reçu
+                        setTimeout(function() {
+                            window.location.href = response.redirectUrl;
+                        }, 1000);
+                    } else {
+                        showToast('Erreur', response.message, 'error');
+                        $('#validateSaleBtn').prop('disabled', false).html('<i class="fas fa-check-circle"></i> Valider la vente');
+                    }
+                },
+                error: function() {
+                    showToast('Erreur', 'Une erreur est survenue lors de la création de la vente', 'error');
+                    $('#validateSaleBtn').prop('disabled', false).html('<i class="fas fa-check-circle"></i> Valider la vente');
+                }
+            });
+        }
+
+        // Mise à jour de l'affichage du panier
+        function updateCartDisplay() {
+            if (cart.items.length === 0) {
+                $('#cartItems').html('<div class="alert alert-secondary"><i class="fas fa-shopping-cart"></i> Votre panier est vide</div>');
+                return;
+            }
+
+            let html = '';
+            cart.items.forEach(function(item) {
+                html += `
+                    <div class="card mb-2 cart-item" data-product-id="${item.productId}">
+                        <div class="card-body py-2">
+                            <div class="row align-items-center">
+                                <div class="col-md-5">
+                                    <h6 class="mb-0">${item.productName}</h6>
+                                    <small class="text-muted">${item.categoryName} - ${item.unitOfMeasure}</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="input-group input-group-sm">
+                                        <button class="btn btn-outline-secondary decrease-qty-btn" type="button">-</button>
+                                        <input type="number" class="form-control text-center item-qty" value="${item.quantity}" min="0.1" step="0.1">
+                                        <button class="btn btn-outline-secondary increase-qty-btn" type="button">+</button>
+                                    </div>
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <span class="font-weight-bold">${(item.quantity * item.unitPrice).toLocaleString('fr-FR')} FCFA</span>
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <button class="btn btn-sm btn-danger remove-item-btn">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            $('#cartItems').html(html);
+        }
+
+        // Mise à jour du résumé du panier
+        function updateCartSummary() {
+            if (cart.items.length === 0) {
+                $('#cartSummary').html('<div class="alert alert-info"><i class="fas fa-info-circle"></i> Aucun article sélectionné</div>');
+                return;
+            }
+
+            const subTotal = cart.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+            const discountAmount = cart.discountAmount;
+            const finalAmount = Math.max(0, subTotal - discountAmount);
+
+            let html = `
+                <div class="card bg-light mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Sous-total:</span>
+                            <span class="font-weight-bold">${subTotal.toLocaleString('fr-FR')} FCFA</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Remise:</span>
+                            <span class="text-danger">-${discountAmount.toLocaleString('fr-FR')} FCFA</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="h5">Total:</span>
+                            <span class="h5 font-weight-bold">${finalAmount.toLocaleString('fr-FR')} FCFA</span>
+                        </div>
+                        <div class="small text-muted mt-2">${cart.items.length} article(s)</div>
+                    </div>
+                </div>
+            `;
+
+            $('#cartSummary').html(html);
+        }
+
+        // Mise à jour des informations du patient
+        function updatePatientInfo() {
+            if (cart.patientId) {
+                showToast('Information', `Patient associé: ${cart.patientName}`, 'info');
+            } else {
+                showToast('Information', 'Client occasionnel (pas de patient associé)', 'info');
+            }
+        }
+
+        // Mise à jour du panier en session
+        function updateCart() {
+            $.ajax({
+                url: '@Url.Action("GetCartSummary")',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        // Mettre à jour seulement les nouvelles valeurs, garder les anciennes pour le reste
+                        cart = { ...cart, ...response.cartSummary };
+                    }
+                }
+            });
+        }
+
+        // Obtenir le texte de statut de stock
+        function getStockStatusText(currentStock, minThreshold) {
+            if (currentStock <= 0) return 'Rupture';
+            if (minThreshold && currentStock <= minThreshold * 0.5) return 'Critique';
+            if (minThreshold && currentStock <= minThreshold) return 'Faible';
+            return 'Disponible';
+        }
+
+        // Obtenir la classe de statut de stock
+        function getStockStatusClass(currentStock, minThreshold) {
+            if (currentStock <= 0) return 'bg-danger';
+            if (minThreshold && currentStock <= minThreshold * 0.5) return 'bg-warning';
+            if (minThreshold && currentStock <= minThreshold) return 'bg-info';
+            return 'bg-success';
+        }
+
+        // Fonction pour afficher des notifications toast
+        function showToast(title, message, type) {
+            const toast = $(`
+                <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
+                    <div class="toast-header bg-${type === 'success' ? 'success' : (type === 'warning' ? 'warning' : (type === 'info' ? 'info' : 'danger'))} text-white">
+                        <strong class="me-auto">${title}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `);
+
+            $('.toast-container').append(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+
+            toast.on('hidden.bs.toast', function() {
+                $(this).remove();
+            });
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        /* Styles pour l'affichage des résultats de recherche patient */
+        #patientResults {
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        /* Amélioration de l'apparence des contrôles de quantité */
+        .item-qty {
+            max-width: 60px;
+        }
+
+        /* Toast container */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+    </style>
+
+    <div class="toast-container"></div>
+}

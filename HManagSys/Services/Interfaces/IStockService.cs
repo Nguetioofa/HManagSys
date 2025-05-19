@@ -1,4 +1,5 @@
 ﻿using HManagSys.Models.EfModels;
+using HManagSys.Models.Interfaces;
 using HManagSys.Models.ViewModels.Patients;
 using HManagSys.Models.ViewModels.Stock;
 
@@ -20,6 +21,10 @@ namespace HManagSys.Services.Interfaces
         /// <param name="userId">ID de l'utilisateur effectuant la dispensation</param>
         /// <returns>Résultat de l'opération avec les détails des mouvements effectués</returns>
         Task<OperationResult<StockMovementTrackingViewModel>> RecordPrescriptionDispensationAsync(int prescriptionId, int userId);
+
+        Task<StockInventory?> QuerySingleAsync(Func<IQueryable<StockInventory>, IQueryable<StockInventory>> queryBuilder);
+
+        Task<List<StockInventory>> QueryListAsync(Func<IQueryable<StockInventory>, IQueryable<StockInventory>> queryBuilder);
 
         /// <summary>
         /// Enregistre l'utilisation des produits pour un service de soin

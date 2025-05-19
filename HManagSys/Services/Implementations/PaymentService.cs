@@ -22,6 +22,8 @@ namespace HManagSys.Services.Implementations
         private readonly IGenericRepository<HospitalCenter> _hospitalCenterRepository;
         private readonly IGenericRepository<CareEpisode> _careEpisodeRepository;
         private readonly IGenericRepository<Examination> _examinationRepository;
+        private readonly IGenericRepository<Prescription> _prescriptionRepository;
+        private readonly IGenericRepository<Sale> _saleRepository;
         private readonly IApplicationLogger _logger;
         private readonly IAuditService _auditService;
 
@@ -32,6 +34,8 @@ namespace HManagSys.Services.Implementations
             IGenericRepository<User> userRepository,
             IGenericRepository<HospitalCenter> hospitalCenterRepository,
             IGenericRepository<CareEpisode> careEpisodeRepository,
+            IGenericRepository<Prescription> prescriptionRepository,
+            IGenericRepository<Sale> saleRepository,
             IGenericRepository<Examination> examinationRepository,
             IApplicationLogger logger,
             IAuditService auditService)
@@ -40,6 +44,8 @@ namespace HManagSys.Services.Implementations
             _paymentMethodRepository = paymentMethodRepository;
             _patientRepository = patientRepository;
             _userRepository = userRepository;
+            _saleRepository = saleRepository;
+            _prescriptionRepository = prescriptionRepository;
             _hospitalCenterRepository = hospitalCenterRepository;
             _careEpisodeRepository = careEpisodeRepository;
             _examinationRepository = examinationRepository;
@@ -709,7 +715,7 @@ namespace HManagSys.Services.Implementations
         /// </summary>
         private bool IsValidReferenceType(string referenceType)
         {
-            return referenceType is "CareEpisode" or "Examination";
+            return referenceType is nameof(CareEpisode) or nameof(Examination) or nameof(Sale) or nameof(Prescription);
         }
 
         /// <summary>
@@ -719,12 +725,18 @@ namespace HManagSys.Services.Implementations
         {
             switch (referenceType)
             {
-                case "CareEpisode":
+                case nameof(CareEpisode):
                     var careEpisode = await _careEpisodeRepository.GetByIdAsync(referenceId);
                     return careEpisode != null;
-                case "Examination":
+                case nameof(Examination):
                     var examination = await _examinationRepository.GetByIdAsync(referenceId);
                     return examination != null;
+                case nameof(Sale):
+                    var sale = await _saleRepository.GetByIdAsync(referenceId);
+                    return sale != null;
+                case nameof(Prescription):
+                    var presciption = await _prescriptionRepository.GetByIdAsync(referenceId);
+                    return presciption != null;
                 default:
                     return false;
             }
@@ -737,8 +749,10 @@ namespace HManagSys.Services.Implementations
         {
             return referenceType switch
             {
-                "CareEpisode" => "Épisode de soins",
-                "Examination" => "Examen",
+                nameof(CareEpisode) => "Épisode de soins",
+                nameof(Examination) => "Examen",
+                nameof(Sale) => "Ventes",
+                nameof(Prescription) => "Prescriptions",
                 _ => referenceType
             };
         }
@@ -752,7 +766,7 @@ namespace HManagSys.Services.Implementations
             {
                 switch (referenceType)
                 {
-                    case "CareEpisode":
+                    case nameof(CareEpisode):
                         var careEpisode = await _careEpisodeRepository.QuerySingleAsync(q =>
                             q.Where(ce => ce.Id == referenceId)
                              .Include(ce => ce.Diagnosis)
@@ -762,7 +776,7 @@ namespace HManagSys.Services.Implementations
                             ? $"Épisode de soins ({careEpisode.DiagnosisName})"
                             : "Épisode de soins";
 
-                    case "Examination":
+                    case nameof(Examination):
                         var examination = await _examinationRepository.QuerySingleAsync(q =>
                             q.Where(e => e.Id == referenceId)
                              .Include(e => e.ExaminationType)
@@ -771,6 +785,26 @@ namespace HManagSys.Services.Implementations
                         return examination != null
                             ? $"Examen {examination.TypeName}"
                             : "Examen";
+
+                    case nameof(Sale):
+                        var sale = await _saleRepository.QuerySingleAsync(q =>
+                            q.Where(e => e.Id == referenceId)
+                             //.Include(e => e.ExaminationType)
+                             .Select(e => new { e.Id, TypeName = e.SaleNumber }));
+
+                        return sale != null
+                            ? $"Vente {sale.TypeName}"
+                            : "Vente";
+
+                    case nameof(Prescription):
+                        var prescription = await _prescriptionRepository.QuerySingleAsync(q =>
+                            q.Where(e => e.Id == referenceId)
+                             //.Include(e => e.)
+                             .Select(e => new { e.Id, TypeName = e.Id.ToString() }));
+
+                        return prescription != null
+                            ? $"Prescription {prescription.TypeName}"
+                            : "Prescription";
 
                     default:
                         return referenceType;
@@ -792,22 +826,45 @@ namespace HManagSys.Services.Implementations
             {
                 switch (referenceType)
                 {
-                    case "CareEpisode":
+                    case nameof(CareEpisode):
                         var careEpisode = await _careEpisodeRepository.GetByIdAsync(referenceId);
                         if (careEpisode != null)
                         {
                             // Incrémenter le montant payé et décrémenter le solde restant
                             careEpisode.AmountPaid += amount;
                             careEpisode.RemainingBalance = Math.Max(0, careEpisode.TotalCost - careEpisode.AmountPaid);
-
+                            
                             // Si tout est payé, mettre à jour le statut si nécessaire
-                            if (careEpisode.RemainingBalance == 0 && careEpisode.Status == "Active")
-                            {
-                                // Optionnel: Mise à jour du statut selon la logique métier
-                                // careEpisode.Status = "Completed";
-                            }
+                            //if (careEpisode.RemainingBalance == 0 && careEpisode.Status == "Active")
+                            //{
+                            //    // Optionnel: Mise à jour du statut selon la logique métier
+                            //    // careEpisode.Status = "Completed";
+                            //}
 
                             await _careEpisodeRepository.UpdateAsync(careEpisode);
+                        }
+                        break;
+
+                    case nameof(Sale):
+                        var sale = await _saleRepository.GetByIdAsync(referenceId);
+                        if (sale != null)
+                        {
+
+                            // Incrémenter le montant payé et décrémenter le solde restant
+                            sale.FinalAmount += amount;
+                            sale.FinalAmount = Math.Max(0, sale.FinalAmount - sale.FinalAmount);
+
+                            // Si tout est payé, mettre à jour le statut si nécessaire
+                            if (sale.FinalAmount == 0 && sale.PaymentStatus == "Pending" || sale.PaymentStatus == "Partial")
+                            {
+                                sale.PaymentStatus = "Paid";
+                            }
+                            else
+                            {
+                                sale.PaymentStatus = "Partial";
+                            }
+
+                            await _saleRepository.UpdateAsync(sale);
                         }
                         break;
 
