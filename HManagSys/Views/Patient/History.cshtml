@@ -2,45 +2,52 @@
 @model PatientHistoryViewModel
 
 @{
-    ViewData["Title"] = $"Historique - {Model.PatientName}";
+    ViewData["Title"] = $"Historique Médical - {Model.PatientName}";
 }
 
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-history"></i> Historique Médical
+    <!-- En-tête de la page -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
+        <h1 class="h2 mb-0 text-gray-800 font-weight-bold">
+            <i class="fas fa-history mr-2 text-primary"></i>Historique Médical
         </h1>
-        <a asp-action="Details" asp-route-id="@Model.PatientId" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> Retour au dossier patient
+        <a asp-action="Details" asp-route-id="@Model.PatientId" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left mr-1"></i> Retour au Dossier Patient
         </a>
     </div>
 
-    <!-- Patient info -->
+    <!-- Informations Clés du Patient et Statistiques -->
     <div class="card shadow mb-4">
-        <div class="card-body py-3">
-            <div class="d-flex align-items-center">
-                <i class="fas fa-user-injured fa-2x mr-3 text-primary"></i>
-                <div>
-                    <h5 class="mb-1">@Model.PatientName</h5>
-                    <p class="mb-0">ID: @Model.PatientId</p>
-                </div>
-                <div class="ml-auto">
-                    <div class="d-flex">
-                        <div class="mr-4">
-                            <span class="d-block text-xs font-weight-bold text-uppercase mb-1">Diagnostics</span>
-                            <span class="h5 mb-0 font-weight-bold">@Model.TotalDiagnoses</span>
-                        </div>
-                        <div class="mr-4">
-                            <span class="d-block text-xs font-weight-bold text-uppercase mb-1">Soins</span>
-                            <span class="h5 mb-0 font-weight-bold">@Model.TotalCareEpisodes</span>
-                        </div>
-                        <div class="mr-4">
-                            <span class="d-block text-xs font-weight-bold text-uppercase mb-1">Examens</span>
-                            <span class="h5 mb-0 font-weight-bold">@Model.TotalExaminations</span>
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-auto mb-3 mb-md-0">
+                    <div class="d-flex align-items-center">
+                        <div class="patient-avatar-placeholder mr-3">
+                            <i class="fas fa-user-circle fa-3x text-gray-500"></i>
                         </div>
                         <div>
-                            <span class="d-block text-xs font-weight-bold text-uppercase mb-1">Prescriptions</span>
-                            <span class="h5 mb-0 font-weight-bold">@Model.TotalPrescriptions</span>
+                            <h4 class="mb-0 font-weight-bold">@Model.PatientName</h4>
+                            <p class="mb-0 text-muted small">ID Patient: @Model.PatientId</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md">
+                    <div class="row text-center text-md-right">
+                        <div class="col-6 col-sm-3 mb-2 mb-sm-0">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Diagnostics</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalDiagnoses</div>
+                        </div>
+                        <div class="col-6 col-sm-3 mb-2 mb-sm-0">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Soins</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalCareEpisodes</div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Examens</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalExaminations</div>
+                        </div>
+                        <div class="col-6 col-sm-3">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Prescriptions</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalPrescriptions</div>
                         </div>
                     </div>
                 </div>
@@ -48,91 +55,94 @@
         </div>
     </div>
 
-    <!-- Historique chronologique -->
+    <!-- Historique Chronologique -->
     <div class="card shadow mb-4">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-            <h6 class="m-0 font-weight-bold text-primary">Historique Chronologique</h6>
-            <div class="btn-group">
-                <button type="button" class="btn btn-sm btn-outline-primary filter-btn active" data-filter="all">Tout</button>
-                <button type="button" class="btn btn-sm btn-outline-primary filter-btn" data-filter="Diagnosis">Diagnostics</button>
-                <button type="button" class="btn btn-sm btn-outline-primary filter-btn" data-filter="CareEpisode">Soins</button>
-                <button type="button" class="btn btn-sm btn-outline-primary filter-btn" data-filter="Examination">Examens</button>
-                <button type="button" class="btn btn-sm btn-outline-primary filter-btn" data-filter="Prescription">Prescriptions</button>
-            </div>
+        <div class="card-header py-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center">
+            <h6 class="m-0 font-weight-bold text-primary mb-2 mb-sm-0">
+                <i class="fas fa-stream mr-2"></i>Historique Chronologique
+            </h6>
+            <ul class="nav nav-pills card-header-pills">
+                <li class="nav-item mr-1"><a class="nav-link active filter-btn py-1 px-2" href="#" data-filter="all">Tout</a></li>
+                <li class="nav-item mr-1"><a class="nav-link filter-btn py-1 px-2" href="#" data-filter="Diagnosis">Diagnostics</a></li>
+                <li class="nav-item mr-1"><a class="nav-link filter-btn py-1 px-2" href="#" data-filter="CareEpisode">Soins</a></li>
+                <li class="nav-item mr-1"><a class="nav-link filter-btn py-1 px-2" href="#" data-filter="Examination">Examens</a></li>
+                <li class="nav-item"><a class="nav-link filter-btn py-1 px-2" href="#" data-filter="Prescription">Prescriptions</a></li>
+            </ul>
         </div>
-        <div class="card-body p-0">
+        <div class="card-body">
             @if (Model.ChronologicalHistory.Any())
             {
-                <div class="timeline-container">
-                    <div class="timeline">
-                        @foreach (var evt in Model.ChronologicalHistory)
-                        {
-                            <div class="timeline-item @evt.EventType.ToLower()-event">
-                                <div class="timeline-item-date">
-                                    @evt.Date.ToString("dd/MM/yyyy")
-                                </div>
-                                <div class="timeline-item-marker">
-                                    <span class="timeline-item-icon">
-                                        <i class="fas @evt.EventIcon"></i>
-                                    </span>
-                                </div>
-                                <div class="timeline-item-content">
-                                    <div class="card">
-                                        <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                                            <span class="font-weight-bold">@evt.Title</span>
-                                            <span class="badge badge-@GetEventClass(evt.EventType)">
-                                                @GetEventTypeText(evt.EventType)
-                                            </span>
+                <div class="timeline-container-enhanced">
+                    @foreach (var evt in Model.ChronologicalHistory.OrderByDescending(e => e.Date))
+                    {
+                        <div class="timeline-item-enhanced @evt.EventClass" data-event-type="@evt.EventType">
+                            <div class="timeline-item-date-enhanced">
+                                <span class="day">@evt.Date.ToString("dd")</span>
+                                <span class="month-year">@evt.Date.ToString("MMM yyyy").ToUpper()</span>
+                            </div>
+                            <div class="timeline-item-marker-enhanced">
+                                <span class="timeline-item-icon-enhanced @GetEventColorClass(evt.EventType)">
+                                    <i class="fas @evt.EventIcon"></i>
+                                </span>
+                            </div>
+                            <div class="timeline-item-content-enhanced">
+                                <div class="event-card">
+                                    <div class="event-header d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="event-title mb-0 font-weight-bold text-gray-800">@evt.Title</h6>
+                                            <small class="event-meta text-muted">
+                                                Par: @evt.StaffName (@evt.HospitalCenterName)
+                                            </small>
                                         </div>
-                                        <div class="card-body py-2">
-                                            @if (!string.IsNullOrEmpty(evt.Description))
-                                            {
-                                                <p class="mb-2">@evt.Description</p>
-                                            }
-                                            <div class="d-flex justify-content-between">
-                                                <small class="text-muted">@evt.StaffName</small>
-                                                <small class="text-muted">@evt.HospitalCenterName</small>
-                                            </div>
-                                        </div>
-                                        <div class="card-footer py-2 text-right">
-                                            @switch (evt.EventType)
-                                            {
-                                                case "Diagnosis":
-                                                    <a href="javascript:void(0)" class="btn btn-sm btn-outline-primary">
-                                                        <i class="fas fa-eye"></i> Détails
-                                                    </a>
-                                                    break;
-                                                case "CareEpisode":
-                                                    <a asp-controller="CareEpisode" asp-action="Details" asp-route-id="@evt.EventId"
-                                                       class="btn btn-sm btn-outline-primary">
-                                                        <i class="fas fa-eye"></i> Détails
-                                                    </a>
-                                                    break;
-                                                case "Examination":
-                                                    <a asp-controller="Examination" asp-action="Details" asp-route-id="@evt.EventId"
-                                                       class="btn btn-sm btn-outline-primary">
-                                                        <i class="fas fa-eye"></i> Détails
-                                                    </a>
-                                                    break;
-                                                case "Prescription":
-                                                    <a asp-controller="Prescription" asp-action="Details" asp-route-id="@evt.EventId"
-                                                       class="btn btn-sm btn-outline-primary">
-                                                        <i class="fas fa-eye"></i> Détails
-                                                    </a>
-                                                    break;
-                                            }
-                                        </div>
+                                        <span class="badge badge-pill @GetEventBadgeClass(evt.EventType) px-2 py-1 event-type-badge">
+                                            @GetEventTypeText(evt.EventType)
+                                        </span>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(evt.Description))
+                                    {
+                                        <p class="event-description mt-2 mb-2 small">@evt.Description</p>
+                                    }
+                                    <div class="event-actions text-right mt-2">
+                                        @switch (evt.EventType)
+                                        {
+                                            case "Diagnosis":
+                                                // Si pas d'action spécifique pour Diagnosis, on peut le griser ou l'omettre
+                                                <button class="btn btn-sm btn-outline-secondary" disabled>
+                                                    <i class="fas fa-eye-slash"></i> Détails (N/A)
+                                                </button>
+                                                break;
+                                            case "CareEpisode":
+                                                <a asp-controller="CareEpisode" asp-action="Details" asp-route-id="@evt.EventId"
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i> Voir Soins
+                                                </a>
+                                                break;
+                                            case "Examination":
+                                                <a asp-controller="Examination" asp-action="Details" asp-route-id="@evt.EventId"
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i> Voir Examen
+                                                </a>
+                                                break;
+                                            case "Prescription":
+                                                <a asp-controller="Prescription" asp-action="Details" asp-route-id="@evt.EventId"
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i> Voir Prescription
+                                                </a>
+                                                break;
+                                        }
                                     </div>
                                 </div>
                             </div>
-                        }
-                    </div>
+                        </div>
+                    }
                 </div>
             }
             else
             {
-                <div class="alert alert-info m-3">
-                    <i class="fas fa-info-circle"></i> Aucun événement médical enregistré pour ce patient.
+                <div class="text-center py-5">
+                    <i class="fas fa-folder-open fa-3x text-gray-400 mb-3"></i>
+                    <h5 class="text-gray-600">Aucun événement médical enregistré</h5>
+                    <p class="text-muted">L'historique de ce patient est actuellement vide.</p>
                 </div>
             }
         </div>
@@ -141,91 +151,169 @@
 
 @section Styles {
     <style>
-        .timeline-container {
-            padding: 1.5rem;
-            position: relative;
+        .patient-avatar-placeholder {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* background-color: #f8f9fc;
+                    border-radius: 50%; */
         }
 
-        .timeline {
+        /* Enhanced Timeline */
+        .timeline-container-enhanced {
             position: relative;
-            padding-left: 1.5rem;
-            border-left: 1px solid #e3e6f0;
+            padding-left: 20px; /* Space for the line */
         }
 
-        .timeline-item {
+            .timeline-container-enhanced::before { /* The timeline bar */
+                content: '';
+                position: absolute;
+                left: 38px; /* ( (icon_width + padding*2) / 2 ) - (line_width / 2) = ( (30+10*2)/2 ) - (2/2) = 25 - 1 = 24px approx. Adjusted to align with icon center */
+                top: 10px;
+                bottom: 10px;
+                width: 3px;
+                background-color: #e3e6f0; /* Light gray */
+                border-radius: 3px;
+            }
+
+        .timeline-item-enhanced {
             position: relative;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            padding-left: 65px; /* Space for date and marker */
         }
 
-            .timeline-item:last-child {
+            .timeline-item-enhanced:last-child {
                 margin-bottom: 0;
             }
 
-        .timeline-item-date {
+        .timeline-item-date-enhanced {
             position: absolute;
-            left: -5rem;
-            top: 0;
-            text-align: right;
-            width: 3.5rem;
-            font-size: 0.875rem;
-            color: #858796;
+            left: -25px; /* Pull it left of the padding-left of timeline-item */
+            top: 2px;
+            text-align: center;
+            width: 70px;
         }
 
-        .timeline-item-marker {
+            .timeline-item-date-enhanced .day {
+                display: block;
+                font-size: 1.3rem;
+                font-weight: bold;
+                color: #4e73df; /* Primary color */
+            }
+
+            .timeline-item-date-enhanced .month-year {
+                display: block;
+                font-size: 0.7rem;
+                color: #858796; /* Muted text color */
+                text-transform: uppercase;
+            }
+
+        .timeline-item-marker-enhanced {
             position: absolute;
-            left: -0.85rem;
+            left: 20px; /* Adjust to align with the timeline bar */
             top: 0;
+            z-index: 1;
         }
 
-        .timeline-item-icon {
+        .timeline-item-icon-enhanced {
             display: flex;
             justify-content: center;
             align-items: center;
-            width: 1.75rem;
-            height: 1.75rem;
+            width: 36px; /* Slightly larger icon container */
+            height: 36px;
             border-radius: 50%;
-            background-color: #4e73df;
             color: white;
+            font-size: 1rem;
+            box-shadow: 0 0 0 3px #fff; /* White border to stand out from line */
         }
 
-        .diagnosis-event .timeline-item-icon {
+        /* Icon colors based on event type */
+        .icon-bg-diagnosis {
             background-color: #e74a3b;
         }
-
-        .care-event .timeline-item-icon {
+        /* Danger */
+        .icon-bg-careepisode {
             background-color: #1cc88a;
         }
-
-        .examination-event .timeline-item-icon {
+        /* Success */
+        .icon-bg-examination {
             background-color: #f6c23e;
         }
-
-        .prescription-event .timeline-item-icon {
+        /* Warning */
+        .icon-bg-prescription {
             background-color: #36b9cc;
         }
-
-        .timeline-item-content {
-            padding-left: 1.5rem;
-            padding-bottom: 0.5rem;
+        /* Info */
+        .icon-bg-general {
+            background-color: #5a5c69;
         }
+        /* Dark */
+
+
+        .timeline-item-content-enhanced {
+            position: relative;
+        }
+
+        .event-card {
+            background-color: #fff;
+            border: 1px solid #e3e6f0;
+            border-radius: 0.35rem;
+            padding: 1rem 1.25rem;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .timeline-item-enhanced:hover .event-card {
+            border-color: #cdd2e1;
+            box-shadow: 0 .15rem 1.75rem 0 rgba(58,59,69,.15);
+        }
+
+        .event-type-badge {
+            font-size: 0.70rem;
+            font-weight: 600;
+        }
+
+        /* Filter buttons styling */
+        .nav-pills .nav-link.filter-btn {
+            font-size: 0.8rem;
+            color: #5a5c69; /* Dark gray for inactive */
+            background-color: #f8f9fc; /* Light background */
+            border: 1px solid #d1d3e2;
+        }
+
+            .nav-pills .nav-link.filter-btn.active {
+                color: #fff;
+                background-color: #4e73df; /* Primary color for active */
+                border-color: #4e73df;
+            }
+
+            .nav-pills .nav-link.filter-btn:hover:not(.active) {
+                background-color: #e9ecef;
+            }
+
+ 
     </style>
 }
 
 @section Scripts {
     <script>
         $(document).ready(function() {
-            // Filtrage des événements
-            $('.filter-btn').click(function() {
+            $('.filter-btn').click(function(e) {
+                e.preventDefault(); // Prevent page jump for href="#"
+
                 $('.filter-btn').removeClass('active');
                 $(this).addClass('active');
 
                 const filter = $(this).data('filter');
+                const filterLower = filter.toLowerCase();
 
                 if (filter === 'all') {
-                    $('.timeline-item').show();
+                    $('.timeline-item-enhanced').fadeIn('fast');
                 } else {
-                    $('.timeline-item').hide();
-                    $(`.${filter.toLowerCase()}-event`).show();
+                    $('.timeline-item-enhanced').hide();
+                    // Use the data-event-type attribute for filtering for more precision
+                    $(`.timeline-item-enhanced[data-event-type="${filter}"]`).fadeIn('fast');
                 }
             });
         });
@@ -245,15 +333,29 @@
         };
     }
 
-    public string GetEventClass(string eventType)
+    // For badge colors
+    public string GetEventBadgeClass(string eventType)
     {
         return eventType switch
         {
-            "Diagnosis" => "danger",
-            "CareEpisode" => "success",
-            "Examination" => "warning",
-            "Prescription" => "info",
-            _ => "secondary"
+            "Diagnosis" => "badge-danger-soft", // Custom soft badges
+            "CareEpisode" => "badge-success-soft",
+            "Examination" => "badge-warning-soft",
+            "Prescription" => "badge-info-soft",
+            _ => "badge-secondary-soft"
+        };
+    }
+
+    // For timeline icon background colors
+    public string GetEventColorClass(string eventType)
+    {
+        return eventType switch
+        {
+            "Diagnosis" => "icon-bg-diagnosis",
+            "CareEpisode" => "icon-bg-careepisode",
+            "Examination" => "icon-bg-examination",
+            "Prescription" => "icon-bg-prescription",
+            _ => "icon-bg-general"
         };
     }
 }

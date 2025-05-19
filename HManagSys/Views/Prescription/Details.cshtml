@@ -1,146 +1,163 @@
 ﻿@using HManagSys.Models.ViewModels.Patients
 @model PrescriptionViewModel
 @{
-    ViewData["Title"] = "Détails Prescription";
+    ViewData["Title"] = $"Prescription #{Model.Id} - {Model.PatientName}";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<!-- En-tête de la page avec titre et actions principales -->
+<div class="pt-3 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h1 class="h2 mb-0 text-gray-800 font-weight-bold">
+            <i class="fas fa-file-prescription text-primary me-2"></i>Détails de la Prescription #@Model.Id
+        </h1>
+        <div class="btn-group">
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Liste des Prescriptions
+            </a>
+            @if (Model.CanEdit)
+            {
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-primary">
+                    <i class="fas fa-edit me-1"></i> Modifier
+                </a>
+            }
+        </div>
+    </div>
     <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a asp-action="Index">Prescriptions</a></li>
-            <li class="breadcrumb-item active">Détails</li>
+        <ol class="breadcrumb breadcrumb-custom">
+            <li class="breadcrumb-item"><a asp-controller="Prescription" asp-action="Index">Prescriptions</a></li>
+            <li class="breadcrumb-item"><a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.PatientId">@Model.PatientName</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Détails #@Model.Id</li>
         </ol>
     </nav>
-    <div class="btn-group">
-        <a asp-action="Index" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> Retour
-        </a>
-        @if (Model.CanEdit)
-        {
-            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
-                <i class="fas fa-edit"></i> Modifier
-            </a>
-        }
-    </div>
 </div>
 
 <div class="row">
-    <div class="col-md-12">
+    <div class="col-lg-8">
+        <!-- Carte des Informations Générales de la Prescription -->
         <div class="card shadow-sm mb-4">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-prescription-bottle-alt"></i> Prescription #@Model.Id
-                </h5>
-                <span class="@Model.StatusBadge">@Model.StatusText</span>
+            <div class="card-header bg-transparent border-bottom-0 pb-0 d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 class="card-title mb-1 font-weight-bold text-primary">
+                        <i class="fas fa-info-circle me-2"></i>Informations Générales
+                    </h5>
+                </div>
+                <span class="badge @GetStatusBadgeClass(Model.Status) fs-sm">@Model.StatusText</span>
             </div>
-            <div class="card-body">
+            <div class="card-body pt-2">
                 <div class="row">
                     <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="form-label text-muted">Patient</label>
-                            <div>
-                                <a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.PatientId" class="fw-bold text-decoration-none">
-                                    <i class="fas fa-user"></i> @Model.PatientName
+                        <div class="detail-item mb-3">
+                            <small class="text-muted text-uppercase d-block">Patient</small>
+                            <div class="fw-bold">
+                                <a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.PatientId" class="text-decoration-none">
+                                    <i class="fas fa-user me-1 text-gray-600"></i> @Model.PatientName
                                 </a>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label text-muted">Date de prescription</label>
-                            <div class="fw-bold">@Model.FormattedDate</div>
+                        <div class="detail-item mb-3">
+                            <small class="text-muted text-uppercase d-block">Date de prescription</small>
+                            <div class="fw-bold"><i class="fas fa-calendar-alt me-1 text-gray-600"></i> @Model.FormattedDate</div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label text-muted">Prescrit par</label>
-                            <div class="fw-bold">@Model.PrescribedByName</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label text-muted">Centre hospitalier</label>
-                            <div class="fw-bold">@Model.HospitalCenterName</div>
+                        <div class="detail-item mb-3">
+                            <small class="text-muted text-uppercase d-block">Prescrit par</small>
+                            <div class="fw-bold"><i class="fas fa-user-md me-1 text-gray-600"></i> @Model.PrescribedByName</div>
                         </div>
                     </div>
                     <div class="col-md-6">
+                        <div class="detail-item mb-3">
+                            <small class="text-muted text-uppercase d-block">Centre hospitalier</small>
+                            <div class="fw-bold"><i class="fas fa-hospital me-1 text-gray-600"></i> @Model.HospitalCenterName</div>
+                        </div>
                         @if (Model.DiagnosisId.HasValue)
                         {
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Diagnostic</label>
-                                <div class="fw-bold">@Model.DiagnosisName</div>
+                            <div class="detail-item mb-3">
+                                <small class="text-muted text-uppercase d-block">Diagnostic Associé</small>
+                                <div class="fw-bold"><i class="fas fa-stethoscope me-1 text-gray-600"></i> @Model.DiagnosisName</div>
                             </div>
                         }
                         @if (Model.CareEpisodeId.HasValue)
                         {
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Épisode de soins</label>
+                            <div class="detail-item mb-3">
+                                <small class="text-muted text-uppercase d-block">Épisode de soins</small>
                                 <div>
                                     <a asp-controller="CareEpisode" asp-action="Details" asp-route-id="@Model.CareEpisodeId" class="fw-bold text-decoration-none">
-                                        <i class="fas fa-procedures"></i> Voir l'épisode
+                                        <i class="fas fa-procedures me-1 text-gray-600"></i> Voir l'épisode
                                     </a>
                                 </div>
                             </div>
                         }
-                        @if (!string.IsNullOrWhiteSpace(Model.Instructions))
-                        {
-                            <div class="mb-3">
-                                <label class="form-label text-muted">Instructions générales</label>
-                                <div class="p-3 bg-light rounded">@Model.Instructions</div>
-                            </div>
-                        }
                     </div>
                 </div>
+                @if (!string.IsNullOrWhiteSpace(Model.Instructions))
+                {
+                    <div class="mt-2">
+                        <small class="text-muted text-uppercase d-block">Instructions générales</small>
+                        <div class="instructions-block p-3 bg-light-subtle border rounded mt-1">
+                            @Html.Raw(Model.Instructions?.Replace("\n", "<br />"))
+                        </div>
+                    </div>
+                }
             </div>
         </div>
 
+        <!-- Carte des Produits Prescrits -->
         <div class="card shadow-sm mb-4">
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-pills"></i> Produits prescrits (@Model.TotalItems)
+            <div class="card-header bg-transparent border-bottom-0 pb-0">
+                <h5 class="card-title mb-1 font-weight-bold text-primary">
+                    <i class="fas fa-pills me-2"></i>Produits Prescrits (@Model.TotalItems)
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="card-body pt-2">
                 @if (!Model.Items.Any())
                 {
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> Aucun produit prescrit.
+                    <div class="alert alert-secondary text-center py-4">
+                        <i class="fas fa-info-circle fa-2x mb-2 d-block text-muted"></i>
+                        Aucun produit n'a été prescrit.
                     </div>
                 }
                 else
                 {
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-sm table-prescription-items">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 30%">Produit</th>
-                                    <th style="width: 10%">Quantité</th>
-                                    <th style="width: 60%">Posologie et instructions</th>
+                                    <th style="width: 35%;">Produit</th>
+                                    <th class="text-center" style="width: 10%;">Quantité</th>
+                                    <th>Posologie & Instructions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var item in Model.Items)
                                 {
                                     <tr>
-                                        <td class="fw-bold">@item.ProductName</td>
-                                        <td>@item.Quantity</td>
+                                        <td>
+                                            <div class="fw-bold">@item.ProductName</div>
+                                            @* <small class="text-muted">ID: @item.ProductId</small> *@
+                                        </td>
+                                        <td class="text-center">@item.Quantity</td>
                                         <td>
                                             @if (!string.IsNullOrWhiteSpace(item.FullInstructions))
                                             {
-                                                <div>@item.FullInstructions</div>
+                                                <small>@item.FullInstructions</small>
                                             }
                                             else
                                             {
-                                                <ul class="mb-0 ps-3">
+                                                <ul class="list-unstyled mb-0 small">
                                                     @if (!string.IsNullOrWhiteSpace(item.Dosage))
                                                     {
-                                                        <li><span class="text-muted">Dosage:</span> @item.Dosage</li>
+                                                        <li><strong>Dosage:</strong> @item.Dosage</li>
                                                     }
                                                     @if (!string.IsNullOrWhiteSpace(item.Frequency))
                                                     {
-                                                        <li><span class="text-muted">Fréquence:</span> @item.Frequency</li>
+                                                        <li><strong>Fréquence:</strong> @item.Frequency</li>
                                                     }
                                                     @if (!string.IsNullOrWhiteSpace(item.Duration))
                                                     {
-                                                        <li><span class="text-muted">Durée:</span> @item.Duration</li>
+                                                        <li><strong>Durée:</strong> @item.Duration</li>
                                                     }
                                                     @if (!string.IsNullOrWhiteSpace(item.Instructions))
                                                     {
-                                                        <li><span class="text-muted">Instructions:</span> @item.Instructions</li>
+                                                        <li class="mt-1"><em>@item.Instructions</em></li>
                                                     }
                                                 </ul>
                                             }
@@ -154,74 +171,90 @@
             </div>
             @if (Model.CanDispense)
             {
-                <div class="card-footer d-flex justify-content-end">
-                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#dispenseModal">
-                        <i class="fas fa-check-circle"></i> Marquer comme dispensée
+                <div class="card-footer bg-transparent text-end border-top-0 pt-0">
+                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#dispenseModal">
+                        <i class="fas fa-check-circle me-1"></i> Marquer comme Dispensée
                     </button>
                 </div>
             }
         </div>
+    </div>
 
-        <div class="card shadow-sm">
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-print"></i> Impression et partage
-                </h5>
+    <div class="col-lg-4">
+        <!-- Carte Actions et Export -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-transparent border-bottom-0 pb-0">
+                <h6 class="card-title mb-1 font-weight-bold text-primary">
+                    <i class="fas fa-cogs me-2"></i>Actions
+                </h6>
             </div>
-            <div class="card-body">
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-primary" onclick="window.print()">
-                        <i class="fas fa-print"></i> Imprimer
+            <div class="card-body pt-2">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i> Imprimer la Prescription
                     </button>
-                    <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-outline-primary">
-                        <i class="fas fa-download"></i> Télécharger PDF
+                    <a asp-action="Print" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-download me-1"></i> Télécharger en PDF
                     </a>
-                    <button class="btn btn-outline-primary" id="btnShareEmail">
-                        <i class="fas fa-envelope"></i> Envoyer par email
+                    <button class="btn btn-outline-primary btn-sm" id="btnShareEmail">
+                        <i class="fas fa-envelope me-1"></i> Envoyer par Email
                     </button>
                 </div>
             </div>
         </div>
+
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-transparent border-bottom-0 pb-0">
+                    <h6 class="card-title mb-1 font-weight-bold text-primary">
+                        <i class="fas fa-project-diagram me-2"></i>Flux de Travail
+                    </h6>
+                </div>
+                <div class="card-body pt-2">
+                    @await Html.PartialAsync("_WorkflowComponents")
+                </div>
+            </div>
+        
     </div>
-
-    @await Html.PartialAsync("_WorkflowComponents")
-
 </div>
 
 <!-- Modal de dispensation -->
 @if (Model.CanDispense)
 {
     <div class="modal fade" id="dispenseModal" tabindex="-1" aria-labelledby="dispenseModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="dispenseModalLabel">Confirmer la dispensation</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="dispenseModalLabel">
+                        <i class="fas fa-check-circle me-2"></i>Confirmer la Dispensation
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-info mb-3">
-                        <i class="fas fa-info-circle"></i> Vous êtes sur le point de marquer cette prescription comme dispensée.
-                    </div>
-                    <p>Veuillez confirmer que tous les produits suivants ont été dispensés au patient :</p>
-                    <ul>
+                    <p>Vous êtes sur le point de marquer cette prescription comme <strong>Dispensée</strong>.</p>
+                    <p>Veuillez confirmer que les produits suivants ont été remis au patient :</p>
+                    <ul class="list-group list-group-flush mb-3">
                         @foreach (var item in Model.Items)
                         {
-                            <li><strong>@item.ProductName</strong> - Quantité: @item.Quantity</li>
+                            <li class="list-group-item px-0">
+                                <i class="fas fa-pills text-success me-2"></i><strong>@item.ProductName</strong> (Quantité: @item.Quantity)
+                            </li>
                         }
                     </ul>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="confirmDispense" required>
-                        <label class="form-check-label" for="confirmDispense">
-                            Je confirme avoir dispensé tous les produits prescrits au patient
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" id="confirmDispenseCheck" required>
+                        <label class="form-check-label" for="confirmDispenseCheck">
+                            Je confirme avoir dispensé tous les produits.
                         </label>
+                        <div class="invalid-feedback">Vous devez cocher cette case pour confirmer.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <form asp-action="Dispense" asp-route-id="@Model.Id" method="post">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+                    <form asp-action="Dispense" asp-route-id="@Model.Id" method="post" id="dispenseForm" class="needs-validation" novalidate>
                         @Html.AntiForgeryToken()
-                        <button type="submit" id="btnConfirmDispense" class="btn btn-success" disabled>
-                            <i class="fas fa-check-circle"></i> Confirmer
+                        <button type="submit" id="btnConfirmDispenseSubmit" class="btn btn-success btn-sm">
+                            <i class="fas fa-check-circle me-1"></i> Confirmer la Dispensation
                         </button>
                     </form>
                 </div>
@@ -230,24 +263,139 @@
     </div>
 }
 
+@section Styles {
+    <style>
+        .breadcrumb-custom {
+            background-color: transparent;
+            padding: 0.5rem 0;
+            font-size: 0.85rem;
+        }
+
+            .breadcrumb-custom .breadcrumb-item a {
+                color: #4e73df; /* Primary color */
+                text-decoration: none;
+            }
+
+                .breadcrumb-custom .breadcrumb-item a:hover {
+                    text-decoration: underline;
+                }
+
+            .breadcrumb-custom .breadcrumb-item.active {
+                color: #858796; /* Muted color */
+            }
+
+        .detail-item small {
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            color: #858796 !important; /* Muted text */
+        }
+
+        .detail-item .fw-bold {
+            font-size: 0.95rem;
+            color: #5a5c69; /* Dark gray */
+        }
+
+            .detail-item .fw-bold a {
+                color: #4e73df; /* Primary color */
+            }
+
+                .detail-item .fw-bold a:hover {
+                    text-decoration: underline !important;
+                }
+
+        .instructions-block {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            background-color: #f8f9fc !important; /* Use var(--bs-light-bg-subtle) if Bootstrap 5.3+ */
+        }
+
+        .table-prescription-items {
+            margin-bottom: 0; 
+        }
+
+            .table-prescription-items th {
+                font-weight: 600;
+                font-size: 0.8rem;
+                text-transform: uppercase;
+                color: #5a5c69;
+                background-color: #f8f9fc !important;
+            }
+
+            .table-prescription-items td {
+                vertical-align: middle;
+                font-size: 0.9rem;
+            }
+
+                .table-prescription-items td .list-unstyled li {
+                    padding: 2px 0;
+                }
+
+
+
+    </style>
+}
+
 @section Scripts {
     <script>
-        $(document).ready(function() {
-            // Gestion de la confirmation de dispensation
-            $("#confirmDispense").change(function() {
-                $("#btnConfirmDispense").prop("disabled", !this.checked);
-            });
+        (function () {
+            'use strict';
 
-            // Gestion des boutons d'export et partage
-            $("#btnExportPdf").click(function() {
-                // Cette fonction serait implémentée pour générer un PDF
-                alert("Fonctionnalité d'export PDF à implémenter");
-            });
+            const dispenseModalElement = document.getElementById('dispenseModal');
+            if (dispenseModalElement) {
+                const confirmCheckbox = dispenseModalElement.querySelector('#confirmDispenseCheck');
+                const dispenseForm = dispenseModalElement.querySelector('#dispenseForm');
+                const submitButton = dispenseModalElement.querySelector('#btnConfirmDispenseSubmit');
 
-            $("#btnShareEmail").click(function() {
-                // Cette fonction serait implémentée pour l'envoi par email
-                alert("Fonctionnalité d'envoi par email à implémenter");
-            });
-        });
+                if (confirmCheckbox && dispenseForm && submitButton) {
+                    confirmCheckbox.addEventListener('change', function () {
+                        submitButton.disabled = !this.checked;
+                        if (this.checked) {
+                            dispenseForm.classList.remove('was-validated'); 
+                        }
+                    });
+
+                    dispenseForm.addEventListener('submit', function (event) {
+                        if (!confirmCheckbox.checked) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            confirmCheckbox.classList.add('is-invalid'); 
+                        } else {
+                             confirmCheckbox.classList.remove('is-invalid');
+                        }
+
+                        if (!dispenseForm.checkValidity()) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        dispenseForm.classList.add('was-validated');
+                    }, false);
+
+                    // Initial state of the button
+                    submitButton.disabled = !confirmCheckbox.checked;
+                }
+            }
+
+            // Placeholder pour le partage par email
+            const btnShareEmail = document.getElementById('btnShareEmail');
+            if (btnShareEmail) {
+                btnShareEmail.addEventListener('click', function() {
+                    // Vous pouvez utiliser Swal (SweetAlert2) pour une meilleure UX ici
+                    alert("Fonctionnalité d'envoi par email à implémenter.\nExemple: window.location.href = 'mailto:?subject=Prescription&body=...';");
+                });
+            }
+        })();
     </script>
+}
+
+@functions {
+    public string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Pending" => "badge-warning-soft",
+            "Dispensed" => "badge-success-soft",
+            "Canceled" => "badge-danger-soft",
+            _ => "badge-secondary-soft"
+        };
+    }
 }

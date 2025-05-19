@@ -195,6 +195,9 @@
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            <a asp-action="CareEpisode" asp-controller="Dashboard" asp-route-id="@episode.Id" class="btn btn-outline-secondary">
+                                                <i class="fas fa-chart-line"></i>
+                                            </a>
                                             @if (episode.Status == "Active")
                                             {
                                                 <a asp-action="AddCareService" asp-route-episodeId="@episode.Id" 

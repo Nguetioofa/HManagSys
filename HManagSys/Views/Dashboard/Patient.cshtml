@@ -1,0 +1,628 @@
+﻿@using HManagSys.Models.ViewModels.Dashboard
+@model PatientDashboardViewModel
+@{
+    ViewData["Title"] = "Tableau de bord patient";
+}
+
+<div class="container-fluid">
+    <!-- En-tête du tableau de bord -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            Tableau de bord patient
+        </h1>
+        <div>
+            <a href="@Url.Action("Details", "Patient", new { id = Model.PatientId })" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                <i class="fas fa-user fa-sm text-white-50"></i> Fiche patient
+            </a>
+            <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm ml-2" id="printDashboard">
+                <i class="fas fa-download fa-sm text-white-50"></i> Imprimer
+            </a>
+        </div>
+    </div>
+
+    <!-- Fiche d'identité du patient -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">@Model.PatientName</h6>
+                    <div>
+                        @if (!Model.IsActive)
+                        {
+                            <span class="badge bg-danger">Inactif</span>
+                        }
+                        <span class="badge bg-info">@(Model.Age.HasValue ? $"{Model.Age} ans" : "Âge non renseigné")</span>
+                        @if (!string.IsNullOrEmpty(Model.BloodType))
+                        {
+                            <span class="badge bg-danger">Groupe @Model.BloodType</span>
+                        }
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th width="30%">Genre</th>
+                                        <td>@(Model.Gender == "M" ? "Masculin" : Model.Gender == "F" ? "Féminin" : "Non spécifié")</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Téléphone</th>
+                                        <td>
+                                            <a href="tel:@Model.PhoneNumber">@Model.PhoneNumber</a>
+                                        </td>
+                                    </tr>
+                                    @if (!string.IsNullOrEmpty(Model.Email))
+                                    {
+                                        <tr>
+                                            <th>Email</th>
+                                            <td>
+                                                <a href="mailto:@Model.Email">@Model.Email</a>
+                                            </td>
+                                        </tr>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Model.Allergies))
+                                    {
+                                        <tr>
+                                            <th>Allergies</th>
+                                            <td>
+                                                <span class="text-danger">@Model.Allergies</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="card mb-2 bg-light">
+                                        <div class="card-body p-2 text-center">
+                                            <h6 class="card-title mb-0 font-weight-bold">Dernière visite</h6>
+                                            <p class="mb-0">
+                                                @(Model.LastVisitDate.HasValue ? Model.LastVisitDate.Value.ToString("dd/MM/yyyy") : "Aucune")
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="card mb-2 @(Model.HasOutstandingBalance ? "bg-warning text-dark" : "bg-success text-white")">
+                                        <div class="card-body p-2 text-center">
+                                            <h6 class="card-title mb-0 font-weight-bold">Solde</h6>
+                                            <p class="mb-0">
+                                                @(Model.OutstandingBalance > 0 ? $"{Model.OutstandingBalance:N0} FCFA" : "Aucun")
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="card mb-0">
+                                        <div class="card-body p-2">
+                                            <div class="d-flex justify-content-around">
+                                                <a href="@Url.Action("AddDiagnosis", "Patient", new { patientId = Model.PatientId })" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-stethoscope"></i>
+                                                    <span class="d-none d-md-inline ml-1">Diagnostic</span>
+                                                </a>
+                                                <a href="@Url.Action("Create", "CareEpisode", new { patientId = Model.PatientId })" class="btn btn-sm btn-outline-success">
+                                                    <i class="fas fa-procedures"></i>
+                                                    <span class="d-none d-md-inline ml-1">Épisode</span>
+                                                </a>
+                                                <a href="@Url.Action("Create", "Examination", new { patientId = Model.PatientId })" class="btn btn-sm btn-outline-info">
+                                                    <i class="fas fa-microscope"></i>
+                                                    <span class="d-none d-md-inline ml-1">Examen</span>
+                                                </a>
+                                                <a href="@Url.Action("Create", "Prescription", new { patientId = Model.PatientId })" class="btn btn-sm btn-outline-warning">
+                                                    <i class="fas fa-prescription"></i>
+                                                    <span class="d-none d-md-inline ml-1">Prescription</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques du patient -->
+    <div class="row">
+        <!-- Indicateurs médicaux -->
+        <div class="col-lg-8">
+            <div class="row">
+                <!-- Diagnostics -->
+                <div class="col-md-3 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Diagnostics</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalDiagnosesCount</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-stethoscope fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Épisodes de soins -->
+                <div class="col-md-3 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Épisodes</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalCareEpisodesCount</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-procedures fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Examens -->
+                <div class="col-md-3 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Examens</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalExaminationsCount</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-microscope fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prescriptions -->
+                <div class="col-md-3 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Prescriptions</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalPrescriptionsCount</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-prescription fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Graphique de progression -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Progression des soins</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.CareProgressData.Count > 0)
+                    {
+                        <div class="chart-container" style="position: relative; height:250px;">
+                            <canvas id="careProgressChart"></canvas>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <p class="text-muted">Aucune donnée de progression disponible</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Finances -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Données financières</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="chart-pie mb-3" style="position: relative; height:180px;">
+                            <canvas id="financialPieChart"></canvas>
+                        </div>
+                        <span class="text-muted">Facturation: @Model.TotalAmountBilled.ToString("N0") FCFA</span>
+                    </div>
+                    
+                    <div class="card mb-3 border-left-success">
+                        <div class="card-body py-2">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Montant payé</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalAmountPaid.ToString("N0") FCFA</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-0 border-left-warning">
+                        <div class="card-body py-2">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Solde restant</div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.OutstandingBalance.ToString("N0") FCFA</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-exclamation-circle fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Historique de paiement -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Historique de paiement</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.PaymentHistoryData.Count > 0)
+                    {
+                        <div class="chart-container" style="position: relative; height:200px;">
+                            <canvas id="paymentHistoryChart"></canvas>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-3">
+                            <p class="text-muted">Aucun historique de paiement</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diagnostics actifs et épisodes de soins -->
+    <div class="row">
+        <!-- Diagnostics actifs -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Diagnostics actifs</h6>
+                </div>
+                <div class="card-body">
+                    @if (!Model.ActiveDiagnoses.Any())
+                    {
+                        <div class="text-center py-3">
+                            <p class="text-muted">Aucun diagnostic actif</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var diagnosis in Model.ActiveDiagnoses)
+                            {
+                                <a href="@Url.Action("Details", "Diagnosis", new { id = diagnosis.Id })" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1 @diagnosis.SeverityClass">@diagnosis.DiagnosisName</h6>
+                                        <small>@diagnosis.DiagnosisDate.ToString("dd/MM/yyyy")</small>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(diagnosis.DiagnosisCode))
+                                    {
+                                        <small class="text-muted me-2">Code: @diagnosis.DiagnosisCode</small>
+                                    }
+                                    @if (!string.IsNullOrEmpty(diagnosis.Severity))
+                                    {
+                                        <small class="@diagnosis.SeverityClass">Sévérité: @diagnosis.Severity</small>
+                                    }
+                                    @if (!string.IsNullOrEmpty(diagnosis.Description))
+                                    {
+                                        <p class="mb-1 small text-muted mt-1">@diagnosis.Description</p>
+                                    }
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Épisodes de soins actifs -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Épisodes de soins actifs</h6>
+                </div>
+                <div class="card-body">
+                    @if (!Model.ActiveCareEpisodes.Any())
+                    {
+                        <div class="text-center py-3">
+                            <p class="text-muted">Aucun épisode de soins actif</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var episode in Model.ActiveCareEpisodes)
+                            {
+                                <a href="@Url.Action("CareEpisode", "Dashboard", new { id = episode.Id })" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1 @episode.StatusClass">@episode.DiagnosisName</h6>
+                                        <small>Début: @episode.EpisodeStartDate.ToString("dd/MM/yyyy")</small>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <small>
+                                            <i class="fas fa-user-md"></i> @episode.PrimaryCaregiverName
+                                        </small>
+                                        <div>
+                                            <span class="badge bg-primary">Jour @episode.DurationDays</span>
+                                            @if (episode.RemainingBalance > 0)
+                                            {
+                                                <span class="badge bg-warning text-dark">@episode.RemainingBalance.ToString("N0") FCFA</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activités récentes -->
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Activités récentes</h6>
+                </div>
+                <div class="card-body">
+                    @if (!Model.RecentActivities.Any())
+                    {
+                        <div class="text-center py-4">
+                            <p class="text-muted">Aucune activité récente</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                        <th>Par</th>
+                                        <th>Statut</th>
+                                        @if (Model.RecentActivities.Any(a => a.Amount.HasValue))
+                                        {
+                                            <th>Montant</th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var activity in Model.RecentActivities)
+                                    {
+                                        <tr>
+                                            <td>@activity.ActivityDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td><i class="fas @activity.ActivityTypeIcon"></i> @activity.ActivityType</td>
+                                            <td>@activity.Description</td>
+                                            <td>@activity.PerformedByName</td>
+                                            <td><span class="badge @activity.StatusBadgeClass">@activity.Status</span></td>
+                                            @if (Model.RecentActivities.Any(a => a.Amount.HasValue))
+                                            {
+                                                <td>
+                                                    @if (activity.Amount.HasValue)
+                                                    {
+                                                        @activity.Amount.Value.ToString("N0") <span class="text-muted">FCFA</span>
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Données pour les graphiques
+            const careProgressData = @Json.Serialize(Model.CareProgressData);
+            const paymentHistoryData = @Json.Serialize(Model.PaymentHistoryData);
+            
+            // Données financières pour le camembert
+            const financialData = {
+                labels: ['Payé', 'Restant dû'],
+                datasets: [{
+                    data: [@Model.TotalAmountPaid, @Model.OutstandingBalance],
+                    backgroundColor: ['#1cc88a', '#f6c23e'],
+                    hoverBackgroundColor: ['#17a673', '#dda20a'],
+                    hoverBorderColor: "rgba(234, 236, 244, 1)",
+                }]
+            };
+            
+            // Graphique financier (camembert)
+            const financialCtx = document.getElementById('financialPieChart').getContext('2d');
+            new Chart(financialCtx, {
+                type: 'doughnut',
+                data: financialData,
+                options: {
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            
+            // Graphique de progression des soins
+            if (careProgressData.length > 0) {
+                const progressCtx = document.getElementById('careProgressChart').getContext('2d');
+                new Chart(progressCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: careProgressData.map(d => d.label),
+                        datasets: [{
+                            label: 'Progression (%)',
+                            data: careProgressData.map(d => d.value),
+                            backgroundColor: careProgressData.map(d => d.color || getRandomColor()),
+                            borderColor: careProgressData.map(d => d.color || getRandomColor()),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: {
+                                    display: true,
+                                    text: 'Progression (%)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Graphique historique de paiement
+            if (paymentHistoryData.length > 0) {
+                const paymentCtx = document.getElementById('paymentHistoryChart').getContext('2d');
+                new Chart(paymentCtx, {
+                    type: 'line',
+                    data: {
+                        labels: paymentHistoryData.map(d => d.label),
+                        datasets: [{
+                            label: 'Paiements',
+                            data: paymentHistoryData.map(d => d.value),
+                            backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                            borderColor: 'rgba(78, 115, 223, 1)',
+                            pointRadius: 3,
+                            pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                            pointBorderColor: 'rgba(78, 115, 223, 1)',
+                            pointHoverRadius: 5,
+                            tension: 0.3,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'FCFA'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Impression du tableau de bord
+            document.getElementById('printDashboard').addEventListener('click', function(e) {
+                e.preventDefault();
+                window.print();
+            });
+        });
+        
+        // Fonction utilitaire pour générer des couleurs aléatoires
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .border-left-primary {
+            border-left: 0.25rem solid #4e73df !important;
+        }
+        
+        .border-left-success {
+            border-left: 0.25rem solid #1cc88a !important;
+        }
+        
+        .border-left-info {
+            border-left: 0.25rem solid #36b9cc !important;
+        }
+        
+        .border-left-warning {
+            border-left: 0.25rem solid #f6c23e !important;
+        }
+        
+        .bg-purple {
+            background-color: #6f42c1 !important;
+        }
+        
+        .text-gray-300 {
+            color: #dddfeb !important;
+        }
+        
+        .text-gray-800 {
+            color: #5a5c69 !important;
+        }
+        
+        .chart-container {
+            position: relative;
+            margin: auto;
+        }
+        
+        .list-group-item-action:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+        
+        /* Styles pour l'impression */
+        @@media print {
+            .no-print {
+                display: none !important;
+            }
+            
+            .shadow {
+                box-shadow: none !important;
+            }
+            
+            .card {
+                break-inside: avoid;
+            }
+            
+            a {
+                text-decoration: none !important;
+                color: inherit !important;
+            }
+            
+            .list-group-item-action {
+                border-color: #ddd !important;
+            }
+        }
+    </style>
+}

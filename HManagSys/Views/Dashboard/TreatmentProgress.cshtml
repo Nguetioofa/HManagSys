@@ -1,0 +1,579 @@
+﻿@using HManagSys.Models.ViewModels.Dashboard
+@model TreatmentProgressViewModel
+@{
+    ViewData["Title"] = "Progression du traitement";
+}
+
+<div class="container-fluid">
+    <!-- En-tête avec actions -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            Progression du traitement
+        </h1>
+        <div>
+            <a href="@Url.Action("CareEpisode", new { id = Model.CareEpisodeId })" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                <i class="fas fa-arrow-left fa-sm text-white-50"></i> Retour à l'épisode
+            </a>
+            <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm ml-2" id="printProgress">
+                <i class="fas fa-print fa-sm text-white-50"></i> Imprimer
+            </a>
+        </div>
+    </div>
+
+    <!-- Informations patient et épisode -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card shadow border-left-primary">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-7">
+                            <h4 class="mb-2">
+                                <a href="@Url.Action("Patient", new { id = Model.PatientId })">
+                                    <i class="fas fa-user text-primary me-2"></i>@Model.PatientName
+                                </a>
+                            </h4>
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-stethoscope me-2"></i>Diagnostic : @Model.DiagnosisName
+                            </h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th width="30%">Statut</th>
+                                    <td>
+                                        <span class="badge @GetStatusBadgeClass(Model.Status)">@Model.Status</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Date de début</th>
+                                    <td>@Model.EpisodeStartDate.ToString("dd/MM/yyyy")</td>
+                                </tr>
+                                @if (Model.EpisodeEndDate.HasValue)
+                                {
+                                    <tr>
+                                        <th>Date de fin</th>
+                                        <td>@Model.EpisodeEndDate.Value.ToString("dd/MM/yyyy")</td>
+                                    </tr>
+                                }
+                                <tr>
+                                    <th>Durée</th>
+                                    <td>@((Model.EpisodeEndDate ?? DateTime.Now).Day - Model.EpisodeStartDate.Day) jours</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="card mb-3">
+                                <div class="card-header bg-light py-2">
+                                    <h6 class="mb-0 font-weight-bold">Statistiques générales</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4 text-center">
+                                            <div class="mb-1">
+                                                <span class="display-4 text-primary">@Model.TotalServices</span>
+                                            </div>
+                                            <div class="small text-muted">Services</div>
+                                        </div>
+                                        <div class="col-md-4 text-center">
+                                            <div class="mb-1">
+                                                <span class="display-4 text-info">@Model.TotalExaminations</span>
+                                            </div>
+                                            <div class="small text-muted">Examens</div>
+                                        </div>
+                                        <div class="col-md-4 text-center">
+                                            <div class="mb-1">
+                                                <span class="display-4 text-warning">@Model.TotalPrescriptions</span>
+                                            </div>
+                                            <div class="small text-muted">Prescriptions</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card border-left-success">
+                                <div class="card-body py-2">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Paiement</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@((int)Model.PaymentProgressPercentage)%</div>
+                                            <div class="progress progress-sm mr-2 mt-1">
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: @Model.PaymentProgressPercentage%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques de progression -->
+    <div class="row">
+        <!-- Progression par type -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Progression du traitement</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card shadow-sm mb-2">
+                                <div class="card-body text-center py-3">
+                                    <div id="servicesProgress" class="progress-circle mx-auto" data-value="@((int)Model.ProgressPercentage)">
+                                        <span class="progress-circle-left">
+                                            <span class="progress-circle-bar border-primary"></span>
+                                        </span>
+                                        <span class="progress-circle-right">
+                                            <span class="progress-circle-bar border-primary"></span>
+                                        </span>
+                                        <div class="progress-circle-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
+                                            <span class="h3 mb-0">@((int)Model.ProgressPercentage)%</span>
+                                        </div>
+                                    </div>
+                                    <h6 class="mt-3 mb-0">Services de soins</h6>
+                                    <div class="small text-muted">
+                                        @Model.CompletedServices / @Model.TotalServices services effectués
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card shadow-sm mb-2">
+                                <div class="card-body text-center py-3">
+                                    <div id="examsProgress" class="progress-circle mx-auto" data-value="@((int)Model.ExaminationsProgressPercentage)">
+                                        <span class="progress-circle-left">
+                                            <span class="progress-circle-bar border-info"></span>
+                                        </span>
+                                        <span class="progress-circle-right">
+                                            <span class="progress-circle-bar border-info"></span>
+                                        </span>
+                                        <div class="progress-circle-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
+                                            <span class="h3 mb-0">@((int)Model.ExaminationsProgressPercentage)%</span>
+                                        </div>
+                                    </div>
+                                    <h6 class="mt-3 mb-0">Examens</h6>
+                                    <div class="small text-muted">
+                                        @Model.CompletedExaminations / @Model.TotalExaminations examens réalisés
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card shadow-sm mb-2">
+                                <div class="card-body text-center py-3">
+                                    <div id="prescriptionsProgress" class="progress-circle mx-auto" data-value="@((int)Model.PrescriptionsProgressPercentage)">
+                                        <span class="progress-circle-left">
+                                            <span class="progress-circle-bar border-warning"></span>
+                                        </span>
+                                        <span class="progress-circle-right">
+                                            <span class="progress-circle-bar border-warning"></span>
+                                        </span>
+                                        <div class="progress-circle-value w-100 h-100 rounded-circle d-flex align-items-center justify-content-center">
+                                            <span class="h3 mb-0">@((int)Model.PrescriptionsProgressPercentage)%</span>
+                                        </div>
+                                    </div>
+                                    <h6 class="mt-3 mb-0">Prescriptions</h6>
+                                    <div class="small text-muted">
+                                        @Model.DispensedPrescriptions / @Model.TotalPrescriptions dispensées
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="font-weight-bold">Progression des services au fil du temps</h6>
+                    <div class="chart-container" style="position: relative; height:300px;">
+                        <canvas id="serviceProgressChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prochaines étapes -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Prochaines étapes</h6>
+                </div>
+                <div class="card-body">
+                    @if (!Model.NextSteps.Any())
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                            <p>Toutes les étapes sont terminées!</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="next-steps-list">
+                            @foreach (var step in Model.NextSteps)
+                            {
+                                <div class="card mb-3 @(step.IsOverdue ? "border-left-danger" : "border-left-primary")">
+                                    <div class="card-body py-2">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                <i class="fas @step.StepTypeIcon fa-2x @step.PriorityClass"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-1 @step.PriorityClass">
+                                                    @step.Description
+                                                    @if (step.Priority != "Normal")
+                                                    {
+                                                        <span class="badge bg-@(step.Priority == "Urgent" ? "danger" : step.Priority == "High" ? "warning" : "info")">
+                                                            @step.Priority
+                                                        </span>
+                                                    }
+                                                </h6>
+                                                <p class="mb-0 small">
+                                                    @if (step.DueDate.HasValue)
+                                                    {
+                                                        <span class="@(step.IsOverdue ? "text-danger" : "text-muted")">
+                                                            <i class="fas fa-calendar-day"></i>
+                                                            Pour le @step.DueDate.Value.ToString("dd/MM/yyyy")
+                                                            @if (step.IsOverdue)
+                                                            {
+                                                                <span class="ms-2 text-danger">(en retard)</span>
+                                                            }
+                                                        </span>
+                                                    }
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <!-- Boutons d'actions -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-center">
+                                <a href="@Url.Action("Create", "CareService", new { careEpisodeId = Model.CareEpisodeId })" class="btn btn-sm btn-outline-primary mx-1">
+                                    <i class="fas fa-plus-circle"></i> Service
+                                </a>
+                                <a href="@Url.Action("Create", "Examination", new { careEpisodeId = Model.CareEpisodeId })" class="btn btn-sm btn-outline-info mx-1">
+                                    <i class="fas fa-plus-circle"></i> Examen
+                                </a>
+                                <a href="@Url.Action("Create", "Prescription", new { careEpisodeId = Model.CareEpisodeId })" class="btn btn-sm btn-outline-warning mx-1">
+                                    <i class="fas fa-plus-circle"></i> Prescription
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Finances -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Détails financiers</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <th>Coût total</th>
+                                    <td class="text-end">@Model.TotalCost.ToString("N0") FCFA</td>
+                                </tr>
+                                <tr>
+                                    <th>Montant payé</th>
+                                    <td class="text-end text-success">@Model.AmountPaid.ToString("N0") FCFA</td>
+                                </tr>
+                                <tr>
+                                    <th>Solde restant</th>
+                                    <td class="text-end @(Model.RemainingBalance > 0 ? "text-warning" : "")">@Model.RemainingBalance.ToString("N0") FCFA</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (Model.RemainingBalance > 0)
+                    {
+                        <div class="text-center mt-2">
+                            <a href="@Url.Action("Create", "Payment", new { referenceType = "CareEpisode", referenceId = Model.CareEpisodeId })"
+                               class="btn btn-sm btn-success">
+                                <i class="fas fa-plus-circle"></i> Ajouter un paiement
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Services de soins récents -->
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Services de soins récents</h6>
+                    <a href="@Url.Action("Index", "CareService", new { careEpisodeId = Model.CareEpisodeId })" class="btn btn-sm btn-primary">
+                        Voir tous les services
+                    </a>
+                </div>
+                <div class="card-body">
+                    @if (!Model.RecentCareServices.Any())
+                    {
+                        <div class="text-center py-4">
+                            <p class="text-muted">Aucun service de soins enregistré</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type de soin</th>
+                                        <th>Soignant</th>
+                                        <th>Durée</th>
+                                        <th>Coût</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var service in Model.RecentCareServices)
+                                    {
+                                        <tr>
+                                            <td>@service.ServiceDate.ToString("dd/MM/yyyy")</td>
+                                            <td>@service.CareTypeName</td>
+                                            <td>@service.AdministeredByName</td>
+                                            <td>@(service.Duration.HasValue ? $"{service.Duration} min" : "-")</td>
+                                            <td>@service.Cost.ToString("N0") FCFA</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(service.Notes))
+                                                {
+                                                    <span title="@service.Notes">
+                                                        @(service.Notes.Length > 30
+                                                                                                    ? service.Notes.Substring(0, 27) + "..."
+                                                                                                    : service.Notes)
+                                        </span>
+                                                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Données pour les graphiques
+            const serviceProgressData = @Json.Serialize(Model.ServiceProgressByDate);
+
+            // Configurer les cercles de progression
+            setupProgressCircles();
+
+            // Graphique de progression des services
+            if (serviceProgressData.length > 0) {
+                const ctx = document.getElementById('serviceProgressChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: serviceProgressData.map(d => d.label),
+                        datasets: [{
+                            label: 'Services effectués',
+                            data: serviceProgressData.map(d => d.value),
+                            backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                            borderColor: 'rgba(78, 115, 223, 1)',
+                            pointRadius: 3,
+                            pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                            pointBorderColor: 'rgba(78, 115, 223, 1)',
+                            pointHoverRadius: 5,
+                            tension: 0.3,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Impression du rapport
+            document.getElementById('printProgress').addEventListener('click', function(e) {
+                e.preventDefault();
+                window.print();
+            });
+        });
+
+        // Fonction pour configurer les cercles de progression
+        function setupProgressCircles() {
+            const circles = document.querySelectorAll('.progress-circle');
+            circles.forEach(function(circle) {
+                const value = circle.getAttribute('data-value');
+                const leftBar = circle.querySelector('.progress-circle-left .progress-circle-bar');
+                const rightBar = circle.querySelector('.progress-circle-right .progress-circle-bar');
+
+                if (value > 0) {
+                    if (value <= 50) {
+                        rightBar.style.transform = `rotate(${value * 3.6}deg)`;
+                    } else {
+                        rightBar.style.transform = 'rotate(180deg)';
+                        leftBar.style.transform = `rotate(${(value - 50) * 3.6}deg)`;
+                    }
+                }
+            });
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .border-left-primary {
+            border-left: 0.25rem solid #4e73df !important;
+        }
+
+        .border-left-success {
+            border-left: 0.25rem solid #1cc88a !important;
+        }
+
+        .border-left-info {
+            border-left: 0.25rem solid #36b9cc !important;
+        }
+
+        .border-left-warning {
+            border-left: 0.25rem solid #f6c23e !important;
+        }
+
+        .border-left-danger {
+            border-left: 0.25rem solid #e74a3b !important;
+        }
+
+        .text-gray-300 {
+            color: #dddfeb !important;
+        }
+
+        .text-gray-800 {
+            color: #5a5c69 !important;
+        }
+
+        /* Cercles de progression */
+        .progress-circle {
+            position: relative;
+            height: 120px;
+            width: 120px;
+            border-radius: 50%;
+            background: #f2f3f8;
+        }
+
+        .progress-circle-left, .progress-circle-right {
+            height: 100%;
+            width: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            border-radius: 50%;
+            clip: rect(0, 60px, 120px, 0);
+        }
+
+        .progress-circle-bar {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            border-radius: 50%;
+            clip: rect(0, 60px, 120px, 0);
+            transform: rotate(0deg);
+            transition: transform 0.8s ease;
+        }
+
+        .progress-circle-left .progress-circle-bar {
+            clip: rect(0, 60px, 120px, 0);
+        }
+
+        .progress-circle-right .progress-circle-bar {
+            clip: rect(0, 120px, 120px, 60px);
+        }
+
+        .progress-circle-value {
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: white;
+            border-radius: 50%;
+            font-family: Arial;
+            font-weight: bold;
+            font-size: 24px;
+            color: #333;
+            border: 15px solid #f2f3f8;
+        }
+
+        .border-primary {
+            border: 5px solid #4e73df;
+        }
+
+        .border-info {
+            border: 5px solid #36b9cc;
+        }
+
+        .border-warning {
+            border: 5px solid #f6c23e;
+        }
+
+        /* Styles pour l'impression */
+        @@media print {
+            .no-print
+
+        {
+            display: none !important;
+        }
+
+        .shadow {
+            box-shadow: none !important;
+        }
+
+        .card {
+            break-inside: avoid;
+        }
+
+        a {
+            text-decoration: none !important;
+            color: inherit !important;
+        }
+
+        .btn {
+            display: none !important;
+        }
+
+        }
+    </style>
+}
+
+@functions {
+    string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Active" => "bg-primary",
+            "Completed" => "bg-success",
+            "Interrupted" => "bg-warning",
+            _ => "bg-secondary"
+        };
+    }
+}

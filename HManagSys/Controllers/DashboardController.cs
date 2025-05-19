@@ -11,22 +11,26 @@ namespace HManagSys.Controllers
     /// Interface principale pour les opérations quotidiennes
     /// </summary>
     [RequireAuthentication]
-    public class DashboardController : Controller
+    [RequireCurrentCenter]
+    public class DashboardController : BaseController
     {
         private readonly IApplicationLogger _appLogger;
         private readonly IAuthenticationService _authService;
         private readonly IUserRepository _userRepository;
         private readonly IHospitalCenterRepository _hospitalCenterRepository;
+        private readonly IMedicalDashboardService _medicalDashboardService;
 
         public DashboardController(
             IApplicationLogger appLogger,
             IAuthenticationService authService,
             IUserRepository userRepository,
+            IMedicalDashboardService medicalDashboardService,
             IHospitalCenterRepository hospitalCenterRepository)
         {
             _appLogger = appLogger;
             _authService = authService;
             _userRepository = userRepository;
+            _medicalDashboardService = medicalDashboardService;
             _hospitalCenterRepository = hospitalCenterRepository;
         }
 
@@ -128,6 +132,185 @@ namespace HManagSys.Controllers
             }
         }
 
+
+
+        /// <summary>
+        /// Tableau de bord médical pour le centre actuel
+        /// </summary>
+        [MedicalStaff]
+        public async Task<IActionResult> Medical()
+        {
+            try
+            {
+                if (!CurrentCenterId.HasValue)
+                {
+                    return RedirectToAction("SelectCenter", "Auth");
+                }
+
+                var dashboardData = await _medicalDashboardService.GetMedicalDashboardDataAsync(CurrentCenterId.Value);
+
+                return View(dashboardData);
+            }
+            catch (Exception ex)
+            {
+                await _appLogger.LogErrorAsync("Dashboard", "MedicalDashboardError",
+                    "Erreur lors du chargement du tableau de bord médical",
+                    CurrentUserId, CurrentCenterId,
+                    details: new { Error = ex.Message });
+
+                TempData["ErrorMessage"] = "Erreur lors du chargement du tableau de bord médical";
+                return RedirectToAction("Index");
+            }
+        }
+
+
+        /// <summary>
+        /// Tableau de bord pour un patient spécifique
+        /// </summary>
+        [MedicalStaff]
+        public async Task<IActionResult> Patient(int id)
+        {
+            try
+            {
+                if (!CurrentCenterId.HasValue)
+                {
+                    return RedirectToAction("SelectCenter", "Auth");
+                }
+
+                var dashboardData = await _medicalDashboardService.GetPatientDashboardDataAsync(id, CurrentCenterId.Value);
+
+                return View(dashboardData);
+            }
+            catch (Exception ex)
+            {
+                await _appLogger.LogErrorAsync("Dashboard", "PatientDashboardError",
+                    $"Erreur lors du chargement du tableau de bord du patient {id}",
+                    CurrentUserId, CurrentCenterId,
+                    details: new { PatientId = id, Error = ex.Message });
+
+                TempData["ErrorMessage"] = "Erreur lors du chargement du tableau de bord du patient";
+                return RedirectToAction("Details", "Patient", new { id });
+            }
+        }
+
+        /// <summary>
+        /// Résumé d'un épisode de soins
+        /// </summary>
+        [MedicalStaff]
+        public async Task<IActionResult> CareEpisode(int id)
+        {
+            try
+            {
+                var episodeSummary = await _medicalDashboardService.GetCareEpisodeSummaryAsync(id);
+
+                return View(episodeSummary);
+            }
+            catch (Exception ex)
+            {
+                await _appLogger.LogErrorAsync("Dashboard", "CareEpisodeSummaryError",
+                    $"Erreur lors du chargement du résumé de l'épisode de soins {id}",
+                    CurrentUserId, CurrentCenterId,
+                    details: new { EpisodeId = id, Error = ex.Message });
+
+                TempData["ErrorMessage"] = "Erreur lors du chargement du résumé de l'épisode de soins";
+                return RedirectToAction("Index", "CareEpisode");
+            }
+        }
+
+        /// <summary>
+        /// Progression du traitement pour un épisode de soins
+        /// </summary>
+        [MedicalStaff]
+        public async Task<IActionResult> TreatmentProgress(int id)
+        {
+            try
+            {
+                var progressData = await _medicalDashboardService.GetTreatmentProgressAsync(id);
+
+                return View(progressData);
+            }
+            catch (Exception ex)
+            {
+                await _appLogger.LogErrorAsync("Dashboard", "TreatmentProgressError",
+                    $"Erreur lors du chargement de la progression du traitement {id}",
+                    CurrentUserId, CurrentCenterId,
+                    details: new { EpisodeId = id, Error = ex.Message });
+
+                TempData["ErrorMessage"] = "Erreur lors du chargement de la progression du traitement";
+                return RedirectToAction("CareEpisode", new { id });
+            }
+        }
+
+        /// <summary>
+        /// Statistiques médicales récentes
+        /// </summary>
+        [MedicalStaff]
+        public async Task<IActionResult> RecentStatistics(int? days = 30)
+        {
+            try
+            {
+                if (!CurrentCenterId.HasValue)
+                {
+                    return RedirectToAction("SelectCenter", "Auth");
+                }
+
+                var statsData = await _medicalDashboardService.GetRecentMedicalStatisticsAsync(
+                    CurrentCenterId.Value, days ?? 30);
+
+                return View(statsData);
+            }
+            catch (Exception ex)
+            {
+                await _appLogger.LogErrorAsync("Dashboard", "RecentStatisticsError",
+                    "Erreur lors du chargement des statistiques médicales récentes",
+                    CurrentUserId, CurrentCenterId,
+                    details: new { Days = days, Error = ex.Message });
+
+                TempData["ErrorMessage"] = "Erreur lors du chargement des statistiques médicales récentes";
+                return RedirectToAction("Index");
+            }
+        }
+
+        /// <summary>
+        /// Partie AJAX - récupère les données de progression du traitement
+        /// </summary>
+        [HttpGet]
+        [MedicalStaff]
+        public async Task<IActionResult> GetTreatmentProgressData(int id)
+        {
+            try
+            {
+                var progressData = await _medicalDashboardService.GetTreatmentProgressAsync(id);
+
+                return Json(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        progressPercentage = progressData.ProgressPercentage,
+                        examinationsProgressPercentage = progressData.ExaminationsProgressPercentage,
+                        prescriptionsProgressPercentage = progressData.PrescriptionsProgressPercentage,
+                        paymentProgressPercentage = progressData.PaymentProgressPercentage,
+                        serviceProgressByDate = progressData.ServiceProgressByDate,
+                        nextSteps = progressData.NextSteps
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                await _appLogger.LogErrorAsync("Dashboard", "GetTreatmentProgressDataError",
+                    $"Erreur lors de la récupération des données de progression pour l'épisode {id}",
+                    CurrentUserId, CurrentCenterId,
+                    details: new { EpisodeId = id, Error = ex.Message });
+
+                return Json(new
+                {
+                    success = false,
+                    message = "Erreur lors de la récupération des données de progression"
+                });
+            }
+        }
+
         /// <summary>
         /// Génère un message de bienvenue personnalisé selon l'heure
         /// </summary>
@@ -144,5 +327,7 @@ namespace HManagSys.Controllers
             return $"{greeting}, {firstName}";
         }
     }
+
+
 
 }

@@ -1,0 +1,470 @@
+﻿@using HManagSys.Models.ViewModels.Dashboard
+@model MedicalDashboardViewModel
+@{
+    ViewData["Title"] = "Tableau de bord médical";
+}
+
+<div class="container-fluid">
+    <!-- En-tête du tableau de bord -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Tableau de bord médical</h1>
+        <div>
+            <a href="@Url.Action("RecentStatistics")" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+                <i class="fas fa-calendar fa-sm text-white-50"></i> Statistiques détaillées
+            </a>
+            <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm ml-2" id="printDashboard">
+                <i class="fas fa-download fa-sm text-white-50"></i> Générer rapport
+            </a>
+        </div>
+    </div>
+
+    <!-- Cartes statistiques -->
+    <div class="row">
+        <!-- Patients -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Patients
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalPatientsCount</div>
+                            <div class="text-xs text-muted">
+                                <span class="text-success">+@Model.NewPatientsThisMonth</span> ce mois
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Épisodes de soins -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Épisodes de soins
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ActiveCareEpisodesCount actifs</div>
+                            <div class="text-xs text-muted">
+                                <span class="text-success">@Model.CompletedCareEpisodesThisMonth terminés</span>,
+                                <span class="text-warning">@Model.InterruptedCareEpisodesThisMonth interrompus</span> ce mois
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-procedures fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Examens -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Examens
+                            </div>
+                            <div class="row no-gutters align-items-center">
+                                <div class="col-auto">
+                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">
+                                        @Model.PendingExaminationsCount en attente
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-muted">
+                                <span class="text-info">@Model.ScheduledExaminationsCount</span> planifiés,
+                                <span class="text-success">@Model.CompletedExaminationsThisMonth</span> terminés ce mois
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-microscope fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prescriptions -->
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Prescriptions
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.PendingPrescriptionsCount en attente
+                            </div>
+                            <div class="text-xs text-muted">
+                                <span class="text-success">@Model.DispensedPrescriptionsThisMonth dispensées</span> ce mois
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-prescription fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenus et alertes -->
+    <div class="row">
+        <!-- Revenus des soins -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenus des soins médicaux</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="text-center border-left-success p-3 rounded mb-3">
+                                <h4>@Model.TotalCareRevenue.ToString("N0") FCFA</h4>
+                                <p class="mb-0 text-muted small">Total encaissé</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-center border-left-warning p-3 rounded mb-3">
+                                <h4>@Model.OutstandingCareBalance.ToString("N0") FCFA</h4>
+                                <p class="mb-0 text-muted small">Solde restant dû</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <canvas id="dailyAdmissionChart" width="100%" height="50"></canvas>
+                    </div>
+                    <hr>
+                    <p class="text-muted small text-center">Admissions de patients sur les 30 derniers jours</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertes -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Alertes médicales</h6>
+                </div>
+                <div class="card-body">
+                    @if (!Model.Alerts.Any())
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                            <p>Aucune alerte à signaler</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert-list">
+                            @foreach (var alert in Model.Alerts)
+                            {
+                                <div class="alert @alert.AlertTypeClass alert-dismissible fade show mb-3" role="alert">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <i class="fas @alert.AlertTypeIcon fa-2x"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="alert-heading mb-1">@alert.Title</h6>
+                                            <p class="mb-0">@alert.Message</p>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques et activité récente -->
+    <div class="row">
+        <!-- Examens par type -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Examens par type</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:350px;">
+                        <canvas id="examinationTypesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Épisodes de soins mensuels -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Épisodes de soins (6 derniers mois)</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:350px;">
+                        <canvas id="careEpisodesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activités récentes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Activités récentes</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>Patient</th>
+                                    <th>Utilisateur</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (!Model.RecentActivities.Any())
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center">Aucune activité récente</td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    foreach (var activity in Model.RecentActivities)
+                                    {
+                                        <tr>
+                                            <td>@activity.ActivityDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td><i class="fas @activity.ActivityTypeIcon"></i> @activity.ActivityType</td>
+                                            <td>@activity.Description</td>
+                                            <td>@activity.PatientName</td>
+                                            <td>@activity.UserName</td>
+                                            <td><span class="badge @activity.StatusBadgeClass">@activity.Status</span></td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Configuration des graphiques pour ne pas afficher la légende si pas nécessaire
+        Chart.defaults.font.family = "'Nunito', sans-serif";
+        Chart.defaults.font.size = 12;
+        Chart.defaults.color = "#858796";
+
+        // Préparation des données pour le graphique des admissions quotidiennes
+        const dailyAdmissionData = @Json.Serialize(Model.DailyPatientAdmissions);
+        const examinationTypesData = @Json.Serialize(Model.ExaminationsByType);
+        const careEpisodesData = @Json.Serialize(Model.MonthlyCareEpisodes);
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Graphique des admissions quotidiennes
+            const dailyCtx = document.getElementById('dailyAdmissionChart').getContext('2d');
+            new Chart(dailyCtx, {
+                type: 'line',
+                data: {
+                    labels: dailyAdmissionData.map(d => d.label),
+                    datasets: [{
+                        label: 'Admissions',
+                        data: dailyAdmissionData.map(d => d.value),
+                        backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                        borderColor: 'rgba(78, 115, 223, 1)',
+                        pointRadius: 3,
+                        pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                        pointBorderColor: 'rgba(78, 115, 223, 1)',
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: 'rgba(78, 115, 223, 1)',
+                        pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+                        pointHitRadius: 10,
+                        pointBorderWidth: 2,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Graphique des examens par type
+            const examinationCtx = document.getElementById('examinationTypesChart').getContext('2d');
+            new Chart(examinationCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: examinationTypesData.map(d => d.label),
+                    datasets: [{
+                        data: examinationTypesData.map(d => d.value),
+                        backgroundColor: examinationTypesData.map(d => d.color || getRandomColor()),
+                        hoverBackgroundColor: examinationTypesData.map(d => d.color || getRandomColor()),
+                        hoverBorderColor: "rgba(234, 236, 244, 1)",
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            // Graphique des épisodes de soins mensuels
+            const careEpisodesCtx = document.getElementById('careEpisodesChart').getContext('2d');
+
+            // Organiser les données par mois et catégorie
+            const months = [...new Set(careEpisodesData.map(d => d.label))];
+            const categories = [...new Set(careEpisodesData.map(d => d.category))];
+
+            // Préparer les datasets
+            const datasets = categories.map(category => {
+                const color = careEpisodesData.find(d => d.category === category)?.color || getRandomColor();
+
+                return {
+                    label: category,
+                    data: months.map(month => {
+                        const entry = careEpisodesData.find(d => d.label === month && d.category === category);
+                        return entry ? entry.value : 0;
+                    }),
+                    backgroundColor: color,
+                    borderColor: color,
+                    borderWidth: 1
+                };
+            });
+
+            new Chart(careEpisodesCtx, {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: datasets
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        },
+                        x: {
+                            stacked: false
+                        }
+                    }
+                }
+            });
+        });
+
+        // Fonction utilitaire pour générer des couleurs aléatoires
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        // Gestionnaire pour l'impression du tableau de bord
+        document.getElementById('printDashboard').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.print();
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .border-left-primary {
+            border-left: 0.25rem solid #4e73df !important;
+        }
+
+        .border-left-success {
+            border-left: 0.25rem solid #1cc88a !important;
+        }
+
+        .border-left-info {
+            border-left: 0.25rem solid #36b9cc !important;
+        }
+
+        .border-left-warning {
+            border-left: 0.25rem solid #f6c23e !important;
+        }
+
+        .bg-purple {
+            background-color: #6f42c1 !important;
+        }
+
+        .text-gray-300 {
+            color: #dddfeb !important;
+        }
+
+        .text-gray-800 {
+            color: #5a5c69 !important;
+        }
+
+        .chart-container {
+            position: relative;
+            margin: auto;
+        }
+
+        /* Styles for print media */
+        @@media print {
+            .no-print
+
+        {
+            display: none !important;
+        }
+
+        .shadow {
+            box-shadow: none !important;
+        }
+
+        .card {
+            break-inside: avoid;
+        }
+
+        }
+    </style>
+}

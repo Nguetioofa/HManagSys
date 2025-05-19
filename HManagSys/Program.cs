@@ -51,6 +51,7 @@ builder.Services.AddScoped<IDocumentGenerationService, DocumentGenerationService
 QuestPDF.Settings.License = LicenseType.Community;
 
 builder.Services.AddScoped<IWorkflowService, WorkflowService>();
+builder.Services.AddScoped<IMedicalDashboardService, MedicalDashboardService>();
 
 // Configuration de la session
 builder.Services.AddSession(options =>

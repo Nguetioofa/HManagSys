@@ -13,6 +13,9 @@
             <a asp-action="Index" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left"></i> Retour à la liste
             </a>
+            <a asp-action="CareEpisode" asp-controller="Dashboard" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
+                <i class="fas fa-chart-line"></i> Tableau de bord
+            </a>
             @if (Model.Status == "Active")
             {
                 <div class="btn-group ml-2">

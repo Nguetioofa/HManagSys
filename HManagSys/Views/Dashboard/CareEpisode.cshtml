@@ -1,0 +1,435 @@
+﻿@using HManagSys.Models.ViewModels.Dashboard
+@model CareEpisodeSummaryViewModel
+@{
+    ViewData["Title"] = "Résumé de l'épisode de soins";
+}
+
+<div class="container-fluid">
+    <!-- En-tête avec actions -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            Épisode de soins #@Model.CareEpisodeId
+        </h1>
+        <div>
+            <a href="@Url.Action("TreatmentProgress", new { id = Model.CareEpisodeId })" class="d-none d-sm-inline-block btn btn-sm btn-info shadow-sm">
+                <i class="fas fa-chart-line fa-sm text-white-50"></i> Progression du traitement
+            </a>
+            <a href="@Url.Action("Details", "CareEpisode", new { id = Model.CareEpisodeId })" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm ml-2">
+                <i class="fas fa-edit fa-sm text-white-50"></i> Modifier
+            </a>
+            <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm ml-2" id="printSummary">
+                <i class="fas fa-print fa-sm text-white-50"></i> Imprimer
+            </a>
+        </div>
+    </div>
+
+    <!-- Résumé principal -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <a href="@Url.Action("Patient", new { id = Model.PatientId })" class="text-white">
+                            <i class="fas fa-user me-1"></i>
+                            @Model.PatientName
+                        </a>
+                        <i class="fas fa-angle-right mx-2"></i>
+                        @Model.DiagnosisName
+                    </h6>
+                    <div>
+                        <span class="badge @GetStatusBadgeClass(Model.Status)">@Model.Status</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th width="40%">Soignant principal</th>
+                                        <td>@Model.PrimaryCaregiverName</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Date de début</th>
+                                        <td>@Model.EpisodeStartDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                    </tr>
+                                    @if (Model.EpisodeEndDate.HasValue)
+                                    {
+                                        <tr>
+                                            <th>Date de fin</th>
+                                            <td>@Model.EpisodeEndDate.Value.ToString("dd/MM/yyyy HH:mm")</td>
+                                        </tr>
+                                    }
+                                    <tr>
+                                        <th>Durée</th>
+                                        <td>@Model.DurationDays jours</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card border-left-primary mb-2">
+                                        <div class="card-body py-2">
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-2">
+                                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Services</div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.CareServicesCount</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <i class="fas fa-procedures fa-2x text-gray-300"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-left-info mb-2">
+                                        <div class="card-body py-2">
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-2">
+                                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Examens</div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ExaminationsCount</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <i class="fas fa-microscope fa-2x text-gray-300"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card border-left-warning mb-2">
+                                        <div class="card-body py-2">
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col mr-2">
+                                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Prescriptions</div>
+                                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.PrescriptionsCount</div>
+                                                </div>
+                                                <div class="col-auto">
+                                                    <i class="fas fa-prescription fa-2x text-gray-300"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card mt-3">
+                                <div class="card-body py-2">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="card-title mb-0">Paiement</h6>
+                                        <span class="badge @(Model.RemainingBalance > 0 ? "bg-warning text-dark" : "bg-success text-white")">
+                                            @GetPaymentStatus(Model.TotalCost, Model.AmountPaid)
+                                        </span>
+                                    </div>
+                                    <div class="progress mb-2" style="height: 10px;">
+                                        <div class="progress-bar bg-success" role="progressbar" 
+                                             style="width: @GetPaymentPercentage(Model.TotalCost, Model.AmountPaid)%"
+                                             aria-valuenow="@GetPaymentPercentage(Model.TotalCost, Model.AmountPaid)" 
+                                             aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center small">
+                                        <span>Payé: @Model.AmountPaid.ToString("N0") FCFA</span>
+                                        <span>Total: @Model.TotalCost.ToString("N0") FCFA</span>
+                                    </div>
+                                    @if (Model.RemainingBalance > 0)
+                                    {
+                                        <div class="text-center mt-2">
+                                            <a href="@Url.Action("Create", "Payment", new { referenceType = "CareEpisode", referenceId = Model.CareEpisodeId })" 
+                                               class="btn btn-sm btn-success">
+                                                <i class="fas fa-plus-circle"></i> Ajouter un paiement
+                                            </a>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-center">
+                                <a href="@Url.Action("Create", "CareService", new { careEpisodeId = Model.CareEpisodeId })" class="btn btn-sm btn-outline-primary mx-1">
+                                    <i class="fas fa-plus-circle"></i> Service
+                                </a>
+                                <a href="@Url.Action("Create", "Examination", new { careEpisodeId = Model.CareEpisodeId })" class="btn btn-sm btn-outline-info mx-1">
+                                    <i class="fas fa-plus-circle"></i> Examen
+                                </a>
+                                <a href="@Url.Action("Create", "Prescription", new { careEpisodeId = Model.CareEpisodeId })" class="btn btn-sm btn-outline-warning mx-1">
+                                    <i class="fas fa-plus-circle"></i> Prescription
+                                </a>
+                                @if (Model.Status == "Active")
+                                {
+                                    <a href="@Url.Action("Complete", "CareEpisode", new { id = Model.CareEpisodeId })" class="btn btn-sm btn-outline-success mx-1">
+                                        <i class="fas fa-check-circle"></i> Terminer
+                                    </a>
+                                    <a href="@Url.Action("Interrupt", "CareEpisode", new { id = Model.CareEpisodeId })" class="btn btn-sm btn-outline-danger mx-1">
+                                        <i class="fas fa-times-circle"></i> Interrompre
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Services, examens et prescriptions -->
+    <div class="row">
+        <!-- Services de soins -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-procedures"></i> Services de soins récents
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @if (!Model.RecentCareServices.Any())
+                    {
+                        <div class="text-center py-3">
+                            <p class="text-muted">Aucun service de soins enregistré</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var service in Model.RecentCareServices)
+                            {
+                                <a href="@Url.Action("Details", "CareService", new { id = service.Id })" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">@service.CareTypeName</h6>
+                                        <small>@service.ServiceDate.ToString("dd/MM/yyyy")</small>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-1">
+                                        <small class="text-muted">
+                                            <i class="fas fa-user-md"></i> @service.AdministeredByName
+                                        </small>
+                                        <span class="badge bg-primary">@service.Cost.ToString("N0") FCFA</span>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(service.Notes))
+                                    {
+                                        <small class="text-muted d-block mt-1 text-truncate">@service.Notes</small>
+                                    }
+                                </a>
+                            }
+                        </div>
+                        
+                        <div class="mt-3 text-center">
+                            <a href="@Url.Action("Index", "CareService", new { careEpisodeId = Model.CareEpisodeId })" class="btn btn-sm btn-outline-primary">
+                                Voir tous les services
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Examens -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-microscope"></i> Examens récents
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @if (!Model.RecentExaminations.Any())
+                    {
+                        <div class="text-center py-3">
+                            <p class="text-muted">Aucun examen enregistré</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var exam in Model.RecentExaminations)
+                            {
+                                <a href="@Url.Action("Details", "Examination", new { id = exam.Id })" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">@exam.ExaminationTypeName</h6>
+                                        <small>
+                                            <span class="badge @exam.StatusClass">@exam.Status</span>
+                                        </small>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-1">
+                                        <small class="text-muted">
+                                            Demandé le @exam.RequestDate.ToString("dd/MM/yyyy")
+                                        </small>
+                                        <span class="badge bg-info">@exam.FinalPrice.ToString("N0") FCFA</span>
+                                    </div>
+                                    @if (exam.PerformedDate.HasValue)
+                                    {
+                                        <small class="text-muted d-block mt-1">
+                                            Réalisé le @exam.PerformedDate.Value.ToString("dd/MM/yyyy")
+                                        </small>
+                                    }
+                                </a>
+                            }
+                        </div>
+                        
+                        <div class="mt-3 text-center">
+                            <a href="@Url.Action("Index", "Examination", new { careEpisodeId = Model.CareEpisodeId })" class="btn btn-sm btn-outline-info">
+                                Voir tous les examens
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Prescriptions -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-prescription"></i> Prescriptions récentes
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @if (!Model.RecentPrescriptions.Any())
+                    {
+                        <div class="text-center py-3">
+                            <p class="text-muted">Aucune prescription enregistrée</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="list-group">
+                            @foreach (var prescription in Model.RecentPrescriptions)
+                            {
+                                <a href="@Url.Action("Details", "Prescription", new { id = prescription.Id })" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Prescription #@prescription.Id</h6>
+                                        <small class="badge @prescription.StatusBadge">@prescription.StatusText</small>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-1">
+                                        <small class="text-muted">
+                                            <i class="fas fa-user-md"></i> @prescription.PrescribedByName
+                                        </small>
+                                        <small>@prescription.FormattedDate</small>
+                                    </div>
+                                </a>
+                            }
+                        </div>
+                        
+                        <div class="mt-3 text-center">
+                            <a href="@Url.Action("Index", "Prescription", new { careEpisodeId = Model.CareEpisodeId })" class="btn btn-sm btn-outline-warning">
+                                Voir toutes les prescriptions
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Impression du résumé
+        document.getElementById('printSummary').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.print();
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .border-left-primary {
+            border-left: 0.25rem solid #4e73df !important;
+        }
+        
+        .border-left-success {
+            border-left: 0.25rem solid #1cc88a !important;
+        }
+        
+        .border-left-info {
+            border-left: 0.25rem solid #36b9cc !important;
+        }
+        
+        .border-left-warning {
+            border-left: 0.25rem solid #f6c23e !important;
+        }
+        
+        .text-gray-300 {
+            color: #dddfeb !important;
+        }
+        
+        .text-gray-800 {
+            color: #5a5c69 !important;
+        }
+        
+        .list-group-item-action {
+            transition: all 0.2s ease;
+        }
+        
+        .list-group-item-action:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Styles pour l'impression */
+        @@media print {
+            .no-print {
+                display: none !important;
+            }
+            
+            .shadow {
+                box-shadow: none !important;
+            }
+            
+            .card {
+                break-inside: avoid;
+            }
+            
+            a {
+                text-decoration: none !important;
+                color: inherit !important;
+            }
+            
+            .list-group-item-action {
+                border-color: #ddd !important;
+            }
+            
+            .btn {
+                display: none !important;
+            }
+        }
+    </style>
+}
+
+@functions {
+    string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Active" => "bg-primary",
+            "Completed" => "bg-success",
+            "Interrupted" => "bg-warning",
+            _ => "bg-secondary"
+        };
+    }
+    
+    double GetPaymentPercentage(decimal totalCost, decimal amountPaid)
+    {
+        if (totalCost <= 0) return 100;
+        return Math.Min(100, Math.Round((double)(amountPaid / totalCost * 100), 1));
+    }
+    
+    string GetPaymentStatus(decimal totalCost, decimal amountPaid)
+    {
+        if (totalCost <= 0) return "Aucun coût";
+        
+        var percentage = GetPaymentPercentage(totalCost, amountPaid);
+        
+        if (percentage >= 100) return "Payé intégralement";
+        if (percentage > 0) return $"{percentage}% payé";
+        return "Non payé";
+    }
+}

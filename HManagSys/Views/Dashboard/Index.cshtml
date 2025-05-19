@@ -2,6 +2,8 @@
 @model DashboardViewModel
 @{
     ViewData["Title"] = "Tableau de bord";
+    var now = DateTime.Now;
+    var greeting = now.Hour < 12 ? "Bonjour" : now.Hour < 18 ? "Bon après-midi" : "Bonsoir";
 }
 
 <div class="container-fluid">
@@ -12,7 +14,7 @@
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-md-8">
-                            <h1 class="h3 mb-1">@Model.WelcomeMessage</h1>
+                            <h1 class="h3 mb-1">@greeting, @Model.User.FirstName</h1>
                             <p class="mb-0">
                                 <i class="fas fa-hospital"></i>
                                 @Model.Center.Name
@@ -39,12 +41,16 @@
                     <div class="row align-items-center">
                         <div class="col">
                             <p class="text-white-50 small mb-1">Patients aujourd'hui</p>
-                            <h4 class="mb-0">24</h4>
+                            <h4 class="mb-0" id="patients-count">--</h4>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-users fa-2x opacity-75"></i>
                         </div>
                     </div>
+                </div>
+                <div class="card-footer bg-info-darker d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" asp-controller="Patient" asp-action="Index">Voir les détails</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
                 </div>
             </div>
         </div>
@@ -55,12 +61,16 @@
                     <div class="row align-items-center">
                         <div class="col">
                             <p class="text-white-50 small mb-1">Ventes du jour</p>
-                            <h4 class="mb-0">125,000 FCFA</h4>
+                            <h4 class="mb-0" id="sales-amount">--</h4>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-cash-register fa-2x opacity-75"></i>
                         </div>
                     </div>
+                </div>
+                <div class="card-footer bg-success-darker d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" href="#">Voir les détails</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
                 </div>
             </div>
         </div>
@@ -71,12 +81,16 @@
                     <div class="row align-items-center">
                         <div class="col">
                             <p class="text-white-50 small mb-1">Alertes stock</p>
-                            <h4 class="mb-0">8</h4>
+                            <h4 class="mb-0" id="stock-alerts">--</h4>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
                         </div>
                     </div>
+                </div>
+                <div class="card-footer bg-warning-darker d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" asp-controller="Stock" asp-action="Alerts">Voir les détails</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
                 </div>
             </div>
         </div>
@@ -87,12 +101,16 @@
                     <div class="row align-items-center">
                         <div class="col">
                             <p class="text-white-50 small mb-1">Examens en attente</p>
-                            <h4 class="mb-0">12</h4>
+                            <h4 class="mb-0" id="pending-exams">--</h4>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-x-ray fa-2x opacity-75"></i>
+                            <i class="fas fa-microscope fa-2x opacity-75"></i>
                         </div>
                     </div>
+                </div>
+                <div class="card-footer bg-purple-darker d-flex align-items-center justify-content-between">
+                    <a class="small text-white stretched-link" asp-controller="Examination" asp-action="Pending">Voir les détails</a>
+                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
                 </div>
             </div>
         </div>
@@ -110,21 +128,25 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="#" class="btn btn-outline-primary">
+                        <a asp-controller="Patient" asp-action="Create" class="btn btn-outline-primary">
                             <i class="fas fa-user-plus"></i>
                             Nouveau Patient
                         </a>
-                        <a href="#" class="btn btn-outline-success">
+                        <a asp-controller="Sale" asp-action="Create" class="btn btn-outline-success">
                             <i class="fas fa-cash-register"></i>
                             Nouvelle Vente
                         </a>
-                        <a href="#" class="btn btn-outline-info">
+                        <a asp-controller="Prescription" asp-action="Create" class="btn btn-outline-info">
                             <i class="fas fa-prescription"></i>
                             Créer Prescription
                         </a>
-                        <a href="#" class="btn btn-outline-warning">
-                            <i class="fas fa-x-ray"></i>
+                        <a asp-controller="Examination" asp-action="Create" class="btn btn-outline-warning">
+                            <i class="fas fa-microscope"></i>
                             Demander Examen
+                        </a>
+                        <a asp-controller="Dashboard" asp-action="Medical" class="btn btn-outline-secondary">
+                            <i class="fas fa-chart-line"></i>
+                            Tableau de bord médical
                         </a>
                     </div>
                 </div>
@@ -141,7 +163,13 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
+                    <div id="activity-loading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        <p class="mt-2">Chargement des activités récentes...</p>
+                    </div>
+                    <div id="activity-content" class="table-responsive" style="display: none;">
                         <table class="table table-sm table-hover">
                             <thead>
                                 <tr>
@@ -151,39 +179,13 @@
                                     <th>Statut</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>14:30</td>
-                                    <td><i class="fas fa-stethoscope text-primary"></i> Consultation</td>
-                                    <td>NDOMO Martin</td>
-                                    <td><span class="badge bg-success">Terminé</span></td>
-                                </tr>
-                                <tr>
-                                    <td>14:15</td>
-                                    <td><i class="fas fa-pills text-warning"></i> Prescription</td>
-                                    <td>FOTSO Marie</td>
-                                    <td><span class="badge bg-info">En cours</span></td>
-                                </tr>
-                                <tr>
-                                    <td>14:00</td>
-                                    <td><i class="fas fa-cash-register text-success"></i> Vente</td>
-                                    <td>BIKON Jean</td>
-                                    <td><span class="badge bg-success">Payé</span></td>
-                                </tr>
-                                <tr>
-                                    <td>13:45</td>
-                                    <td><i class="fas fa-x-ray text-info"></i> Examen Radio</td>
-                                    <td>KEMALA Sophie</td>
-                                    <td><span class="badge bg-warning">Planifié</span></td>
-                                </tr>
-                                <tr>
-                                    <td>13:30</td>
-                                    <td><i class="fas fa-user-plus text-primary"></i> Nouveau patient</td>
-                                    <td>NGONO Paul</td>
-                                    <td><span class="badge bg-success">Enregistré</span></td>
-                                </tr>
+                            <tbody id="recent-activities">
+                                <!-- Les activités seront chargées ici dynamiquement -->
                             </tbody>
                         </table>
+                    </div>
+                    <div id="activity-error" class="alert alert-warning text-center" style="display: none;">
+                        <i class="fas fa-exclamation-circle"></i> Impossible de charger les activités récentes.
                     </div>
                 </div>
             </div>
@@ -202,31 +204,22 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-12 mb-2">
-                            <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
-                                <span>Paracétamol 500mg</span>
-                                <span class="badge bg-danger">5 unités</span>
-                            </div>
+                    <div id="stock-loading" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-warning" role="status">
+                            <span class="visually-hidden">Chargement...</span>
                         </div>
-                        <div class="col-12 mb-2">
-                            <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
-                                <span>Seringues 10ml</span>
-                                <span class="badge bg-warning">12 unités</span>
-                            </div>
-                        </div>
-                        <div class="col-12 mb-2">
-                            <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
-                                <span>Gants latex (boîte)</span>
-                                <span class="badge bg-warning">3 unités</span>
-                            </div>
-                        </div>
+                        <p class="mt-2 mb-0">Chargement des alertes...</p>
                     </div>
-                    <div class="mt-3">
-                        <a href="#" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-eye"></i>
-                            Voir tous les stocks
-                        </a>
+                    <div id="stock-content" style="display: none;">
+                        <div id="stock-alerts-container">
+                            <!-- Les alertes seront chargées ici -->
+                        </div>
+                        <div class="mt-3">
+                            <a asp-controller="Stock" asp-action="Index" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye"></i>
+                                Voir tous les stocks
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -242,28 +235,14 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="timeline">
-                        <div class="timeline-item">
-                            <div class="timeline-marker bg-primary"></div>
-                            <div class="timeline-content">
-                                <h6 class="timeline-title">15:00 - Consultation</h6>
-                                <p class="timeline-description">MBALLA Pierre - Contrôle tension</p>
-                            </div>
+                    <div id="schedule-loading" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-info" role="status">
+                            <span class="visually-hidden">Chargement...</span>
                         </div>
-                        <div class="timeline-item">
-                            <div class="timeline-marker bg-warning"></div>
-                            <div class="timeline-content">
-                                <h6 class="timeline-title">15:30 - Examen</h6>
-                                <p class="timeline-description">ESSONO Marie - Radiographie</p>
-                            </div>
-                        </div>
-                        <div class="timeline-item">
-                            <div class="timeline-marker bg-success"></div>
-                            <div class="timeline-content">
-                                <h6 class="timeline-title">16:00 - Suivi</h6>
-                                <p class="timeline-description">OLOMO Jean - Post-opératoire</p>
-                            </div>
-                        </div>
+                        <p class="mt-2 mb-0">Chargement des rendez-vous...</p>
+                    </div>
+                    <div id="schedule-content" class="timeline" style="display: none;">
+                        <!-- Les rendez-vous seront chargés ici -->
                     </div>
                 </div>
             </div>
@@ -271,10 +250,238 @@
     </div>
 </div>
 
+@section Scripts {
+    <script>
+        // Fonction pour formater les nombres avec séparateur de milliers
+        function formatNumber(num) {
+            return new Intl.NumberFormat('fr-FR').format(num);
+        }
+
+        // Fonction pour formater les montants en FCFA
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
+        }
+
+        // Fonction pour formater les dates
+        function formatTime(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Charger les données du tableau de bord au chargement de la page
+        $(document).ready(function() {
+            loadDashboardData();
+            loadRecentActivities();
+            loadStockAlerts();
+            loadDailySchedule();
+        });
+
+        // Fonction pour charger les données du tableau de bord
+        function loadDashboardData() {
+            $.ajax({
+                url: '@Url.Action("GetDashboardData")',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        const data = response.data;
+
+                        // Mise à jour des compteurs
+                        $('#patients-count').text(formatNumber(data.todayPatientsCount));
+                        $('#sales-amount').text(formatCurrency(data.todaySalesAmount));
+                        $('#stock-alerts').text(formatNumber(data.stockAlertsCount));
+                        $('#pending-exams').text(formatNumber(data.pendingExamsCount));
+                    } else {
+                        console.error('Erreur lors du chargement des données du tableau de bord:', response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Erreur lors du chargement des données du tableau de bord:', error);
+                }
+            });
+        }
+
+        // Fonction pour charger les activités récentes
+        function loadRecentActivities() {
+            $('#activity-loading').show();
+            $('#activity-content').hide();
+            $('#activity-error').hide();
+
+            $.ajax({
+                url: '@Url.Action("GetRecentActivities")',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    $('#activity-loading').hide();
+
+                    if (response.success) {
+                        const activities = response.data;
+                        let html = '';
+
+                        if (activities.length === 0) {
+                            html = '<tr><td colspan="4" class="text-center">Aucune activité récente</td></tr>';
+                        } else {
+                            activities.forEach(function(activity) {
+                                html += `
+                                    <tr>
+                                        <td>${formatTime(activity.activityDate)}</td>
+                                        <td><i class="fas ${activity.activityTypeIcon} text-primary"></i> ${activity.description}</td>
+                                        <td>${activity.patientName}</td>
+                                        <td><span class="badge ${activity.statusBadgeClass}">${activity.status}</span></td>
+                                    </tr>
+                                `;
+                            });
+                        }
+
+                        $('#recent-activities').html(html);
+                        $('#activity-content').show();
+                    } else {
+                        $('#activity-error').show();
+                        console.error('Erreur lors du chargement des activités récentes:', response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#activity-loading').hide();
+                    $('#activity-error').show();
+                    console.error('Erreur lors du chargement des activités récentes:', error);
+                }
+            });
+        }
+
+        // Fonction pour charger les alertes de stock
+        function loadStockAlerts() {
+            $('#stock-loading').show();
+            $('#stock-content').hide();
+
+            $.ajax({
+                url: '@Url.Action("GetStockAlerts")',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    $('#stock-loading').hide();
+
+                    if (response.success) {
+                        const alerts = response.data;
+                        let html = '';
+
+                        if (alerts.length === 0) {
+                            html = '<div class="alert alert-success">Aucune alerte de stock à signaler</div>';
+                        } else {
+                            alerts.forEach(function(alert) {
+                                const badgeClass = alert.quantity <= 0 ? 'bg-danger' : 'bg-warning';
+                                html += `
+                                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded mb-2">
+                                        <span>${alert.productName}</span>
+                                        <span class="badge ${badgeClass}">${alert.quantity} ${alert.unitOfMeasure}</span>
+                                    </div>
+                                `;
+                            });
+                        }
+
+                        $('#stock-alerts-container').html(html);
+                        $('#stock-content').show();
+                    } else {
+                        $('#stock-alerts-container').html('<div class="alert alert-warning">Impossible de charger les alertes de stock</div>');
+                        $('#stock-content').show();
+                        console.error('Erreur lors du chargement des alertes de stock:', response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#stock-loading').hide();
+                    $('#stock-alerts-container').html('<div class="alert alert-warning">Impossible de charger les alertes de stock</div>');
+                    $('#stock-content').show();
+                    console.error('Erreur lors du chargement des alertes de stock:', error);
+                }
+            });
+        }
+
+        // Fonction pour charger la plannification du jour
+        function loadDailySchedule() {
+            $('#schedule-loading').show();
+            $('#schedule-content').hide();
+
+            $.ajax({
+                url: '@Url.Action("GetDailySchedule")',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    $('#schedule-loading').hide();
+
+                    if (response.success) {
+                        const schedule = response.data;
+                        let html = '';
+
+                        if (schedule.length === 0) {
+                            html = '<div class="text-center py-3">Aucun rendez-vous planifié aujourd\'hui</div>';
+                        } else {
+                            schedule.forEach(function(item) {
+                                let markerClass = '';
+
+                                switch(item.type) {
+                                    case 'Consultation':
+                                        markerClass = 'bg-primary';
+                                        break;
+                                    case 'Examen':
+                                        markerClass = 'bg-warning';
+                                        break;
+                                    case 'Suivi':
+                                        markerClass = 'bg-success';
+                                        break;
+                                    default:
+                                        markerClass = 'bg-info';
+                                }
+
+                                html += `
+                                    <div class="timeline-item">
+                                        <div class="timeline-marker ${markerClass}"></div>
+                                        <div class="timeline-content">
+                                            <h6 class="timeline-title">${item.time} - ${item.type}</h6>
+                                            <p class="timeline-description">${item.patientName} - ${item.description}</p>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                        }
+
+                        $('#schedule-content').html(html);
+                        $('#schedule-content').show();
+                    } else {
+                        $('#schedule-content').html('<div class="alert alert-warning">Impossible de charger la plannification</div>');
+                        $('#schedule-content').show();
+                        console.error('Erreur lors du chargement de la plannification:', response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#schedule-loading').hide();
+                    $('#schedule-content').html('<div class="alert alert-warning">Impossible de charger la plannification</div>');
+                    $('#schedule-content').show();
+                    console.error('Erreur lors du chargement de la plannification:', error);
+                }
+            });
+        }
+    </script>
+}
+
 @section Styles {
     <style>
         .bg-purple {
             background-color: #6f42c1 !important;
+        }
+
+        .bg-purple-darker {
+            background-color: #5e37a6 !important;
+        }
+
+        .bg-success-darker {
+            background-color: #17a673 !important;
+        }
+
+        .bg-info-darker {
+            background-color: #2098a8 !important;
+        }
+
+        .bg-warning-darker {
+            background-color: #dda20a !important;
         }
 
         .opacity-50 {
@@ -339,6 +546,10 @@
 
         .table-hover tbody tr:hover {
             background-color: rgba(0,123,255,0.1);
+        }
+
+        .card-footer a.stretched-link {
+            text-decoration: none;
         }
     </style>
 }
