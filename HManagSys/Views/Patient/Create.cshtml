@@ -2,6 +2,518 @@
 @model CreatePatientViewModel
 
 @{
+    ViewData["Title"] = "Enregistrer un Nouveau Patient";
+}
+
+<!-- En-tête de la page -->
+<div class="pt-3 mb-4">
+    <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center">
+        <div class="mb-2 mb-sm-0">
+            <h1 class="h2 mb-0 text-gray-800 font-weight-bold">
+                <i class="fas fa-user-plus text-primary me-2"></i>Enregistrer un Nouveau Patient
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb breadcrumb-custom">
+                    <li class="breadcrumb-item"><a asp-action="Index">Liste des Patients</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Nouveau Patient</li>
+                </ol>
+            </nav>
+        </div>
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Retour à la Liste
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-lg-4">
+        <form asp-action="Create" method="post" id="createPatientForm" class="needs-validation" novalidate>
+            @Html.AntiForgeryToken()
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger-soft small p-2 mb-3" role="alert">
+                <i class="fas fa-exclamation-circle me-1"></i> Veuillez corriger les erreurs ci-dessous.
+            </div>
+
+            <!-- Alerte pour les doublons potentiels -->
+            @if (ViewBag.PotentialDuplicates != null && ((List<PatientViewModel>)ViewBag.PotentialDuplicates).Any())
+            {
+                <div class="alert alert-warning-soft p-3 mb-4 border-warning">
+                    <h5 class="alert-heading mb-1"><i class="fas fa-users me-2"></i>Attention : Patients Similaires Détectés !</h5>
+                    <p class="mb-2 small">Avant de continuer, veuillez vérifier si le patient que vous souhaitez ajouter ne figure pas déjà dans la liste ci-dessous. Créer des doublons peut entraîner des erreurs de suivi.</p>
+                    <div class="list-group list-group-flush">
+                        @foreach (var duplicate in (List<PatientViewModel>)ViewBag.PotentialDuplicates)
+                        {
+                            <a asp-action="Details" asp-route-id="@duplicate.Id" target="_blank"
+                               class="list-group-item list-group-item-action list-group-item-warning small p-2">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <strong class="mb-0">@duplicate.FullName</strong>
+                                    <span class="text-muted">@duplicate.PhoneNumber</span>
+                                </div>
+                                <small class="text-muted">
+                                    @(duplicate.Gender == "M" ? "Homme" : duplicate.Gender == "F" ? "Femme" : "Non spécifié")
+                                    @if (duplicate.DateOfBirth.HasValue)
+                                    {
+                                        <span> - @duplicate.DateOfBirth.Value.ToString("dd/MM/yyyy") (@duplicate.Age ans)</span>
+                                    }
+                                </small>
+                            </a>
+                        }
+                    </div>
+                    <hr class="my-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" id="ignoreDuplicatesCheck">
+                        <label class="form-check-label small" for="ignoreDuplicatesCheck">
+                            J'ai vérifié et je souhaite quand même créer ce nouveau patient.
+                        </label>
+                    </div>
+                </div>
+            }
+
+            <!-- Onglets du formulaire -->
+            <ul class="nav nav-pills nav-justified form-wizard-header mb-4" id="patientFormTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active" id="personal-tab-btn" data-bs-toggle="tab" href="#personal" role="tab" aria-controls="personal" aria-selected="true">
+                        <span class="number">1</span>
+                        <span class="d-none d-sm-inline-block ms-2">Identité</span>
+                        <i class="fas fa-user d-inline-block d-sm-none"></i>
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" id="contact-tab-btn" data-bs-toggle="tab" href="#contact" role="tab" aria-controls="contact" aria-selected="false">
+                        <span class="number">2</span>
+                        <span class="d-none d-sm-inline-block ms-2">Coordonnées</span>
+                        <i class="fas fa-address-book d-inline-block d-sm-none"></i>
+                    </a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" id="medical-tab-btn" data-bs-toggle="tab" href="#medical" role="tab" aria-controls="medical" aria-selected="false">
+                        <span class="number">3</span>
+                        <span class="d-none d-sm-inline-block ms-2">Infos Médicales</span>
+                        <i class="fas fa-heartbeat d-inline-block d-sm-none"></i>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Contenu des onglets -->
+            <div class="tab-content" id="patientFormContent">
+                <!-- Onglet Informations personnelles -->
+                <div class="tab-pane fade show active" id="personal" role="tabpanel" aria-labelledby="personal-tab-btn">
+                    <h5 class="mb-3 text-primary"><i class="fas fa-user-edit me-2"></i>Informations Personnelles</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FirstName" class="form-label form-label-sm">Prénom <span class="text-danger">*</span></label>
+                            <input asp-for="FirstName" class="form-control form-control-sm" autocomplete="given-name" required />
+                            <span asp-validation-for="FirstName" class="invalid-feedback"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="LastName" class="form-label form-label-sm">Nom <span class="text-danger">*</span></label>
+                            <input asp-for="LastName" class="form-control form-control-sm" autocomplete="family-name" required />
+                            <span asp-validation-for="LastName" class="invalid-feedback"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="DateOfBirth" class="form-label form-label-sm">Date de naissance</label>
+                            <input asp-for="DateOfBirth" type="date" class="form-control form-control-sm" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="DateOfBirth" class="invalid-feedback"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Gender" class="form-label form-label-sm">Genre</label>
+                            <select asp-for="Gender" class="form-select form-select-sm">
+                                <option value="">-- Sélectionner --</option>
+                                @foreach (var option in Model.GenderOptions)
+                                {
+                                    <option value="@option.Value">@option.Text</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Gender" class="invalid-feedback"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Onglet Coordonnées -->
+                <div class="tab-pane fade" id="contact" role="tabpanel" aria-labelledby="contact-tab-btn">
+                    <h5 class="mb-3 text-primary"><i class="fas fa-map-marked-alt me-2"></i>Coordonnées & Contact d'Urgence</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label form-label-sm">Téléphone Principal <span class="text-danger">*</span></label>
+                            <input asp-for="PhoneNumber" type="tel" class="form-control form-control-sm" placeholder="+22x ..." autocomplete="tel-national" required />
+                            <span asp-validation-for="PhoneNumber" class="invalid-feedback"></span>
+                            <div class="form-text small">Ex: +225 0102030405. Un numéro unique est recommandé.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label form-label-sm">Adresse Email</label>
+                            <input asp-for="Email" type="email" class="form-control form-control-sm" placeholder="nom@example.com" autocomplete="email" />
+                            <span asp-validation-for="Email" class="invalid-feedback"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Address" class="form-label form-label-sm">Adresse Postale / Résidence</label>
+                            <textarea asp-for="Address" class="form-control form-control-sm" rows="2" placeholder="Quartier, Rue, Ville..."></textarea>
+                            <span asp-validation-for="Address" class="invalid-feedback"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EmergencyContactName" class="form-label form-label-sm">Nom du Contact d'Urgence</label>
+                            <input asp-for="EmergencyContactName" class="form-control form-control-sm" />
+                            <span asp-validation-for="EmergencyContactName" class="invalid-feedback"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EmergencyContactPhone" class="form-label form-label-sm">Téléphone du Contact d'Urgence</label>
+                            <input asp-for="EmergencyContactPhone" type="tel" class="form-control form-control-sm" />
+                            <span asp-validation-for="EmergencyContactPhone" class="invalid-feedback"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Onglet Informations Médicales -->
+                <div class="tab-pane fade" id="medical" role="tabpanel" aria-labelledby="medical-tab-btn">
+                    <h5 class="mb-3 text-primary"><i class="fas fa-first-aid me-2"></i>Informations Médicales Initiales</h5>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="BloodType" class="form-label form-label-sm">Groupe Sanguin</label>
+                            <select asp-for="BloodType" class="form-select form-select-sm">
+                                <option value="">-- Sélectionner --</option>
+                                @foreach (var option in Model.BloodTypeOptions)
+                                {
+                                    <option value="@option.Value">@option.Text</option>
+                                }
+                            </select>
+                            <span asp-validation-for="BloodType" class="invalid-feedback"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="IsActive" class="form-label form-label-sm">Statut du Dossier</label>
+                            <div class="form-check form-switch mt-2">
+                                <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" id="patientStatusSwitch" checked>
+                                <label class="form-check-label" for="patientStatusSwitch">Dossier Actif</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Allergies" class="form-label form-label-sm">Allergies Connues</label>
+                            <textarea asp-for="Allergies" class="form-control form-control-sm" rows="3"
+                                      placeholder="Listez les allergies (médicaments, aliments, etc.) ou 'Néant' si aucune."></textarea>
+                            <span asp-validation-for="Allergies" class="invalid-feedback"></span>
+                        </div>
+                        @* Section Optionnelle: Antécédents Médicaux Majeurs (simplifié) *@
+                        <div class="col-12">
+                            <label for="majorMedicalHistory" class="form-label form-label-sm">Antécédents Médicaux Majeurs (Optionnel)</label>
+                            <textarea id="majorMedicalHistory" name="MajorMedicalHistory" class="form-control form-control-sm" rows="3"
+                                      placeholder="Ex: Diabète type 2, Hypertension artérielle, Asthme..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="d-flex justify-content-between align-items-center">
+                <button type="button" id="prevTabBtn" class="btn btn-sm btn-outline-secondary" disabled>
+                    <i class="fas fa-chevron-left me-1"></i> Précédent
+                </button>
+                <div class="btn-group">
+                    <a asp-action="Index" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-times me-1"></i> Annuler
+                    </a>
+                    <button type="submit" id="submitFormBtn" class="btn btn-sm btn-primary">
+                        <i class="fas fa-save me-1"></i> Enregistrer le Patient
+                    </button>
+                </div>
+                <button type="button" id="nextTabBtn" class="btn btn-sm btn-primary">
+                    Suivant <i class="fas fa-chevron-right ms-1"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .breadcrumb-custom {
+            background-color: transparent;
+            padding: 0.25rem 0;
+            font-size: 0.8rem;
+            margin-bottom: 0;
+        }
+
+            .breadcrumb-custom .breadcrumb-item a {
+                color: #4e73df;
+                text-decoration: none;
+            }
+
+                .breadcrumb-custom .breadcrumb-item a:hover {
+                    text-decoration: underline;
+                }
+
+            .breadcrumb-custom .breadcrumb-item.active {
+                color: #858796;
+            }
+
+        /* Styles pour les onglets de formulaire "wizard" */
+        .form-wizard-header .nav-link {
+            color: #858796;
+            border: 1px solid transparent;
+            border-bottom: 1px solid #e3e6f0;
+            padding: 0.75rem 1rem;
+            text-align: center;
+            position: relative;
+        }
+
+            .form-wizard-header .nav-link .number {
+                display: inline-block;
+                width: 1.75rem;
+                height: 1.75rem;
+                line-height: 1.75rem;
+                border-radius: 50%;
+                background-color: #e3e6f0;
+                color: #858796;
+                font-weight: 600;
+                text-align: center;
+                font-size: 0.9rem;
+            }
+
+            .form-wizard-header .nav-link.active {
+                color: #4e73df;
+                border-color: #e3e6f0 #e3e6f0 #fff; /* Border on top, left, right, none on bottom */
+                border-bottom: 2px solid #4e73df !important; /* Active tab highlight */
+                font-weight: 600;
+            }
+
+                .form-wizard-header .nav-link.active .number {
+                    background-color: #4e73df;
+                    color: #fff;
+                }
+
+            .form-wizard-header .nav-link:not(.active):hover .number {
+                background-color: #d1d3e2;
+            }
+
+        .tab-content > .tab-pane {
+            padding-top: 1rem;
+        }
+
+        .form-label-sm {
+            font-size: 0.8rem;
+            margin-bottom: 0.25rem;
+            font-weight: 500;
+        }
+        /* Soft Alerts */
+        .alert-danger-soft {
+            color: #e74a3b;
+            background-color: rgba(231, 74, 59, 0.07);
+            border: 1px solid rgba(231, 74, 59, 0.2);
+        }
+
+        .alert-warning-soft {
+            color: #dda20a;
+            background-color: rgba(246, 194, 62, 0.07);
+            border: 1px solid rgba(246, 194, 62, 0.2);
+        }
+
+        .list-group-item-warning.list-group-item-action:hover {
+            background-color: rgba(246,194,62,.2);
+        }
+    </style>
+}
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        (function () {
+            'use strict';
+
+            const form = document.getElementById('createPatientForm');
+            const tabs = ['personal', 'contact', 'medical'];
+            let currentTabIndex = 0;
+
+            const prevTabBtn = document.getElementById('prevTabBtn');
+            const nextTabBtn = document.getElementById('nextTabBtn');
+            const submitFormBtn = document.getElementById('submitFormBtn');
+            const ignoreDuplicatesCheckbox = document.getElementById('ignoreDuplicatesCheck');
+
+            function updateNavigationButtons() {
+                prevTabBtn.disabled = currentTabIndex === 0;
+                nextTabBtn.disabled = currentTabIndex === tabs.length - 1;
+                submitFormBtn.style.display = (currentTabIndex === tabs.length - 1) ? 'inline-block' : 'none';
+                nextTabBtn.style.display = (currentTabIndex === tabs.length - 1) ? 'none' : 'inline-block';
+            }
+
+            function showTab(index) {
+                const tabId = tabs[index];
+                const tabElement = document.getElementById(tabId + '-tab-btn');
+                if (tabElement) {
+                    var tab = new bootstrap.Tab(tabElement);
+                    tab.show();
+                }
+            }
+
+            // Gestion de la validation Bootstrap par onglet
+            function validateCurrentTab() {
+                const currentTabPane = document.querySelector('.tab-pane.active');
+                const inputs = currentTabPane.querySelectorAll('input[required], select[required], textarea[required]');
+                let isTabValid = true;
+
+                inputs.forEach(input => {
+                    if (!input.checkValidity()) {
+                        isTabValid = false;
+                        // Forcer l'affichage du message d'erreur si le champ est vide,
+                        // sinon laisser Bootstrap gérer (utile pour les patterns, etc.)
+                        if (input.value === '' && input.required) {
+                             const feedback = input.parentNode.querySelector('.invalid-feedback') || input.parentNode.parentNode.querySelector('.invalid-feedback');
+                             if(feedback && !feedback.textContent) { // Ne pas écraser les messages de validation serveur
+                                feedback.textContent = input.validationMessage || `Le champ "${input.previousElementSibling?.textContent || input.id}" est requis.`;
+                             }
+                        }
+                    }
+                });
+
+                // Appliquer .was-validated à l'onglet courant pour afficher les erreurs Bootstrap
+                currentTabPane.querySelectorAll('.form-control, .form-select').forEach(el => {
+                    if (!el.checkValidity()) {
+                         el.classList.add('is-invalid'); // Assure que le style is-invalid est appliqué
+                    } else {
+                         el.classList.remove('is-invalid');
+                    }
+                });
+
+                // Valider tout le formulaire pour que Bootstrap puisse marquer les champs correctement
+                form.classList.add('was-validated');
+                // Mais on ne retourne que la validité de l'onglet courant pour la navigation
+                // Il faut réinitialiser .was-validated sur le formulaire global si on veut que les onglets suivants ne montrent pas d'erreurs prématurément
+                // Pour l'instant, laissons `form.classList.add('was-validated');` pour un feedback complet.
+
+                return isTabValid;
+            }
+
+
+            if (nextTabBtn) {
+                nextTabBtn.addEventListener('click', function () {
+                    // Valider l'onglet actuel avant de passer au suivant
+                    if (!validateCurrentTab()) {
+                        // Optionnel: afficher un message ou focus sur le premier champ invalide
+                        const firstInvalidField = document.querySelector('.tab-pane.active .form-control:invalid, .tab-pane.active .form-select:invalid');
+                        if(firstInvalidField) firstInvalidField.focus();
+                        return;
+                    }
+
+                    if (currentTabIndex < tabs.length - 1) {
+                        currentTabIndex++;
+                        showTab(currentTabIndex);
+                    }
+                });
+            }
+
+            if (prevTabBtn) {
+                prevTabBtn.addEventListener('click', function () {
+                    if (currentTabIndex > 0) {
+                        currentTabIndex--;
+                        showTab(currentTabIndex);
+                    }
+                });
+            }
+
+            document.querySelectorAll('a[data-bs-toggle="tab"]').forEach(tabEl => {
+                tabEl.addEventListener('shown.bs.tab', function (event) {
+                    const targetTabId = event.target.getAttribute('href').substring(1);
+                    currentTabIndex = tabs.indexOf(targetTabId);
+                    updateNavigationButtons();
+                });
+            });
+
+            if (form) {
+                form.addEventListener('submit', function (event) {
+                     // Si l'alerte de doublons est affichée et la case n'est pas cochée
+                    if (document.querySelector('.alert-warning-soft') && ignoreDuplicatesCheckbox && !ignoreDuplicatesCheckbox.checked) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        // Afficher un message ou mettre le focus sur la checkbox
+                        ignoreDuplicatesCheckbox.focus();
+                        // Optionnel : ajouter un message d'erreur près de la checkbox
+                        let feedback = ignoreDuplicatesCheckbox.parentNode.querySelector('.duplicate-check-feedback');
+                        if(!feedback) {
+                            feedback = document.createElement('div');
+                            feedback.className = 'text-danger small mt-1 duplicate-check-feedback';
+                            ignoreDuplicatesCheckbox.parentNode.appendChild(feedback);
+                        }
+                        feedback.textContent = 'Veuillez cocher cette case pour confirmer la création malgré les doublons potentiels.';
+                        return;
+                    } else if (document.querySelector('.duplicate-check-feedback')) {
+                        document.querySelector('.duplicate-check-feedback').remove(); // Nettoyer le message
+                    }
+
+
+                    // Valider tous les onglets
+                    let allTabsValid = true;
+                    for(let i = 0; i < tabs.length; i++) {
+                        const tabPane = document.getElementById(tabs[i]);
+                        const inputs = tabPane.querySelectorAll('input[required], select[required], textarea[required]');
+                        inputs.forEach(input => {
+                            if (!input.checkValidity()) {
+                                allTabsValid = false;
+                            }
+                        });
+                    }
+
+                    if (!allTabsValid || !form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        // Tenter de naviguer vers le premier onglet avec une erreur
+                        for(let i=0; i < tabs.length; i++) {
+                            const tabPane = document.getElementById(tabs[i]);
+                             if (tabPane.querySelector('.form-control:invalid, .form-select:invalid')) {
+                                showTab(i);
+                                const firstInvalidFieldInForm = tabPane.querySelector('.form-control:invalid, .form-select:invalid');
+                                if(firstInvalidFieldInForm) firstInvalidFieldInForm.focus();
+                                break;
+                            }
+                        }
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            }
+
+            // Vérification du numéro de téléphone (jQuery conservé pour la simplicité du GET)
+            // Pourrait être réécrit en vanilla JS avec fetch si jQuery n'est pas désiré ailleurs.
+            $('#PhoneNumber').on('blur', function() { // Changé de 'input' à 'blur' pour moins d'appels AJAX
+                const phoneNumber = $(this).val();
+                const validationSpan = $(this).siblings('.invalid-feedback'); // Get the sibling span
+
+                if (phoneNumber && phoneNumber.length >= 8) { // Condition de longueur minimale
+                    $.get('@Url.Action("CheckExistingPhoneNumber", "PatientApi")', { phoneNumber: phoneNumber, patientIdToExclude: 0 }, function(data) { // patientIdToExclude = 0 pour la création
+                        if (data.exists) {
+                            $('#PhoneNumber').addClass('is-invalid').removeClass('is-valid');
+                            if(validationSpan.length) validationSpan.text('Ce numéro de téléphone est déjà utilisé par un autre patient.');
+                        } else {
+                            // Si le champ est valide selon les autres contraintes HTML5 (ex: pattern), il sera is-valid
+                            // Si pas de contrainte pattern, on peut le marquer is-valid explicitement
+                            // Mais laissons Bootstrap gérer cela via form.checkValidity()
+                             if(validationSpan.length && validationSpan.text() === 'Ce numéro de téléphone est déjà utilisé par un autre patient.') {
+                                validationSpan.text(''); // Effacer seulement notre message spécifique
+                             }
+                             // Si le champ était invalide pour une autre raison, le message sera conservé
+                             // Pour forcer la validité si aucune autre erreur :
+                             // if ($('#PhoneNumber')[0].checkValidity()) { // Vérifie les contraintes HTML5
+                             //    $('#PhoneNumber').removeClass('is-invalid').addClass('is-valid');
+                             // }
+                        }
+                    });
+                } else {
+                     // Si le numéro est trop court ou vide mais requis, la validation HTML5 le prendra en charge
+                     // On efface notre message spécifique si le champ est vide ou trop court
+                     if(validationSpan.length && validationSpan.text() === 'Ce numéro de téléphone est déjà utilisé par un autre patient.') {
+                        validationSpan.text('');
+                     }
+                }
+            });
+
+
+            updateNavigationButtons(); // Appel initial
+        })();
+    </script>
+}
+
+@* @using HManagSys.Models.ViewModels.Patients
+@model CreatePatientViewModel
+
+@{
     ViewData["Title"] = "Nouveau patient";
 }
 
@@ -249,4 +761,4 @@
             });
         });
     </script>
-}
+} *@
