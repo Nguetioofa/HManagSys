@@ -1,4 +1,5 @@
-﻿using HManagSys.Models.ViewModels.Patients;
+﻿using HManagSys.Controllers;
+using HManagSys.Models.ViewModels.Patients;
 using HManagSys.Models.ViewModels.Payments;
 
 namespace HManagSys.Services.Interfaces
@@ -12,6 +13,8 @@ namespace HManagSys.Services.Interfaces
         /// Récupère un paiement par son ID
         /// </summary>
         Task<PaymentViewModel?> GetByIdAsync(int id);
+
+        Task<Dictionary<int, decimal>> CalculateRemainingPaymentsAsync(List<PaymentReference> references);
 
         /// <summary>
         /// Crée un nouveau paiement

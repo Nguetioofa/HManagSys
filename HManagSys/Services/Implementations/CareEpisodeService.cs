@@ -58,26 +58,27 @@ public class CareEpisodeService : ICareEpisodeService
 
     public async Task<CareServiceProductModalsViewModel> GetServiceProducts(int serviceId)
     {
-            var products =  await _careServiceRepository.QuerySingleAsync(q =>
-                             q.Where(s => s.CareEpisodeId == serviceId)
-                              .Include(s => s.CareServiceProducts)
-                                 .ThenInclude(p => p.Product)
-                              .OrderByDescending(s => s.ServiceDate)
-                              .Select(s => new CareServiceProductModalsViewModel
+        //var tt = 
+            var products =  await _careServiceProductRepository.QueryListAsync(q =>
+                             q.Where(s => s.CareServiceId == serviceId)
+                              .Include(s => s.Product)
+                              .Select(p => new CareServiceProductItemViewModel
                               {
-                                  products = s.CareServiceProducts.Select(p => new CareServiceProductItemViewModel
-                                  {
-                                      ProductId = p.ProductId,
-                                      ProductName = p.Product.Name,
-                                      QuantityUsed = p.QuantityUsed,
-                                      UnitCost = p.UnitCost,
-                                      //TotalCost = p.TotalCost
-                                  }).ToList()
+                                  ProductId = p.ProductId,
+                                  ProductName = p.Product.Name,
+                                  QuantityUsed = p.QuantityUsed,
+                                  UnitCost = p.UnitCost,
                               }));
 
-        products.success = true;
+        if (products is not null)       
+            return new CareServiceProductModalsViewModel
+            {
+                products = products,
+                success = true,
+            };
 
-        return products;
+        return new();
+
     }
 
     // Récupérer un épisode de soins par ID avec toutes les relations

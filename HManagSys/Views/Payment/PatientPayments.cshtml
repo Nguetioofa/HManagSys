@@ -4,6 +4,9 @@
 @model PatientPaymentsViewModel
 @{
     ViewData["Title"] = $"Finances Patient - {Model.Patient.FullName}";
+
+    var currentRole = Context.Session.GetString("CurrentRole");
+    var isSuperAdmin = currentRole == "SuperAdmin";
 }
 
 <!-- En-tête de la page -->
@@ -270,7 +273,7 @@
                                         <a asp-controller="Payment" asp-action="Receipt" asp-route-id="@payment.Id" target="_blank" class="btn btn-xs btn-outline-success" title="Imprimer Reçu">
                                             <i class="fas fa-receipt"></i>
                                         </a>
-                                        @if (!payment.IsCancelled && User.IsInRole("Admin")) // Exemple de condition pour annuler
+                                        @if (!payment.IsCancelled && isSuperAdmin)
                                         {
                                             <button type="button" class="btn btn-xs btn-outline-danger" title="Annuler Paiement"
                                                     onclick="confirmCancelPayment(@payment.Id)">
@@ -296,10 +299,9 @@
     </div>
 </div>
 
-<!-- Modal pour un nouveau paiement (gardé tel quel avec quelques ajustements mineurs) -->
+<!-- Modal pour un nouveau paiement  -->
 <div class="modal fade" id="newPaymentModal" tabindex="-1" aria-labelledby="newPaymentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        @* Adjusted size and centering *@
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="newPaymentModalLabel"><i class="fas fa-plus-circle me-2"></i>Enregistrer un Nouveau Paiement</h5>
@@ -307,7 +309,7 @@
             </div>
             <div class="modal-body">
                 <form id="newPaymentForm" class="needs-validation" novalidate>
-                    @Html.AntiForgeryToken() @* Important pour la sécurité *@
+                    @Html.AntiForgeryToken() 
                     <input type="hidden" id="patientId" value="@Model.Patient.Id" />
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -316,8 +318,8 @@
                                 <option value="">-- Sélectionner le type --</option>
                                 <option value="CareEpisode">Épisode de soins</option>
                                 <option value="Examination">Examen</option>
-                                <option value="Other">Autre (Avance, Solde global)</option>
-                            </select>
+@*                                 <option value="Other">Autre (Avance, Solde global)</option>
+ *@                            </select>
                             <div class="invalid-feedback">Veuillez sélectionner un type de référence.</div>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -341,12 +343,9 @@
                             <label for="paymentMethodId" class="form-label">Méthode de Paiement <span class="text-danger">*</span></label>
                             <select id="paymentMethodId" class="form-select form-select-sm" required>
                                 <option value="">-- Sélectionner --</option>
-                                @* Remplir dynamiquement ou depuis le modèle si disponible *@
                                 <option value="1">Espèces</option>
                                 <option value="2">Orange Money</option>
                                 <option value="3">MTN Mobile Money</option>
-                                <option value="4">Carte Bancaire</option>
-                                <option value="5">Chèque</option>
                             </select>
                             <div class="invalid-feedback">Veuillez sélectionner une méthode.</div>
                         </div>
@@ -507,6 +506,11 @@
 
 @section Scripts {
     <script>
+
+                       function getAntiForgeryToken() {
+                    return document.querySelector('input[name="__RequestVerificationToken"]').value;
+                }
+
         (function () {
             'use strict';
 
@@ -612,16 +616,15 @@
                         PaymentMethodId: parseInt(document.getElementById('paymentMethodId').value),
                         TransactionReference: document.getElementById('transactionReference').value,
                         Notes: document.getElementById('notes').value,
-                        __RequestVerificationToken: newPaymentForm.querySelector('input[name="__RequestVerificationToken"]').value
                     };
 
-                    fetch('@Url.Action("Create", "PaymentApi")', { // Assurez-vous que cette URL est correcte pour votre API
+                    fetch('@Url.Action("CreateModal", "Payment")', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest' // Si votre backend vérifie cela
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'RequestVerificationToken': getAntiForgeryToken()
                         },
-                        body: JSON.stringify(paymentData)
+                        body: new URLSearchParams(paymentData).toString()
                     })
                     .then(response => response.json())
                     .then(data => {
@@ -660,7 +663,7 @@
             referenceIdSelect.disabled = true;
             referenceIdSelect.innerHTML = '<option value="">Chargement...</option>';
 
-            fetch(`@Url.Action("GetPayableReferences", "PaymentApi")?type=${type}&patientId=${patientId}`)
+            fetch(`@Url.Action("GetPayableReferences", "Payment")?type=${type}&patientId=${patientId}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.references.length > 0) {
@@ -743,7 +746,7 @@
 
         function proceedWithCancellation(paymentId, reason) {
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-            fetch(`@Url.Action("Cancel", "PaymentApi")/${paymentId}`, {
+            fetch(`@Url.Action("Cancel", "Payment")/${paymentId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

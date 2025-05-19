@@ -1,4 +1,6 @@
-﻿using HManagSys.Data.Repositories.Interfaces;
+﻿using DocumentFormat.OpenXml.InkML;
+using HManagSys.Controllers;
+using HManagSys.Data.Repositories.Interfaces;
 using HManagSys.Helpers;
 using HManagSys.Models;
 using HManagSys.Models.EfModels;
@@ -43,6 +45,68 @@ namespace HManagSys.Services.Implementations
             _examinationRepository = examinationRepository;
             _logger = logger;
             _auditService = auditService;
+        }
+
+
+        /// <summary>
+        /// Calcule les montants restants à payer pour un ensemble de références
+        /// </summary>
+        /// <param name="references">Liste de références avec leur type, ID et montant total</param>
+        /// <returns>Dictionnaire des montants restants à payer par ID de référence</returns>
+        public async Task<Dictionary<int, decimal>> CalculateRemainingPaymentsAsync(List<PaymentReference> references)
+        {
+            try
+            {
+                var remainingAmounts = new Dictionary<int, decimal>();
+
+                // Initialiser les montants totaux
+                foreach (var reference in references)
+                {
+                    remainingAmounts[reference.Id] = reference.Amount;
+                }
+
+                // Regrouper par type
+                var referencesByType = references
+                    .GroupBy(r => r.Type)
+                    .ToDictionary(g => g.Key, g => g.Select(r => r.Id).ToList());
+
+
+                // Pour chaque type de référence, récupérer et calculer les paiements
+                foreach (var typeGroup in referencesByType)
+                {
+                    string referenceType = typeGroup.Key;
+                    List<int> referenceIds = typeGroup.Value;
+
+                    // Récupérer tous les paiements pour ces références
+                    var payments = await _paymentRepository.QueryListAsync(q => q
+                        .Where(p => p.ReferenceType == referenceType &&
+                                   referenceIds.Contains(p.ReferenceId) &&
+                                   !p.Notes.Contains("CANCELLED"))
+                        .GroupBy(p => p.ReferenceId)
+                        .Select(g => new { ReferenceId = g.Key, PaidAmount = g.Sum(p => p.Amount) }));
+
+
+                    foreach (var payment in payments)
+                    {
+                        if (remainingAmounts.ContainsKey(payment.ReferenceId))
+                        {
+                            remainingAmounts[payment.ReferenceId] -= payment.PaidAmount;
+                            remainingAmounts[payment.ReferenceId] = Math.Max(0, remainingAmounts[payment.ReferenceId]);
+                        }
+                    }
+                }
+
+                return remainingAmounts;
+            }
+            catch (Exception ex)
+            {
+                await _logger.LogErrorAsync("Payment", "CalculateRemainingPaymentsError",
+                    "Erreur lors du calcul des paiements restants",
+                    details: new { Error = ex.Message });
+
+                // En cas d'erreur, retourner un dictionnaire vide
+                return new Dictionary<int, decimal>();
+            }
         }
 
         /// <summary>
@@ -793,13 +857,13 @@ namespace HManagSys.Services.Implementations
                     q => q.Where(ce => ce.PatientId == patientId),
                     ce => ce.TotalCost);
 
-                // Somme des examens (dans une implémentation complète)
-                // var examinationsTotal = await _examinationRepository.SumAsync(
-                //     q => q.Where(e => e.PatientId == patientId),
-                //     e => e.FinalPrice);
+                //Somme des examens(dans une implémentation complète)
+                 var examinationsTotal = await _examinationRepository.SumAsync(
+                     q => q.Where(e => e.PatientId == patientId),
+                     e => e.FinalPrice);
 
                 // Pour l'instant, on retourne seulement le total des épisodes de soins
-                return careEpisodesTotal;
+                return careEpisodesTotal + examinationsTotal;
             }
             catch (Exception ex)
             {

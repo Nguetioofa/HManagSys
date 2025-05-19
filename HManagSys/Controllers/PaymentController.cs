@@ -44,6 +44,69 @@ public class PaymentController : BaseController
     }
 
 
+    [HttpGet]
+    [MedicalStaff]
+    public async Task<IActionResult> GetPayableReferences(string type, int patientId)
+    {
+        try
+        {
+            var references = new List<object>();
+
+            switch (type)
+            {
+                case "CareEpisode":
+                    // Récupérer les épisodes de soins avec solde restant
+                    var episodes = await _careEpisodeService.GetPatientCareEpisodesAsync(patientId);
+                    references = episodes
+                        .Where(e => e.RemainingBalance > 0)
+                        .Select(e => new {
+                            id = e.Id,
+                            description = $"Épisode de soins du {e.EpisodeStartDate:dd/MM/yyyy} - {e.DiagnosisName}",
+                            remainingAmount = e.RemainingBalance,
+                            totalAmount = e.TotalCost
+                        }).Cast<object>().ToList();
+                    break;
+
+                case "Examination":
+                    // Récupérer les examens avec paiement dû
+                    var examinations = await _examinationService.GetPatientExaminationsAsync(patientId);
+                    // Calculer le montant restant à payer
+                    var examinationsWithPayments = await _paymentService.CalculateRemainingPaymentsAsync(
+                        examinations.Select(e => new PaymentReference
+                        {
+                            Type = "Examination",
+                            Id = e.Id,
+                            Amount = e.FinalPrice
+                        }).ToList());
+
+                    references = examinations
+                        .Where(e => examinationsWithPayments.TryGetValue(e.Id, out var remaining) && remaining > 0)
+                        .Select(e => new {
+                            id = e.Id,
+                            description = $"Examen {e.ExaminationTypeName} du {e.RequestDate:dd/MM/yyyy}",
+                            remainingAmount = examinationsWithPayments[e.Id],
+                            totalAmount = e.FinalPrice
+                        }).Cast<object>().ToList();
+                    break;
+
+                default:
+                    return Json(new { success = false, message = "Type de référence non pris en charge" });
+            }
+
+            return Json(new
+            {
+                success = true,
+                references,
+                message = references.Any()
+                    ? $"{references.Count} référence(s) trouvée(s)"
+                    : "Aucune référence impayée trouvée"
+            });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = "Une erreur est survenue lors de la récupération des références" });
+        }
+    }
 
     [MedicalStaff]
     public async Task<IActionResult> DownloadReceipt(int id)
@@ -257,6 +320,40 @@ public class PaymentController : BaseController
     [HttpPost]
     [ValidateAntiForgeryToken]
     [MedicalStaff]
+    public async Task<IActionResult> CreateModal(CreatePaymentViewModel model)
+    {
+        if (!ModelState.IsValid)
+            return Json(new { success = false, message = "Données invalides" });
+
+        try
+        {
+            model.HospitalCenterId = CurrentCenterId.Value;
+            model.ReceivedById = CurrentUserId.Value;
+            var result = await _paymentService.CreatePaymentAsync(model, CurrentUserId.Value);
+
+            if (result.IsSuccess)
+                return Json(new { success = true, message = "Paiement enregistré" });
+
+
+            string message = string.Join(",", result.ValidationErrors);
+
+            return Json(new { success = false, message });
+
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "CreateModal",
+    "Erreur lors de la création du paiement",
+                    CurrentUserId, CurrentCenterId,
+                    details: new { Model = model, Error = ex.Message });
+            return Json(new { success = false, message = ex.Message });
+        }
+    }
+
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [MedicalStaff]
     public async Task<IActionResult> Create(CreatePaymentViewModel model)
     {
         try
@@ -267,6 +364,7 @@ public class PaymentController : BaseController
                 model.PaymentMethods = await _paymentService.GetPaymentMethodsAsync();
                 return View(model);
             }
+            model.HospitalCenterId = CurrentCenterId.Value;
 
             // Créer le paiement
             var result = await _paymentService.CreatePaymentAsync(model, CurrentUserId.Value);
@@ -325,6 +423,11 @@ public class PaymentController : BaseController
             return RedirectToAction(nameof(Details), new { id });
         }
     }
+
+
+
+
+
 
     //[MedicalStaff]
     //public async Task<IActionResult> DownloadReceipt(int id)
@@ -475,3 +578,9 @@ public class PaymentController : BaseController
     }
 }
 
+public class PaymentReference
+{
+    public string Type { get; set; }
+    public int Id { get; set; }
+    public decimal Amount { get; set; }
+}
