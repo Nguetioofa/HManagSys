@@ -39,8 +39,9 @@ namespace HManagSys.Services.Implementations
         {
             try
             {
+                var totalCount = 0;
                 // Construire la requête avec filtres
-                var query = await _categoryRepository.QueryListAsync<ProductCategoryViewModel>(q =>
+                var query = await _categoryRepository.QueryListAsync(q =>
                 {
                     var baseQuery = q.Include(c => c.Products)
                                      .AsQueryable();
@@ -61,7 +62,7 @@ namespace HManagSys.Services.Implementations
                     }
 
                     // Compter le total
-                    var totalCount = baseQuery.Count();
+                     totalCount = baseQuery.Count();
 
                     // Pagination et tri
                     var categories = baseQuery
@@ -77,19 +78,14 @@ namespace HManagSys.Services.Implementations
                             ProductCount = c.Products.Count(p => p.IsActive),
                             CreatedAt = c.CreatedAt,
                             ModifiedAt = c.ModifiedAt,
-                            // Les noms des créateurs seront chargés séparément
                         });
 
-                    return categories;// categories.Select(c => new { Category = c, TotalCount = totalCount });
+                    return categories;
                 });
 
-                //var categories = query.Select(x => x.Category).ToList();
-                //var totalCount = query.FirstOrDefault()?.TotalCount ?? 0;
 
-                //// Charger les noms des créateurs
-                //await LoadCreatorNamesAsync(categories);
 
-                return (query.ToList(),1 /*totalCount*/);
+                return (query.ToList(), totalCount);
             }
             catch (Exception ex)
             {

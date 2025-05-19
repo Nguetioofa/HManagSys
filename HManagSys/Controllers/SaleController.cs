@@ -146,7 +146,7 @@ namespace HManagSys.Controllers
         /// Traitement du formulaire de création de vente
         /// </summary>
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        //[ValidateAntiForgeryToken]
         [MedicalStaff]
         public async Task<IActionResult> Create([FromBody] CreateSaleRequest request)
         {

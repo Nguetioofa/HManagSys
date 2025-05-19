@@ -23,6 +23,7 @@ public class PaymentController : BaseController
     private readonly IDocumentGenerationService _documentGenerationService;
     private readonly IWorkflowService _workflowService;
     private readonly IPaymentMethodRepository _paymentMethodRepository;
+    private readonly ISaleService _saleService;
 
 
     public PaymentController(
@@ -34,6 +35,7 @@ public class PaymentController : BaseController
         IDocumentGenerationService documentGenerationService,
         IPaymentMethodRepository paymentMethodRepository,
         IWorkflowService workflowService,
+        ISaleService saleService,
         IUserRepository userRepository)
     {
         _paymentService = paymentService;
@@ -45,6 +47,7 @@ public class PaymentController : BaseController
         _paymentMethodRepository = paymentMethodRepository;
         _userRepository = userRepository;
         _workflowService = workflowService;
+        _saleService = saleService;
     }
 
 
@@ -538,7 +541,7 @@ public class PaymentController : BaseController
 
             var payments = await _paymentService.GetPatientPaymentHistoryAsync(patientId);
             var summary = await _paymentService.GetPatientPaymentSummaryAsync(patientId);
-
+            
             var viewModel = new PatientPaymentsViewModel
             {
                 Patient = new Models.ViewModels.Patients.PatientViewModel
@@ -564,6 +567,323 @@ public class PaymentController : BaseController
             return RedirectToAction("Details", "Patient", new { id = patientId });
         }
     }
+
+
+
+    /// <summary>
+    /// Affiche le formulaire pour ajouter un paiement à une référence
+    /// </summary>
+    [MedicalStaff]
+    public async Task<IActionResult> Add(string referenceType, int referenceId)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(referenceType) || !IsValidReferenceType(referenceType))
+            {
+                TempData["ErrorMessage"] = "Type de référence invalide";
+                return RedirectToAction("Index");
+            }
+
+            // Initialiser le modèle
+            var model = new PaymentFormViewModel
+            {
+                ReferenceType = referenceType,
+                ReferenceId = referenceId,
+                HospitalCenterId = CurrentCenterId.Value
+            };
+
+            // Charger les détails selon le type de référence
+            switch (referenceType)
+            {
+                case "Sale":
+                    await LoadSaleInfoAsync(model, referenceId);
+                    break;
+                case "CareEpisode":
+                    await LoadCareEpisodeInfoAsync(model, referenceId);
+                    break;
+                case "Examination":
+                    await LoadExaminationInfoAsync(model, referenceId);
+                    break;
+                default:
+                    TempData["ErrorMessage"] = $"Type de référence non pris en charge: {referenceType}";
+                    return RedirectToAction("Index");
+            }
+
+            // Charger les méthodes de paiement disponibles
+            model.PaymentMethods = await _paymentService.GetPaymentMethodsAsync();
+
+            return View(model);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "AddGetError",
+                "Erreur lors du chargement du formulaire de paiement",
+                CurrentUserId, CurrentCenterId,
+                details: new { ReferenceType = referenceType, ReferenceId = referenceId, Error = ex.Message });
+
+            TempData["ErrorMessage"] = "Erreur lors du chargement du formulaire de paiement";
+            return RedirectToAction("Index");
+        }
+    }
+
+    /// <summary>
+    /// Traite le formulaire d'ajout de paiement
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [MedicalStaff]
+    public async Task<IActionResult> Add(CreatePaymentViewModel model)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                // Recharger les listes pour le formulaire
+                model.PaymentMethods = await _paymentService.GetPaymentMethodsAsync();
+                return View(model);
+            }
+
+            // S'assurer que le centre hospitalier est bien défini
+            model.HospitalCenterId = CurrentCenterId.Value;
+            model.ReceivedById = CurrentUserId.Value;
+
+            // Créer le paiement
+            var result = await _paymentService.CreatePaymentAsync(model, CurrentUserId.Value);
+
+            if (result.IsSuccess)
+            {
+                TempData["SuccessMessage"] = "Paiement enregistré avec succès";
+
+                // Rediriger selon le type de référence
+                switch (model.ReferenceType)
+                {
+                    case "Sale":
+                        return RedirectToAction("Receipt", "Sale", new { id = model.ReferenceId });
+                    case "CareEpisode":
+                        return RedirectToAction("Details", "CareEpisode", new { id = model.ReferenceId });
+                    case "Examination":
+                        return RedirectToAction("Details", "Examination", new { id = model.ReferenceId });
+                    default:
+                        return RedirectToAction("Details", new { id = result.Data.Id });
+                }
+            }
+
+            // En cas d'erreur
+            foreach (var error in result.ValidationErrors)
+            {
+                ModelState.AddModelError("", error);
+            }
+
+            // Recharger les listes pour le formulaire
+            model.PaymentMethods = await _paymentService.GetPaymentMethodsAsync();
+            return View(model);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "AddPostError",
+                "Erreur lors de la création du paiement",
+                CurrentUserId, CurrentCenterId,
+                details: new { Model = model, Error = ex.Message });
+
+            ModelState.AddModelError("", "Une erreur est survenue lors de la création du paiement");
+            model.PaymentMethods = await _paymentService.GetPaymentMethodsAsync();
+            return View(model);
+        }
+    }
+
+    /// <summary>
+    /// Rendu de la vue partielle du formulaire de paiement (pour inclusion dans d'autres vues)
+    /// </summary>
+    [MedicalStaff]
+    public async Task<IActionResult> PaymentFormPartial(string referenceType, int referenceId, int? patientId = null)
+    {
+        try
+        {
+            var model = new PaymentFormViewModel
+            {
+                ReferenceType = referenceType,
+                ReferenceId = referenceId,
+                PatientId = patientId,
+                HospitalCenterId = CurrentCenterId.Value
+            };
+
+            // Charger les détails selon le type de référence
+            switch (referenceType)
+            {
+                case "Sale":
+                    await LoadSaleInfoAsync(model, referenceId);
+                    break;
+                case "CareEpisode":
+                    await LoadCareEpisodeInfoAsync(model, referenceId);
+                    break;
+                case "Examination":
+                    await LoadExaminationInfoAsync(model, referenceId);
+                    break;
+                default:
+                    return Content("Type de référence non pris en charge");
+            }
+
+            // Charger les méthodes de paiement
+            model.PaymentMethods = await _paymentService.GetPaymentMethodsAsync();
+
+            // Indiquer qu'il s'agit d'une vue partielle pour un modal
+            ViewData["IsModal"] = true;
+
+            return PartialView("_PaymentForm", model);
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "PaymentFormPartialError",
+                "Erreur lors du chargement du formulaire de paiement partiel",
+                CurrentUserId, CurrentCenterId,
+                details: new { ReferenceType = referenceType, ReferenceId = referenceId, Error = ex.Message });
+
+            return Content("Erreur lors du chargement du formulaire de paiement");
+        }
+    }
+
+    /// <summary>
+    /// Récupère les paiements restants par type de référence
+    /// Utilisé pour les tableaux de bord financiers
+    /// </summary>
+    [MedicalStaff]
+    public async Task<IActionResult> GetPendingPaymentsByType()
+    {
+        try
+        {
+            var pendingPayments = new Dictionary<string, decimal>();
+
+            // Récupérer les ventes avec paiement en attente
+            var pendingSales = await _saleService.QueryListAsync(q =>
+                q.Where(s => s.HospitalCenterId == CurrentCenterId &&
+                            (s.PaymentStatus == "Pending" || s.PaymentStatus == "Partial")));
+
+            if (pendingSales.Any())
+            {
+                var saleIds = pendingSales.Select(s => s.Id).ToList();
+                var payments = await _paymentService.CalculateRemainingPaymentsAsync(
+                    saleIds.Select(id => new PaymentReference
+                    {
+                        Type = "Sale",
+                        Id = id,
+                        TotalAmount = pendingSales.First(s => s.Id == id).FinalAmount
+                    }).ToList());
+
+                pendingPayments["Ventes"] = payments.Values.Sum();
+            }
+
+            // Récupérer les examens avec paiement en attente
+            var pendingExaminations = await _examinationService.QueryListAsync(q =>
+                q.Where(e => e.HospitalCenterId == CurrentCenterId &&
+                            e.Status != "Cancelled" &&
+                            e.FinalPrice > 0));
+
+            if (pendingExaminations.Any())
+            {
+                var examIds = pendingExaminations.Select(e => e.Id).ToList();
+                var examPayments = await _paymentService.CalculateRemainingPaymentsAsync(
+                    examIds.Select(id => new PaymentReference
+                    {
+                        Type = "Examination",
+                        Id = id,
+                        TotalAmount = pendingExaminations.First(e => e.Id == id).FinalPrice
+                    }).ToList());
+
+                pendingPayments["Examens"] = examPayments.Values.Sum();
+            }
+
+            // Récupérer les épisodes de soins avec paiement en attente
+            var pendingEpisodes = await _careEpisodeService.QueryListAsync(q =>
+                q.Where(ce => ce.HospitalCenterId == CurrentCenterId &&
+                             ce.Status != "Cancelled" &&
+                             ce.RemainingBalance > 0));
+
+            if (pendingEpisodes.Any())
+            {
+                pendingPayments["Soins"] = pendingEpisodes.Sum(ce => ce.RemainingBalance);
+            }
+
+            return Json(new { success = true, pendingPayments });
+        }
+        catch (Exception ex)
+        {
+            await _logger.LogErrorAsync("Payment", "GetPendingPaymentsByTypeError",
+                "Erreur lors de la récupération des paiements en attente",
+                CurrentUserId, CurrentCenterId,
+                details: new { Error = ex.Message });
+
+            return Json(new { success = false, message = "Une erreur est survenue lors de la récupération des paiements en attente" });
+        }
+    }
+
+    // Méthodes privées pour charger les informations des références
+
+    private async Task LoadSaleInfoAsync(PaymentFormViewModel model, int saleId)
+    {
+        var sale = await _saleService.GetByIdAsync(saleId);
+        if (sale == null)
+        {
+            throw new Exception($"Vente {saleId} introuvable");
+        }
+
+        // Récupérer les informations du patient si disponible
+        if (sale.PatientId.HasValue)
+        {
+            model.PatientId = sale.PatientId;
+            var patient = await _patientService.GetPatientByIdAsync(sale.PatientId.Value);
+            if (patient != null)
+            {
+                model.ReferenceDescription = $"Vente #{sale.SaleNumber} - {patient.FirstName} {patient.LastName}";
+            }
+            else
+            {
+                model.ReferenceDescription = $"Vente #{sale.SaleNumber}";
+            }
+        }
+        else
+        {
+            model.ReferenceDescription = $"Vente #{sale.SaleNumber}";
+        }
+
+        model.TotalAmount = sale.FinalAmount;
+
+        // Calculer le montant déjà payé
+        var payments = await _paymentService.GetPaymentsByReferenceAsync("Sale", saleId);
+        model.AmountPaid = payments.Where(p => !p.IsCancelled).Sum(p => p.Amount);
+    }
+
+    private async Task LoadCareEpisodeInfoAsync(PaymentFormViewModel model, int careEpisodeId)
+    {
+        var careEpisode = await _careEpisodeService.GetByIdAsync(careEpisodeId);
+        if (careEpisode == null)
+        {
+            throw new Exception($"Épisode de soins {careEpisodeId} introuvable");
+        }
+
+        model.PatientId = careEpisode.PatientId;
+        model.ReferenceDescription = $"Soins - {careEpisode.PatientName} ({careEpisode.DiagnosisName})";
+        model.TotalAmount = careEpisode.TotalCost;
+        model.AmountPaid = careEpisode.TotalCost - careEpisode.RemainingBalance;
+    }
+
+    private async Task LoadExaminationInfoAsync(PaymentFormViewModel model, int examinationId)
+    {
+        var examination = await _examinationService.GetByIdAsync(examinationId);
+        if (examination == null)
+        {
+            throw new Exception($"Examen {examinationId} introuvable");
+        }
+
+        model.PatientId = examination.PatientId;
+        model.ReferenceDescription = $"Examen {examination.ExaminationTypeName} - {examination.PatientName}";
+        model.TotalAmount = examination.FinalPrice;
+
+        // Calculer le montant déjà payé
+        var payments = await _paymentService.GetPaymentsByReferenceAsync("Examination", examinationId);
+        model.AmountPaid = payments.Where(p => !p.IsCancelled).Sum(p => p.Amount);
+    }
+
+
 
     // Méthodes privées d'aide
 
@@ -611,7 +931,12 @@ public class PaymentController : BaseController
 
 public class PaymentReference
 {
-    public string Type { get; set; }
+    public string Type { get; set; } = string.Empty;
     public int Id { get; set; }
     public decimal Amount { get; set; }
+
+    public decimal TotalAmount { get; set; }
+    public decimal PaidAmount { get; set; }
+    public decimal RemainingAmount => TotalAmount - PaidAmount;
+    public string Description { get; set; } = string.Empty;
 }

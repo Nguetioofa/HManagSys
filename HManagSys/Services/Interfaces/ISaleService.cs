@@ -1,4 +1,6 @@
 ﻿
+using HManagSys.Models.EfModels;
+using HManagSys.Models.Interfaces;
 using HManagSys.Models.ViewModels.Sales;
 
 namespace HManagSys.Services.Interfaces
@@ -15,6 +17,8 @@ namespace HManagSys.Services.Interfaces
         /// Récupère une vente par son ID
         /// </summary>
         Task<SaleViewModel?> GetByIdAsync(int id);
+
+        Task<List<Sale>> QueryListAsync(Func<IQueryable<Sale>, IQueryable<Sale>> queryBuilder);
 
         /// <summary>
         /// Récupère les ventes avec filtres et pagination

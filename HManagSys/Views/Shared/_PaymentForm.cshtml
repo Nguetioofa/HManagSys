@@ -1,0 +1,174 @@
+﻿@model HManagSys.Models.ViewModels.Payments.PaymentFormViewModel
+
+@{
+    var isModal = ViewData["IsModal"] != null && (bool)ViewData["IsModal"];
+    var formId = isModal ? "modalPaymentForm" : "paymentForm";
+    var submitBtnId = isModal ? "modalPaymentSubmitBtn" : "paymentSubmitBtn";
+}
+
+<div class="@(isModal ? "" : "card shadow mb-4")">
+    @if (!isModal)
+    {
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Enregistrement d'un paiement</h6>
+        </div>
+    }
+    <div class="@(isModal ? "" : "card-body")">
+        <form id="@formId">
+            <input type="hidden" id="referenceType" name="ReferenceType" value="@Model.ReferenceType" />
+            <input type="hidden" id="referenceId" name="ReferenceId" value="@Model.ReferenceId" />
+            <input type="hidden" id="patientId" name="PatientId" value="@Model.PatientId" />
+            <input type="hidden" id="hospitalCenterId" name="HospitalCenterId" value="@Model.HospitalCenterId" />
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="paymentMethod">Méthode de paiement</label>
+                    <select id="paymentMethod" name="PaymentMethodId" class="form-control" required>
+                        <option value="">Sélectionner une méthode</option>
+                        @foreach (var method in Model.PaymentMethods)
+                        {
+                            <option value="@method.Id">@method.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="amount">Montant</label>
+                    <div class="input-group">
+                        <input type="number" id="amount" name="Amount" class="form-control"
+                               required min="1" max="@Model.MaxAmount" value="@Model.SuggestedAmount" />
+                        <span class="input-group-text">FCFA</span>
+                    </div>
+                    <div class="form-text">
+                        Montant total: @Model.TotalAmount.ToString("N0") FCFA |
+                        Déjà payé: @Model.AmountPaid.ToString("N0") FCFA |
+                        Reste: @Model.RemainingAmount.ToString("N0") FCFA
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3" id="transactionReferenceContainer" style="display: none;">
+                <label for="transactionReference">Référence de transaction</label>
+                <input type="text" id="transactionReference" name="TransactionReference" class="form-control"
+                       placeholder="Numéro de transaction Mobile Money" />
+                <div class="form-text">Obligatoire pour les paiements par mobile money</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="notes">Notes (optionnel)</label>
+                <textarea id="notes" name="Notes" class="form-control" rows="2"></textarea>
+            </div>
+
+            @if (!isModal)
+            {
+                <button type="button" id="@submitBtnId" class="btn btn-success">
+                    <i class="fas fa-check-circle"></i> Enregistrer le paiement
+                </button>
+            }
+        </form>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        // Gestion de l'affichage du champ de référence
+        $('#paymentMethod').on('change', function() {
+            const methodName = $(this).find('option:selected').text().toLowerCase();
+            if (methodName.includes('mobile') || methodName.includes('orange') || methodName.includes('mtn')) {
+                $('#transactionReferenceContainer').show();
+            } else {
+                $('#transactionReferenceContainer').hide();
+                $('#transactionReference').val('');
+            }
+        });
+
+        // Submit du formulaire (uniquement pour le formulaire non-modal)
+        @if (!isModal)
+        {
+                <text>
+                $('#@submitBtnId').on('click', function() {
+                    submitPaymentForm();
+                });
+                </text>
+        }
+    });
+
+    // Fonction de validation et soumission du formulaire
+    function submitPaymentForm() {
+        const form = $('#@formId');
+        const paymentMethodId = $('#paymentMethod').val();
+        const amount = $('#amount').val();
+        const maxAmount = parseFloat($('#amount').attr('max'));
+        const transactionReference = $('#transactionReference').val();
+
+        // Validation
+        if (!paymentMethodId) {
+            alert('Veuillez sélectionner une méthode de paiement');
+            return false;
+        }
+
+        if (!amount || parseFloat(amount) <= 0 || parseFloat(amount) > maxAmount) {
+            alert(`Veuillez entrer un montant valide (entre 1 et ${maxAmount.toLocaleString('fr-FR')} FCFA)`);
+            return false;
+        }
+
+        const methodName = $('#paymentMethod option:selected').text().toLowerCase();
+        if ((methodName.includes('mobile') || methodName.includes('orange') || methodName.includes('mtn')) && !transactionReference) {
+            alert('Veuillez entrer une référence de transaction pour ce mode de paiement');
+            return false;
+        }
+
+        // Désactiver le bouton pendant le traitement
+        $('#@submitBtnId').prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Traitement en cours...');
+
+        // Préparer les données du formulaire
+        const formData = {
+            ReferenceType: $('#referenceType').val(),
+            ReferenceId: $('#referenceId').val(),
+            PatientId: $('#patientId').val(),
+            HospitalCenterId: $('#hospitalCenterId').val(),
+            PaymentMethodId: paymentMethodId,
+            Amount: amount,
+            TransactionReference: transactionReference,
+            Notes: $('#notes').val(),
+            PaymentDate: new Date().toISOString()
+        };
+
+        // Envoyer la requête
+        $.ajax({
+            url: '@Url.Action("CreateModal", "Payment")',
+            type: 'POST',
+            data: formData,
+            headers: {
+                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Redirection ou callback de succès
+                    @if (isModal)
+                    {
+                            <text>
+                            if (typeof paymentSuccessCallback === 'function') {
+                                paymentSuccessCallback(response);
+                            }
+                            </text>
+                    }
+                    else
+                    {
+                            <text>
+                            window.location.href = '@Url.Action("Details", "Payment")?id=' + response.paymentId;
+                            </text>
+                    }
+                } else {
+                    alert('Erreur: ' + response.message);
+                    $('#@submitBtnId').prop('disabled', false).html('<i class="fas fa-check-circle"></i> Enregistrer le paiement');
+                }
+            },
+            error: function() {
+                alert('Une erreur est survenue lors du traitement de la demande');
+                $('#@submitBtnId').prop('disabled', false).html('<i class="fas fa-check-circle"></i> Enregistrer le paiement');
+            }
+        });
+
+        return false;
+    }
+</script>

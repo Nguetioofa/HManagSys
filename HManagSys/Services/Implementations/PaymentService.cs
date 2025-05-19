@@ -353,6 +353,7 @@ namespace HManagSys.Services.Implementations
                      .Include(p => p.PaymentMethod)
                      .Include(p => p.HospitalCenter)
                      .Include(p => p.ReceivedByNavigation)
+                     .AsNoTracking().AsSplitQuery()
                      .OrderByDescending(p => p.PaymentDate)
                      .Select(p => new PaymentViewModel
                      {
@@ -377,7 +378,7 @@ namespace HManagSys.Services.Implementations
                             : null,
                          CreatedAt = p.CreatedAt,
                          CreatedBy = p.CreatedBy,
-                         CreatedByName = p.CreatedBy.ToString() // À remplacer par le nom réel dans une implémentation complète
+                         CreatedByName = p.CreatedBy.ToString()
                      }));
 
                 payments.ForEach(p => p.ReferenceDescription = GetReferenceDescription(p.ReferenceType, p.ReferenceId));
@@ -527,40 +528,36 @@ namespace HManagSys.Services.Implementations
             {
                 int totalCount = 0;
 
-                var payment = await _paymentRepository.QueryListAsync<PaymentViewModel>(query =>
+                var payment = await _paymentRepository.QueryListAsync(query =>
                 {
                     query = query
                    .Include(p => p.Patient)
                    .Include(p => p.PaymentMethod)
                    .Include(p => p.HospitalCenter)
                    .Include(p => p.ReceivedByNavigation)
-                   .AsQueryable();
+                   .AsSplitQuery()
+                   .AsNoTracking();
 
                     // Appliquer les filtres
                     if (filters.PatientId.HasValue)
-                    {
                         query = query.Where(p => p.PatientId == filters.PatientId.Value);
-                    }
+
 
                     if (filters.HospitalCenterId.HasValue)
-                    {
                         query = query.Where(p => p.HospitalCenterId == filters.HospitalCenterId.Value);
-                    }
+
 
                     if (filters.PaymentMethodId.HasValue)
-                    {
                         query = query.Where(p => p.PaymentMethodId == filters.PaymentMethodId.Value);
-                    }
+
 
                     if (filters.ReceivedBy.HasValue)
-                    {
                         query = query.Where(p => p.ReceivedBy == filters.ReceivedBy.Value);
-                    }
+
 
                     if (!string.IsNullOrWhiteSpace(filters.ReferenceType))
-                    {
                         query = query.Where(p => p.ReferenceType == filters.ReferenceType);
-                    }
+
 
                     if (filters.FromDate.HasValue)
                     {
@@ -602,7 +599,8 @@ namespace HManagSys.Services.Implementations
                             ReferenceType = p.ReferenceType,
                             ReferenceId = p.ReferenceId,
                             ReferenceDescription = p.ReferenceType == "CareEpisode" ? "Épisode de soins" :
-                                                  p.ReferenceType == "Examination" ? "Examen" : p.ReferenceType,
+                                                  p.ReferenceType == "Examination" ? "Examen" :
+                                                  p.ReferenceType == "Sale" ? "Vente" : p.ReferenceType,
                             PatientId = p.PatientId,
                             PatientName = p.Patient != null ? $"{p.Patient.FirstName} {p.Patient.LastName}" : "",
                             HospitalCenterId = p.HospitalCenterId,
@@ -621,7 +619,7 @@ namespace HManagSys.Services.Implementations
                                 : null,
                             CreatedAt = p.CreatedAt,
                             CreatedBy = p.CreatedBy,
-                            CreatedByName = p.CreatedBy.ToString() // À remplacer par le nom réel dans une implémentation complète
+                            CreatedByName = p.CreatedBy.ToString()
                         });
 
                 });
@@ -851,11 +849,11 @@ namespace HManagSys.Services.Implementations
                         {
 
                             // Incrémenter le montant payé et décrémenter le solde restant
-                            sale.FinalAmount += amount;
-                            sale.FinalAmount = Math.Max(0, sale.FinalAmount - sale.FinalAmount);
+                            //sale.FinalAmount += amount;
+                            //sale.FinalAmount = Math.Max(0, sale.FinalAmount - sale.FinalAmount);
 
                             // Si tout est payé, mettre à jour le statut si nécessaire
-                            if (sale.FinalAmount == 0 && sale.PaymentStatus == "Pending" || sale.PaymentStatus == "Partial")
+                            if (sale.FinalAmount == amount && sale.PaymentStatus == "Pending" || sale.PaymentStatus == "Partial")
                             {
                                 sale.PaymentStatus = "Paid";
                             }
@@ -914,13 +912,17 @@ namespace HManagSys.Services.Implementations
                     q => q.Where(ce => ce.PatientId == patientId),
                     ce => ce.TotalCost);
 
-                //Somme des examens(dans une implémentation complète)
+                //Somme des examens
                  var examinationsTotal = await _examinationRepository.SumAsync(
                      q => q.Where(e => e.PatientId == patientId),
                      e => e.FinalPrice);
 
+                //Somme des ventes
+                var saleTotal = await _saleRepository.SumAsync(query =>
+                        query.Where(x => x.PatientId == patientId), x=>x.FinalAmount);
+
                 // Pour l'instant, on retourne seulement le total des épisodes de soins
-                return careEpisodesTotal + examinationsTotal;
+                return careEpisodesTotal + examinationsTotal + saleTotal;
             }
             catch (Exception ex)
             {

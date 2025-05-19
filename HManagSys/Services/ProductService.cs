@@ -15,34 +15,37 @@ namespace HManagSys.Services.Implementations
     /// </summary>
     public class ProductService : IProductService
     {
-        private readonly IGenericRepository<Product> _productRepository;
-        private readonly IGenericRepository<ProductCategory> _categoryRepository;
-        private readonly IGenericRepository<StockInventory> _stockInventoryRepository;
-        private readonly IGenericRepository<StockMovement> _stockMovementRepository;
-        private readonly IGenericRepository<User> _userRepository;
-        private readonly IGenericRepository<HospitalCenter> _hospitalCenterRepository;
-        private readonly IApplicationLogger _appLogger;
-        private readonly IAuditService _auditService;
+        #region Attributes
+            private readonly IGenericRepository<Product> _productRepository;
+            private readonly IGenericRepository<ProductCategory> _categoryRepository;
+            private readonly IGenericRepository<StockInventory> _stockInventoryRepository;
+            private readonly IGenericRepository<StockMovement> _stockMovementRepository;
+            private readonly IGenericRepository<User> _userRepository;
+            private readonly IGenericRepository<HospitalCenter> _hospitalCenterRepository;
+            private readonly IApplicationLogger _appLogger;
+            private readonly IAuditService _auditService;
 
-        public ProductService(
-            IGenericRepository<Product> productRepository,
-            IGenericRepository<ProductCategory> categoryRepository,
-            IGenericRepository<StockInventory> stockInventoryRepository,
-            IGenericRepository<StockMovement> stockMovementRepository,
-            IGenericRepository<User> userRepository,
-            IGenericRepository<HospitalCenter> hospitalCenterRepository,
-            IApplicationLogger appLogger,
-            IAuditService auditService)
-        {
-            _productRepository = productRepository;
-            _categoryRepository = categoryRepository;
-            _stockInventoryRepository = stockInventoryRepository;
-            _stockMovementRepository = stockMovementRepository;
-            _userRepository = userRepository;
-            _hospitalCenterRepository = hospitalCenterRepository;
-            _appLogger = appLogger;
-            _auditService = auditService;
-        }
+            public ProductService(
+                IGenericRepository<Product> productRepository,
+                IGenericRepository<ProductCategory> categoryRepository,
+                IGenericRepository<StockInventory> stockInventoryRepository,
+                IGenericRepository<StockMovement> stockMovementRepository,
+                IGenericRepository<User> userRepository,
+                IGenericRepository<HospitalCenter> hospitalCenterRepository,
+                IApplicationLogger appLogger,
+                IAuditService auditService)
+            {
+                _productRepository = productRepository;
+                _categoryRepository = categoryRepository;
+                _stockInventoryRepository = stockInventoryRepository;
+                _stockMovementRepository = stockMovementRepository;
+                _userRepository = userRepository;
+                _hospitalCenterRepository = hospitalCenterRepository;
+                _appLogger = appLogger;
+                _auditService = auditService;
+            }
+        #endregion
+
 
         // ===== OPÉRATIONS CRUD =====
 
@@ -54,7 +57,7 @@ namespace HManagSys.Services.Implementations
 
                 var products = await _productRepository.QueryListAsync(query =>
                 {
-                    query = query.Include(p => p.ProductCategory).AsSplitQuery();
+                    query = query.Include(p => p.ProductCategory);
 
                     if (!string.IsNullOrWhiteSpace(filters.SearchTerm))
                     {
@@ -123,7 +126,7 @@ namespace HManagSys.Services.Implementations
                     });
                 });
 
-                return (products.ToList(), totalCount);
+                return (products, totalCount);
             }
             catch (Exception ex)
             {
@@ -207,9 +210,7 @@ namespace HManagSys.Services.Implementations
             }
         }
 
-        public async Task<OperationResult<ProductViewModel>> CreateProductAsync(
-            CreateProductViewModel model,
-            int createdBy)
+        public async Task<OperationResult<ProductViewModel>> CreateProductAsync(CreateProductViewModel model, int createdBy)
         {
             try
             {
@@ -457,13 +458,8 @@ namespace HManagSys.Services.Implementations
 
         // ===== GESTION DU STOCK =====
 
-        public async Task<OperationResult> InitializeStockAsync(
-            int productId,
-            int centerId,
-            decimal quantity,
-            decimal? minThreshold,
-            decimal? maxThreshold,
-            int createdBy)
+        public async Task<OperationResult> InitializeStockAsync(int productId, int centerId, decimal quantity,
+                                                                decimal? minThreshold, decimal? maxThreshold, int createdBy)
         {
             try
             {
@@ -636,12 +632,8 @@ namespace HManagSys.Services.Implementations
             }
         }
 
-        public async Task<OperationResult> UpdateStockThresholdsAsync(
-            int productId,
-            int centerId,
-            decimal? minThreshold,
-            decimal? maxThreshold,
-            int modifiedBy)
+        public async Task<OperationResult> UpdateStockThresholdsAsync(int productId, int centerId, decimal? minThreshold,
+                                                                        decimal? maxThreshold, int modifiedBy)
         {
             try
             {
@@ -700,12 +692,7 @@ namespace HManagSys.Services.Implementations
             }
         }
 
-        public async Task<OperationResult> AdjustStockAsync(
-            int productId,
-            int centerId,
-            decimal quantity,
-            string reason,
-            int adjustedBy)
+        public async Task<OperationResult> AdjustStockAsync(int productId, int centerId, decimal quantity, string reason, int adjustedBy)
         {
             try
             {
@@ -805,7 +792,7 @@ namespace HManagSys.Services.Implementations
                                SellingPrice = p.SellingPrice,
                                IsActive = p.IsActive
                            });
-            })).ToList();
+            }));
         }
 
         public async Task<List<StockAlertViewModel>> GetLowStockProductsAsync(int? centerId = null)
@@ -887,7 +874,7 @@ namespace HManagSys.Services.Implementations
                 overview.Statistics = await CalculateStockOverviewStatisticsAsync(centerId);
 
                 // Charger les catégories pour les filtres
-                overview.AvailableCategories = (await _categoryRepository.QueryListAsync<ProductCategorySelectViewModel>(q =>
+                overview.AvailableCategories = (await _categoryRepository.QueryListAsync(q =>
                     q.Where(c => c.IsActive)
                      .OrderBy(c => c.Name)
                      .Select(c => new ProductCategorySelectViewModel
@@ -895,7 +882,7 @@ namespace HManagSys.Services.Implementations
                          Id = c.Id,
                          Name = c.Name,
                          IsActive = c.IsActive
-                     }))).ToList();
+                     })));
 
                 // Charger les items de stock avec filtres
                 var (stockItems, totalCount) = await GetFilteredStockItemsAsync(centerId, filters);
@@ -927,30 +914,6 @@ namespace HManagSys.Services.Implementations
 
         // ===== MÉTHODES PRIVÉES =====
 
-        private async Task LoadCreatorNamesAsync(List<ProductViewModel> products)
-        {
-            if (!products.Any()) return;
-
-            //// Récupérer tous les IDs d'utilisateurs uniques
-            //IList<string?>? userIds = products
-            //    .Select(p => p.CreatedByName)
-            //    .Union(products.Select(p => p.ModifiedByName))
-            //    .Distinct()
-            //    .ToList();
-
-            //// Charger les utilisateurs
-            //var users = await _userRepository.GetByIdsAsync(userIds);
-            //var userDict = users.ToDictionary(u => u.Id, u => $"{u.FirstName} {u.LastName}");
-
-            // Mapper les noms
-            //foreach (var product in products)
-            //{
-            //    product.CreatedByName = userDict.GetValueOrDefault(product.CreatedByName, "Utilisateur inconnu");
-
-            //    product.ModifiedByName = userDict.GetValueOrDefault(product.ModifiedByName, "Utilisateur inconnu");
-
-            //}
-        }
 
         private async Task<List<ProductStockByCenterViewModel>> GetProductStockByCenterAsync(int productId)
         {
@@ -970,7 +933,7 @@ namespace HManagSys.Services.Implementations
                      LastMovementDate = si.Product.StockMovements
                          .Where(sm => sm.HospitalCenterId == si.HospitalCenterId)
                          .Max(sm => (DateTime?)sm.MovementDate)
-                 }))).ToList();
+                 })));
 
             productStocks.ForEach(x => x.StockStatus = CalculateStockStatus(x.CurrentQuantity, x.MinimumThreshold, x.MaximumThreshold));
 
@@ -1106,7 +1069,7 @@ namespace HManagSys.Services.Implementations
                             Notes = sm.Notes,
                         });
                  
-                 })).ToList();
+                 }));
         }
 
         public async Task<ProductStatsByCenterViewModel> CalculateProductStatisticsAsync(int productId)
@@ -1217,7 +1180,7 @@ namespace HManagSys.Services.Implementations
                     LastMovementDate = x.Product.StockMovements.Where(x => x.MovementDate <= DateTime.Now && x.MovementDate > DateTime.Now.AddDays(-30)).OrderByDescending(x => x.Id).FirstOrDefault().CreatedAt,
                 });
 
-            })).ToList();
+            }));
 
             stockItemViews.ForEach(x => x.StockStatus = CalculateStockStatus(x.CurrentQuantity, x.MinimumThreshold, x.MaximumThreshold));
 
@@ -1227,7 +1190,7 @@ namespace HManagSys.Services.Implementations
         public async Task<List<RecentStockMovementViewModel>> GetRecentMovementsAsync(int centerId, int limit = 10)
         {
             // Implémentation simplifiée
-            return (await _stockMovementRepository.QueryListAsync<RecentStockMovementViewModel>(q =>
+            return (await _stockMovementRepository.QueryListAsync(q =>
                 q.Include(sm => sm.Product)
                  //.Include(sm => sm.CreatedByNavigation)
                  .Where(sm => sm.HospitalCenterId == centerId)
@@ -1243,7 +1206,7 @@ namespace HManagSys.Services.Implementations
                      UnitOfMeasure = sm.Product.UnitOfMeasure,
                      ReferenceType = sm.ReferenceType,
                      ReferenceId = sm.ReferenceId
-                 }))).ToList();
+                 })));
         }
         //CreatedByName = sm.CreatedByNavigation.FirstName + " " + sm.CreatedByNavigation.LastName,
 
@@ -1286,7 +1249,6 @@ namespace HManagSys.Services.Implementations
         {
             try
             {
-                var searchTermLower = searchTerm.ToLower().Trim();
 
                 return (await _productRepository.QueryListAsync<ProductSelectViewModel>(q =>
                 {
@@ -1294,8 +1256,10 @@ namespace HManagSys.Services.Implementations
                                  .Where(p => p.IsActive);
 
                     // Recherche par nom, catégorie ou description
-                    if (!string.IsNullOrEmpty(searchTermLower))
+                    if (!string.IsNullOrEmpty(searchTerm))
                     {
+                        var searchTermLower = searchTerm.ToLower().Trim();
+
                         query = query.Where(p =>
                             p.Name.ToLower().Contains(searchTermLower) ||
                             p.ProductCategory.Name.ToLower().Contains(searchTermLower) ||
@@ -1341,7 +1305,7 @@ namespace HManagSys.Services.Implementations
                     }
 
                     return projection.OrderBy(p => p.Name).Take(20); // Limiter à 20 résultats
-                })).ToList();
+                }));
             }
             catch (Exception ex)
             {

@@ -1,0 +1,848 @@
+﻿@model HManagSys.Models.ViewModels.Sales.PatientSalesViewModel
+
+@{
+    ViewData["Title"] = $"Historique des Ventes - {Model.PatientName}";
+}
+
+<div class="container-fluid">
+    @Html.AntiForgeryToken() @* Pour les requêtes AJAX POST (paiement rapide) *@
+
+    <!-- En-tête de la page -->
+    <div class="pt-3 mb-4">
+        <div class="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center">
+            <div class="mb-2 mb-sm-0">
+                <h1 class="h2 mb-0 text-gray-800 font-weight-bold">
+                    <i class="fas fa-cash-register text-primary me-2"></i>Historique des Ventes
+                </h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb breadcrumb-custom">
+                        <li class="breadcrumb-item"><a asp-controller="Patient" asp-action="Index">Patients</a></li>
+                        <li class="breadcrumb-item"><a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.PatientId">@Model.PatientName</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Historique des Ventes</li>
+                    </ol>
+                </nav>
+            </div>
+            <div class="btn-group btn-group-sm">
+                <a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.PatientId" class="btn btn-outline-secondary">
+                    <i class="fas fa-user me-1"></i> Dossier Patient
+                </a>
+                <a asp-controller="Sale" asp-action="Create" asp-route-patientId="@Model.PatientId" class="btn btn-primary">
+                    @* Ajout de patientId pour pré-remplir *@
+                    <i class="fas fa-plus-circle me-1"></i> Nouvelle Vente
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cartes de Résumé des Achats (KPIs) -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card card-kpi shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0"><i class="fas fa-shopping-cart fa-2x text-primary-soft"></i></div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted mb-0 small text-uppercase">Total Achats</p>
+                            <h4 class="mb-0">@Model.TotalAmount.ToString("N0") <span class="fs-xs text-muted">FCFA</span></h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card card-kpi shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0"><i class="fas fa-hand-holding-usd fa-2x text-success-soft"></i></div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted mb-0 small text-uppercase">Montant Payé</p>
+                            <h4 class="mb-0 text-success">@Model.TotalPaid.ToString("N0") <span class="fs-xs text-muted">FCFA</span></h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card card-kpi shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0"><i class="fas fa-file-invoice-dollar fa-2x text-danger-soft"></i></div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted mb-0 small text-uppercase">Reste à Payer</p>
+                            <h4 class="mb-0 text-danger">@Model.TotalRemaining.ToString("N0") <span class="fs-xs text-muted">FCFA</span></h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card card-kpi shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0"><i class="fas fa-boxes fa-2x text-info-soft"></i></div>
+                        <div class="flex-grow-1 ms-3">
+                            <p class="text-muted mb-0 small text-uppercase">Nombre de Ventes</p>
+                            <h4 class="mb-0 text-info">@Model.Sales.Count</h4>
+                            <div class="small text-muted mt-1">
+                                Complet: @Model.CompletedSales | En attente: @Model.PendingSales
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau Historique des Ventes -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-transparent py-2 border-bottom-0 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-list-alt me-2"></i>Détail des Ventes</h6>
+            <small class="text-muted">@Model.Sales.Count vente(s) trouvée(s)</small>
+        </div>
+        <div class="card-body p-0">
+            @if (!Model.Sales.Any())
+            {
+                <div class="alert alert-secondary-soft text-center p-4 m-3">
+                    <i class="fas fa-info-circle fa-2x mb-2 d-block text-muted"></i>
+                    Aucune vente n'est enregistrée pour ce patient actuellement.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover table-nowrap mb-0" id="patientSalesTable">
+                        <thead class="table-light-custom">
+                            <tr>
+                                <th>N° Vente</th>
+                                <th>Date</th>
+                                <th class="text-end">Montant Total</th>
+                                <th class="text-center">Statut</th>
+                                <th class="text-center">Articles</th>
+                                <th class="text-end">Payé</th>
+                                <th class="text-end">Reste</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var sale in Model.Sales.OrderByDescending(s => s.SaleDate))
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-action="Details" asp-route-id="@sale.Id" class="fw-bold text-dark-emphasis text-decoration-none">
+                                            @sale.SaleNumber
+                                        </a>
+                                    </td>
+                                    <td><span class="small">@sale.FormattedSaleDate</span></td>
+                                    <td class="text-end">@sale.FinalAmount.ToString("N0") <span class="fs-xs text-muted">FCFA</span></td>
+                                    <td class="text-center">
+                                        <span class="badge @GetSaleStatusBadgeClass(sale.PaymentStatus) fs-sm">@sale.StatusText</span>
+                                    </td>
+                                    <td class="text-center">@sale.Items.Count</td>
+                                    <td class="text-end text-success">@sale.PaidAmount.ToString("N0") <span class="fs-xs text-muted">FCFA</span></td>
+                                    <td class="text-end @(sale.RemainingAmount > 0 ? "text-danger fw-bold" : "text-muted")">
+                                        @sale.RemainingAmount.ToString("N0") <span class="fs-xs text-muted">FCFA</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group">
+                                            <a asp-action="Details" asp-route-id="@sale.Id" class="btn btn-xs btn-outline-primary" title="Détails de la Vente"><i class="fas fa-eye"></i></a>
+                                            <a asp-action="Receipt" asp-route-id="@sale.Id" target="_blank" class="btn btn-xs btn-outline-secondary" title="Imprimer Reçu"><i class="fas fa-receipt"></i></a>
+                                            @if (sale.RemainingAmount > 0 && sale.PaymentStatus != "Cancelled" && sale.PaymentStatus != "Refunded")
+                                            {
+                                                <button type="button" class="btn btn-xs btn-outline-success quick-payment-btn"
+                                                        data-sale-id="@sale.Id"
+                                                        data-patient-id="@Model.PatientId"
+                                                        data-remaining-amount="@sale.RemainingAmount"
+                                                        title="Enregistrer Paiement">
+                                                    <i class="fas fa-dollar-sign"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+        @if (Model.Sales.Any())
+        {
+            <div class="card-footer bg-transparent text-center py-2">
+                <small class="text-muted">Fin de la liste des ventes.</small>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal de Paiement Rapide -->
+<div class="modal fade" id="quickSalePaymentModal" tabindex="-1" aria-labelledby="quickSalePaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fs-sm" id="quickSalePaymentModalLabel"><i class="fas fa-dollar-sign me-2"></i>Paiement Rapide pour Vente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickSalePaymentForm" class="needs-validation" novalidate>
+                    <input type="hidden" id="modalSaleReferenceType" name="ReferenceType" value="Sale" />
+                    <input type="hidden" id="modalSaleReferenceId" name="ReferenceId" />
+                    <input type="hidden" id="modalSalePatientId" name="PatientId" />
+
+                    <div class="mb-3">
+                        <label for="modalSalePaymentMethod" class="form-label form-label-sm">Méthode de paiement <span class="text-danger">*</span></label>
+                        <select id="modalSalePaymentMethod" name="PaymentMethodId" class="form-select form-select-sm" required>
+                            <option value="">-- Sélectionner --</option>
+                            @* Options chargées par JS *@
+                        </select>
+                        <div class="invalid-feedback">Veuillez sélectionner une méthode.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="modalSaleAmount" class="form-label form-label-sm">Montant à payer <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="modalSaleAmount" name="Amount" class="form-control form-control-sm" required min="1" />
+                            <span class="input-group-text">FCFA</span>
+                        </div>
+                        <div class="form-text small">Reste à payer: <strong id="modalSaleRemainingAmountText">0 FCFA</strong></div>
+                        <div class="invalid-feedback">Montant invalide.</div>
+                    </div>
+
+                    <div class="mb-3" id="modalSaleTransactionRefContainer" style="display: none;">
+                        <label for="modalSaleTransactionReference" class="form-label form-label-sm">Réf. Transaction (si paiement mobile)</label>
+                        <input type="text" id="modalSaleTransactionReference" name="TransactionReference" class="form-control form-control-sm" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="modalSaleNotes" class="form-label form-label-sm">Notes (Optionnel)</label>
+                        <textarea id="modalSaleNotes" name="Notes" class="form-control form-control-sm" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" id="submitQuickSalePaymentBtn" class="btn btn-sm btn-primary"><i class="fas fa-check me-1"></i>Enregistrer Paiement</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <style>
+        .breadcrumb-custom {
+            background-color: transparent;
+            padding: 0.25rem 0;
+            font-size: 0.8rem;
+            margin-bottom: 0;
+        }
+
+            .breadcrumb-custom .breadcrumb-item a {
+                color: #4e73df;
+                text-decoration: none;
+            }
+
+                .breadcrumb-custom .breadcrumb-item a:hover {
+                    text-decoration: underline;
+                }
+
+            .breadcrumb-custom .breadcrumb-item.active {
+                color: #858796;
+            }
+
+        .card-kpi .card-body {
+            padding: 1rem;
+        }
+
+        .card-kpi i.fa-2x {
+            opacity: 0.3;
+        }
+
+        .text-primary-soft i {
+            color: #4e73df;
+        }
+
+        .text-success-soft i {
+            color: #1cc88a;
+        }
+
+        .text-info-soft i {
+            color: #36b9cc;
+        }
+
+        .text-warning-soft i {
+            color: #f6c23e;
+        }
+
+        .text-danger-soft i {
+            color: #e74a3b;
+        }
+
+        .form-label-sm {
+            font-size: 0.75rem;
+            margin-bottom: 0.2rem;
+            font-weight: 500;
+        }
+
+        .table-light-custom th {
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #6e707e;
+            background-color: #f8f9fc !important;
+            letter-spacing: 0.5px;
+        }
+
+        .table-nowrap th, .table-nowrap td {
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+
+        .btn-xs {
+            padding: 0.2rem 0.45rem;
+            font-size: 0.75rem;
+            border-radius: 0.2rem;
+        }
+
+        .fs-xs {
+            font-size: .7rem !important;
+        }
+
+        .fs-sm {
+            font-size: .8rem !important;
+        }
+
+        .badge.bg-success-soft {
+            color: #17a673;
+            background-color: rgba(28,200,138,0.1);
+            border: 1px solid rgba(28,200,138,0.2);
+        }
+
+        .badge.bg-primary-soft {
+            color: #4e73df;
+            background-color: rgba(78,115,223,0.1);
+            border: 1px solid rgba(78,115,223,0.2);
+        }
+
+        .badge.bg-secondary-soft {
+            color: #757783;
+            background-color: rgba(133,135,150,0.1);
+            border: 1px solid rgba(133,135,150,0.2);
+        }
+
+        .badge.bg-info-soft {
+            color: #2c9faf;
+            background-color: rgba(54,185,204,0.1);
+            border: 1px solid rgba(54,185,204,0.2);
+        }
+
+        .badge.bg-warning-soft {
+            color: #dda20a;
+            background-color: rgba(246,194,62,0.1);
+            border: 1px solid rgba(246,194,62,0.2);
+        }
+
+        .badge.bg-danger-soft {
+            color: #cc3c2c;
+            background-color: rgba(231,74,59,0.1);
+            border: 1px solid rgba(231,74,59,0.2);
+        }
+
+        .alert-secondary-soft {
+            color: #858796;
+            background-color: rgba(133,135,150,0.07);
+            border: 1px solid rgba(133,135,150,0.2);
+        }
+
+        .text-dark-emphasis {
+            color: #343a40 !important;
+        }
+
+        .modal-header.bg-primary {
+            background-color: #4e73df !important;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 1.25rem;
+            right: 1.25rem;
+            z-index: 1090;
+        }
+    </style>
+    <div class="toast-container"></div>
+}
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        let quickSalePaymentModalInstance;
+
+        $(document).ready(function() {
+            $('#patientSalesTable').DataTable({
+                language: { url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/French.json' },
+                order: [[1, 'desc']], // Trier par date (colonne index 1)
+                pageLength: 10,
+                lengthMenu: [10, 25, 50, 100],
+                columnDefs: [
+                    { targets: [7], orderable: false, searchable: false } // Actions non triables/recherchables
+                ]
+            });
+
+            quickSalePaymentModalInstance = document.getElementById('quickSalePaymentModal') ? new bootstrap.Modal(document.getElementById('quickSalePaymentModal')) : null;
+
+            // Charger les méthodes de paiement pour le modal
+            $.ajax({
+                url: '@Url.Action("GetActivePaymentMethods", "PaymentApi")', // Assurez-vous que cet endpoint existe et retourne les méthodes
+                type: 'GET',
+                success: function(methods) {
+                    if (methods && methods.success && Array.isArray(methods.data)) {
+                        let html = '<option value="">-- Sélectionner --</option>';
+                        methods.data.forEach(function(method) {
+                            html += `<option value="${method.id}" data-name="${method.name.toLowerCase()}">${method.name}</option>`;
+                        });
+                        $('#modalSalePaymentMethod').html(html);
+                    } else {
+                        console.error("Erreur ou format incorrect pour GetActivePaymentMethods");
+                         $('#modalSalePaymentMethod').html('<option value="">Erreur chargement</option>');
+                    }
+                },
+                error: function() {
+                     $('#modalSalePaymentMethod').html('<option value="">Erreur chargement</option>');
+                }
+            });
+
+            $('#modalSalePaymentMethod').on('change', function() {
+                const selectedMethodName = $(this).find('option:selected').data('name') || '';
+                if (selectedMethodName.includes('mobile') || selectedMethodName.includes('orange') || selectedMethodName.includes('mtn')) {
+                    $('#modalSaleTransactionRefContainer').slideDown();
+                } else {
+                    $('#modalSaleTransactionRefContainer').slideUp();
+                    $('#modalSaleTransactionReference').val('');
+                }
+            });
+
+            $(document).on('click', '.quick-payment-btn', function() {
+                const saleId = $(this).data('sale-id');
+                const patientId = $(this).data('patient-id');
+                const remainingAmount = parseFloat($(this).data('remaining-amount'));
+
+                $('#modalSaleReferenceId').val(saleId);
+                $('#modalSalePatientId').val(patientId);
+                $('#modalSaleAmount').val(remainingAmount.toFixed(0)).attr('max', remainingAmount);
+                $('#modalSaleRemainingAmountText').text(remainingAmount.toLocaleString('fr-FR') + ' FCFA');
+
+                // Reset form validation and fields
+                $('#quickSalePaymentForm').removeClass('was-validated')[0].reset();
+                $('#modalSalePaymentMethod').val(''); // Assurez-vous que la méthode est réinitialisée
+                 $('#modalSaleTransactionRefContainer').hide();
+
+
+                if(quickSalePaymentModalInstance) quickSalePaymentModalInstance.show();
+            });
+
+            $('#submitQuickSalePaymentBtn').on('click', function() {
+                const form = document.getElementById('quickSalePaymentForm');
+                if (!form.checkValidity()) {
+                    form.classList.add('was-validated');
+                    return;
+                }
+                form.classList.add('was-validated');
+
+                const btn = $(this);
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Traitement...');
+
+                const paymentData = {
+                    ReferenceType: $('#modalSaleReferenceType').val(),
+                    ReferenceId: parseInt($('#modalSaleReferenceId').val()),
+                    PatientId: parseInt($('#modalSalePatientId').val()),
+                    Amount: parseFloat($('#modalSaleAmount').val()),
+                    PaymentMethodId: parseInt($('#modalSalePaymentMethod').val()),
+                    TransactionReference: $('#modalSaleTransactionReference').val() || null,
+                    Notes: $('#modalSaleNotes').val() || null,
+                    PaymentDate: new Date().toISOString() // Le backend devrait aussi pouvoir gérer cela
+                };
+
+                $.ajax({
+                    url: '@Url.Action("Create", "PaymentApi")', // URL de l'API pour créer un paiement
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(paymentData),
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                    success: function(response) {
+                        if (response.success) {
+                            showAppToast('Succès', response.message || 'Paiement enregistré!', 'success');
+                            if(quickSalePaymentModalInstance) quickSalePaymentModalInstance.hide();
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            showAppToast('Erreur', response.message || 'Impossible d\'enregistrer le paiement.', 'danger');
+                        }
+                    },
+                    error: function(xhr) {
+                        let errorMsg = 'Une erreur est survenue.';
+                        if (xhr.responseJSON && xhr.responseJSON.message) errorMsg = xhr.responseJSON.message;
+                        else if (xhr.responseJSON && xhr.responseJSON.errors) { // Pour les erreurs de validation ASP.NET Core
+                            errorMsg = "Veuillez corriger les erreurs suivantes:<ul>";
+                            for (const key in xhr.responseJSON.errors) {
+                                xhr.responseJSON.errors[key].forEach(err => { errorMsg += `<li>${err}</li>`; });
+                            }
+                            errorMsg += "</ul>";
+                        }
+                        showAppToast('Erreur Serveur', errorMsg, 'danger');
+                    },
+                    complete: function() {
+                         btn.prop('disabled', false).html('<i class="fas fa-check me-1"></i>Enregistrer Paiement');
+                    }
+                });
+            });
+        });
+
+        function showAppToast(title, message, type = 'info') {
+            const toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) return;
+            const toastId = 'appToast-' + Date.now();
+            const toastHtml = `<div class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true" id="${toastId}" data-bs-delay="5000"><div class="d-flex"><div class="toast-body"><strong>${title}:</strong> ${message}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div></div>`;
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+            toastElement.addEventListener('hidden.bs.toast', function () { this.remove(); });
+        }
+    </script>
+}
+
+@functions {
+    public string GetSaleStatusBadgeClass(string status)
+    { // Supposant que sale.PaymentStatus est utilisé
+        return status?.ToLowerInvariant() switch
+        {
+            "paid" => "bg-success-soft",
+            "partiallypaid" => "bg-warning-soft",
+            "pending" => "bg-info-soft", // ou "unpaid"
+            "cancelled" => "bg-danger-soft",
+            "refunded" => "bg-secondary-soft",
+            _ => "bg-secondary-soft"
+        };
+    }
+}
+
+@* @model HManagSys.Models.ViewModels.Sales.PatientSalesViewModel
+
+@{
+    ViewData["Title"] = "Historique des ventes patient";
+}
+
+<div class="container-fluid">
+    <!-- En-tête avec titre et boutons d'action -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-history"></i> Historique des ventes - @Model.PatientName
+        </h1>
+        <div>
+            <a asp-controller="Patient" asp-action="Details" asp-route-id="@Model.PatientId" class="btn btn-info">
+                <i class="fas fa-user"></i> Profil patient
+            </a>
+            <a asp-controller="Sale" asp-action="Create" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> Nouvelle vente
+            </a>
+        </div>
+    </div>
+
+    <!-- Carte de résumé -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Résumé des achats</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Total des achats</h5>
+                                    <p class="card-text h2">@Model.TotalAmount.ToString("N0") FCFA</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Montant payé</h5>
+                                    <p class="card-text h2">@Model.TotalPaid.ToString("N0") FCFA</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Reste à payer</h5>
+                                    <p class="card-text h2">@Model.TotalRemaining.ToString("N0") FCFA</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Nombre de ventes</h5>
+                                    <p class="card-text h2">@Model.Sales.Count</p>
+                                    <p class="mb-0">Complètes: @Model.CompletedSales</p>
+                                    <p class="mb-0">En attente: @Model.PendingSales</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des ventes -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Historique des ventes</h6>
+        </div>
+        <div class="card-body">
+            @if (!Model.Sales.Any())
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Aucune vente enregistrée pour ce patient.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="salesTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>N° de vente</th>
+                                <th>Date</th>
+                                <th>Montant</th>
+                                <th>Statut</th>
+                                <th>Articles</th>
+                                <th>Payé</th>
+                                <th>Reste</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var sale in Model.Sales.OrderByDescending(s => s.SaleDate))
+                            {
+                                <tr>
+                                    <td>@sale.SaleNumber</td>
+                                    <td>@sale.FormattedSaleDate</td>
+                                    <td>@sale.FinalAmount.ToString("N0") FCFA</td>
+                                    <td>
+                                        <span class="badge @sale.StatusBadgeClass">@sale.StatusText</span>
+                                    </td>
+                                    <td>@sale.Items.Count article(s)</td>
+                                    <td>@sale.PaidAmount.ToString("N0") FCFA</td>
+                                    <td>
+                                        @if (sale.RemainingAmount > 0)
+                                        {
+                                            <span class="text-danger">@sale.RemainingAmount.ToString("N0") FCFA</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-success">0 FCFA</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a asp-action="Details" asp-route-id="@sale.Id" class="btn btn-sm btn-info">
+                                            <i class="fas fa-info-circle"></i>
+                                        </a>
+                                        <a asp-action="Receipt" asp-route-id="@sale.Id" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-receipt"></i>
+                                        </a>
+                                        @if (sale.RemainingAmount > 0 && sale.PaymentStatus != "Cancelled")
+                                        {
+                                            <button type="button" class="btn btn-sm btn-success quick-payment-btn"
+                                                    data-sale-id="@sale.Id"
+                                                    data-reference-type="Sale"
+                                                    data-patient-id="@Model.PatientId"
+                                                    data-remaining="@sale.RemainingAmount"
+                                                    data-toggle="modal"
+                                                    data-target="#quickPaymentModal">
+                                                <i class="fas fa-money-bill-wave"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal de paiement rapide -->
+<div class="modal fade" id="quickPaymentModal" tabindex="-1" role="dialog" aria-labelledby="quickPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="quickPaymentModalLabel">Paiement rapide</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quickPaymentForm">
+                    <input type="hidden" id="modalReferenceType" name="ReferenceType" value="Sale" />
+                    <input type="hidden" id="modalReferenceId" name="ReferenceId" />
+                    <input type="hidden" id="modalPatientId" name="PatientId" value="@Model.PatientId" />
+
+                    <div class="mb-3">
+                        <label for="modalPaymentMethod">Méthode de paiement</label>
+                        <select id="modalPaymentMethod" name="PaymentMethodId" class="form-control" required>
+                            <option value="">Sélectionner une méthode</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="modalAmount">Montant</label>
+                        <div class="input-group">
+                            <input type="number" id="modalAmount" name="Amount" class="form-control" required min="1" />
+                            <span class="input-group-text">FCFA</span>
+                        </div>
+                        <div class="form-text">Montant restant à payer: <span id="modalRemaining"></span> FCFA</div>
+                    </div>
+
+                    <div class="mb-3" id="modalTransactionReferenceContainer" style="display: none;">
+                        <label for="modalTransactionReference">Référence de transaction</label>
+                        <input type="text" id="modalTransactionReference" name="TransactionReference" class="form-control" placeholder="Numéro de transaction Mobile Money" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="modalNotes">Notes (optionnel)</label>
+                        <textarea id="modalNotes" name="Notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" id="quickPaymentSubmitBtn" class="btn btn-primary">Enregistrer le paiement</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialiser la DataTable
+            $('#salesTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/French.json'
+                },
+                order: [[1, 'desc']] // Trier par date décroissante
+            });
+
+            // Charger les méthodes de paiement
+            $.ajax({
+                url: '@Url.Action("GetPaymentMethods", "Payment")',
+                type: 'GET',
+                success: function(methods) {
+                    let html = '<option value="">Sélectionner une méthode</option>';
+                    methods.forEach(function(method) {
+                        html += `<option value="${method.id}">${method.name}</option>`;
+                    });
+                    $('#modalPaymentMethod').html(html);
+                }
+            });
+
+            // Gérer l'affichage du champ de référence de transaction
+            $('#modalPaymentMethod').on('change', function() {
+                const methodName = $(this).find('option:selected').text().toLowerCase();
+                if (methodName.includes('mobile') || methodName.includes('orange') || methodName.includes('mtn')) {
+                    $('#modalTransactionReferenceContainer').show();
+                } else {
+                    $('#modalTransactionReferenceContainer').hide();
+                    $('#modalTransactionReference').val('');
+                }
+            });
+
+            // Remplir le modal lors de l'ouverture
+            $('.quick-payment-btn').on('click', function() {
+                const saleId = $(this).data('sale-id');
+                const referenceType = $(this).data('reference-type');
+                const patientId = $(this).data('patient-id');
+                const remaining = $(this).data('remaining');
+
+                $('#modalReferenceId').val(saleId);
+                $('#modalReferenceType').val(referenceType);
+                $('#modalPatientId').val(patientId);
+                $('#modalAmount').val(remaining);
+                $('#modalAmount').attr('max', remaining);
+                $('#modalRemaining').text(remaining.toLocaleString('fr-FR'));
+
+                // Ouvrir le modal
+                new bootstrap.Modal(document.getElementById('quickPaymentModal')).show();
+            });
+
+            // Soumettre le paiement rapide
+            $('#quickPaymentSubmitBtn').on('click', function() {
+                const paymentMethodId = $('#modalPaymentMethod').val();
+                const amount = $('#modalAmount').val();
+                const transactionReference = $('#modalTransactionReference').val();
+                const notes = $('#modalNotes').val();
+                const referenceType = $('#modalReferenceType').val();
+                const referenceId = $('#modalReferenceId').val();
+                const patientId = $('#modalPatientId').val();
+                const remaining = parseFloat($('#modalRemaining').text().replace(/\s/g, '').replace(',', '.'));
+
+                // Validation
+                if (!paymentMethodId) {
+                    alert('Veuillez sélectionner une méthode de paiement');
+                    return;
+                }
+
+                if (!amount || amount <= 0 || amount > remaining) {
+                    alert(`Veuillez entrer un montant valide (entre 1 et ${remaining.toLocaleString('fr-FR')} FCFA)`);
+                    return;
+                }
+
+                const methodName = $('#modalPaymentMethod option:selected').text().toLowerCase();
+                if ((methodName.includes('mobile') || methodName.includes('orange') || methodName.includes('mtn')) && !transactionReference) {
+                    alert('Veuillez entrer une référence de transaction pour ce mode de paiement');
+                    return;
+                }
+
+                // Désactiver le bouton pendant le traitement
+                $('#quickPaymentSubmitBtn').prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Traitement en cours...');
+
+                // Envoyer la requête
+                $.ajax({
+                    url: '@Url.Action("CreateModal", "Payment")',
+                    type: 'POST',
+                    data: {
+                        ReferenceType: referenceType,
+                        ReferenceId: referenceId,
+                        PatientId: patientId,
+                        Amount: amount,
+                        PaymentMethodId: paymentMethodId,
+                        TransactionReference: transactionReference,
+                        Notes: notes,
+                        //HospitalCenterId: CurrentCenterId,
+                        PaymentDate: new Date().toISOString()
+                    },
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Fermer le modal et recharger la page
+                            $('#quickPaymentModal').modal('hide');
+                            location.reload();
+                        } else {
+                            alert('Erreur: ' + response.message);
+                            $('#quickPaymentSubmitBtn').prop('disabled', false).html('Enregistrer le paiement');
+                        }
+                    },
+                    error: function() {
+                        alert('Une erreur est survenue lors du traitement de la demande');
+                        $('#quickPaymentSubmitBtn').prop('disabled', false).html('Enregistrer le paiement');
+                    }
+                });
+            });
+        });
+    </script>
+} *@

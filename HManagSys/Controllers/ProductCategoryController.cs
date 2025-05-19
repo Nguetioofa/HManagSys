@@ -13,7 +13,6 @@ namespace HManagSys.Controllers
     /// </summary>
     [RequireAuthentication]
     [RequireCurrentCenter]
-    [SuperAdmin]
     public class ProductCategoryController : BaseController
     {
         private readonly IProductCategoryService _categoryService;
@@ -30,6 +29,8 @@ namespace HManagSys.Controllers
         /// <summary>
         /// Liste des catégories avec filtres et pagination
         /// </summary>
+        /// 
+        [SuperAdmin]
         public async Task<IActionResult> Index(ProductCategoryFilters? filters = null)
         {
             try
@@ -76,6 +77,8 @@ namespace HManagSys.Controllers
         /// Affichage du formulaire de création
         /// </summary>
         [HttpGet]
+        [SuperAdmin]
+
         public IActionResult Create()
         {
             var model = new CreateProductCategoryViewModel();
@@ -86,6 +89,8 @@ namespace HManagSys.Controllers
         /// Traitement de la création d'une catégorie
         /// </summary>
         [HttpPost]
+        [SuperAdmin]
+
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateProductCategoryViewModel model)
         {
@@ -137,6 +142,8 @@ namespace HManagSys.Controllers
         /// Affichage du formulaire de modification
         /// </summary>
         [HttpGet]
+        [SuperAdmin]
+
         public async Task<IActionResult> Edit(int id)
         {
             try
@@ -174,6 +181,7 @@ namespace HManagSys.Controllers
         /// <summary>
         /// Traitement de la modification d'une catégorie
         /// </summary>
+        [SuperAdmin]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, EditProductCategoryViewModel model)
@@ -231,6 +239,7 @@ namespace HManagSys.Controllers
         /// <summary>
         /// Activation/désactivation d'une catégorie via AJAX
         /// </summary>
+        [SuperAdmin]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleStatus(int id, bool isActive)
@@ -275,6 +284,7 @@ namespace HManagSys.Controllers
         /// Suppression d'une catégorie via AJAX
         /// </summary>
         [HttpPost]
+        [SuperAdmin]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
@@ -328,6 +338,7 @@ namespace HManagSys.Controllers
         /// <summary>
         /// Détails d'une catégorie
         /// </summary>
+        [SuperAdmin]
         public async Task<IActionResult> Details(int id)
         {
             try
@@ -378,9 +389,35 @@ namespace HManagSys.Controllers
             }
         }
 
+
+        [HttpGet]
+        public async Task<IActionResult> GetActiveCategoriesForSelect()
+        {
+            try
+            {
+                var categories = await _categoryService.GetActiveCategoriesForSelectAsync();
+
+                return Json(categories.Select(c => new {
+                    id = c.Id,
+                    name = c.Name
+                }).ToList());
+            }
+            catch (Exception ex)
+            {
+                await _appLogger.LogErrorAsync("ProductCategory", "SearchError",
+                    "Erreur lors de la recherche de catégories",
+                    CurrentUserId, CurrentCenterId,
+                    details: new { Error = ex.Message });
+
+                return Json(new List<object>());
+            }
+        }
+
+
         /// <summary>
         /// Export des catégories en Excel
         /// </summary>
+        [SuperAdmin]
         public async Task<IActionResult> Export()
         {
             try

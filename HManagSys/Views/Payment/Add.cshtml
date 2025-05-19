@@ -1,0 +1,159 @@
+﻿@model HManagSys.Models.ViewModels.Payments.PaymentFormViewModel
+
+@{
+    ViewData["Title"] = "Ajouter un paiement";
+}
+
+<div class="container-fluid">
+    <!-- En-tête avec titre et boutons d'action -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-money-bill-wave"></i> Nouveau paiement
+        </h1>
+        <div>
+            <a href="javascript:history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <!-- Informations de référence -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Détails de la référence</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Type:</strong> @GetReferenceTypeDisplay(Model.ReferenceType)</p>
+                            <p><strong>Description:</strong> @Model.ReferenceDescription</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Montant total:</strong> @Model.TotalAmount.ToString("N0") FCFA</p>
+                            <p><strong>Déjà payé:</strong> @Model.AmountPaid.ToString("N0") FCFA</p>
+                            <p><strong>Reste à payer:</strong> <span class="text-danger">@Model.RemainingAmount.ToString("N0") FCFA</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulaire de paiement -->
+            <form asp-action="Add" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <input type="hidden" asp-for="ReferenceType" />
+                <input type="hidden" asp-for="ReferenceId" />
+                <input type="hidden" asp-for="PatientId" />
+                <input type="hidden" asp-for="HospitalCenterId"  />
+                <input type="hidden" name="ReceivedById"  />
+                <input type="hidden" name="PaymentDate" value="@DateTime.Now.ToString("o")" />
+
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Informations du paiement</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="PaymentMethodId" class="form-label">Méthode de paiement</label>
+                                <select id="PaymentMethodId" name="PaymentMethodId" class="form-control" required>
+                                    <option value="">-- Sélectionner une méthode --</option>
+                                    @foreach (var method in Model.PaymentMethods)
+                                    {
+                                        <option value="@method.Id">@method.Name</option>
+                                    }
+                                </select>
+@*                                 <span asp-validation-for="PaymentMethodId" class="text-danger"></span>
+ *@                            </div>
+                            <div class="col-md-6">
+                                <label for="Amount" class="form-label">Montant</label>
+                                <div class="input-group">
+                                    <input type="number" id="Amount" name="Amount" class="form-control"
+                                           value="@Model.SuggestedAmount" min="1" max="@Model.RemainingAmount" required />
+                                    <span class="input-group-text">FCFA</span>
+                                </div>
+@*                                 <span asp-validation-for="Amount" class="text-danger"></span>
+ *@                                <div class="form-text">
+                                    Le montant ne peut pas dépasser @Model.RemainingAmount.ToString("N0") FCFA
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3" id="transactionReferenceContainer" style="display: none;">
+                            <label for="TransactionReference" class="form-label">Référence de transaction</label>
+                            <input type="text" id="TransactionReference" name="TransactionReference" class="form-control"
+                                   placeholder="Numéro de transaction Mobile Money" />
+                            <div class="form-text">Obligatoire pour les paiements par mobile money</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="Notes" class="form-label">Notes (optionnel)</label>
+                            <textarea id="Notes" name="Notes" class="form-control" rows="3"></textarea>
+@*                             <span asp-validation-for="Notes" class="text-danger"></span>
+ *@                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check-circle"></i> Enregistrer le paiement
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function() {
+            // Gestion de l'affichage du champ de référence de transaction
+            $('#PaymentMethodId').on('change', function() {
+                const methodName = $(this).find('option:selected').text().toLowerCase();
+                if (methodName.includes('mobile') || methodName.includes('orange') || methodName.includes('mtn')) {
+                    $('#transactionReferenceContainer').show();
+                    $('#TransactionReference').attr('required', true);
+                } else {
+                    $('#transactionReferenceContainer').hide();
+                    $('#TransactionReference').attr('required', false);
+                    $('#TransactionReference').val('');
+                }
+            });
+
+            // Validation du montant
+            $('#Amount').on('change', function() {
+                const amount = parseFloat($(this).val());
+                const maxAmount = parseFloat($(this).attr('max'));
+
+                if (amount > maxAmount) {
+                    $(this).val(maxAmount);
+                    alert(`Le montant maximum est de ${maxAmount.toLocaleString('fr-FR')} FCFA`);
+                }
+
+                if (amount <= 0) {
+                    $(this).val(1);
+                    alert('Le montant minimum est de 1 FCFA');
+                }
+            });
+        });
+    </script>
+}
+
+@functions {
+    string GetReferenceTypeDisplay(string referenceType)
+    {
+        return referenceType switch
+        {
+            "Sale" => "Vente",
+            "CareEpisode" => "Épisode de soins",
+            "Examination" => "Examen",
+            _ => referenceType
+        };
+    }
+}

@@ -1,0 +1,394 @@
+﻿@model HManagSys.Models.ViewModels.Sales.SaleDashboardViewModel
+
+@{
+    ViewData["Title"] = "Tableau de bord des ventes";
+}
+
+<div class="container-fluid">
+    <!-- En-tête avec titre -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-chart-line"></i> Tableau de bord des ventes
+        </h1>
+        <div>
+            <a asp-action="Index" class="btn btn-primary">
+                <i class="fas fa-list"></i> Liste des ventes
+            </a>
+            <a asp-action="Create" class="btn btn-success">
+                <i class="fas fa-plus-circle"></i> Nouvelle vente
+            </a>
+        </div>
+    </div>
+
+    <!-- Cartes de statistiques -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Ventes totales (mois)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.MonthSummary.TotalSales ventes
+                            </div>
+                            <div class="text-muted small">
+                                Montant: @Model.MonthSummary.FormattedNetAmount
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Ventes aujourd'hui
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.TodaySummary.TotalSales ventes
+                            </div>
+                            <div class="text-muted small">
+                                Montant: @Model.TodaySummary.FormattedNetAmount
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Vente moyenne
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.MonthSummary.FormattedAvgSaleAmount
+                            </div>
+                            <div class="text-muted small">
+                                Total articles: @Model.MonthSummary.TotalItemsSold
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-area fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Clients servis (mois)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.MonthSummary.TotalPatients clients
+                            </div>
+                            <div class="text-muted small">
+                                Cette semaine: @Model.WeekSummary.TotalPatients
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques et tableaux -->
+    <div class="row">
+        <!-- Graphique des ventes par méthode de paiement -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Répartition des paiements</h6>
+                </div>
+                <div class="card-body">
+                    <div style="height: 300px;">
+                        <canvas id="paymentMethodChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graphique des ventes par statut -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Statut des ventes</h6>
+                </div>
+                <div class="card-body">
+                    <div style="height: 300px;">
+                        <canvas id="saleStatusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Produits les plus vendus -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Produits les plus vendus</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="topProductsTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Produit</th>
+                                    <th class="text-center">Nombre de ventes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in Model.MonthSummary.TopSellingProducts.OrderByDescending(p => p.Value).Take(5))
+                                {
+                                    <tr>
+                                        <td>@product.Key</td>
+                                        <td class="text-center">@product.Value</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Résumé financier -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Résumé financier (30 derniers jours)</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <tr>
+                                <th>Ventes brutes</th>
+                                <td class="text-end">@Model.MonthSummary.FormattedTotalAmount</td>
+                            </tr>
+                            <tr>
+                                <th>Remises accordées</th>
+                                <td class="text-end">@Model.MonthSummary.FormattedTotalDiscounts</td>
+                            </tr>
+                            <tr class="table-active">
+                                <th>Ventes nettes</th>
+                                <td class="text-end fw-bold">@Model.MonthSummary.FormattedNetAmount</td>
+                            </tr>
+                            <tr>
+                                <th>Nombre de transactions</th>
+                                <td class="text-end">@Model.MonthSummary.TotalSales</td>
+                            </tr>
+                            <tr>
+                                <th>Montant moyen par vente</th>
+                                <td class="text-end">@Model.MonthSummary.FormattedAvgSaleAmount</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres de période -->
+    <div class="row mt-4 mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Filtrer par période</h6>
+                </div>
+                <div class="card-body">
+                    <form id="periodFilterForm" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="fromDate" class="form-label">Date de début</label>
+                            <input type="date" class="form-control" id="fromDate" name="fromDate" value="@DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd")">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="toDate" class="form-label">Date de fin</label>
+                            <input type="date" class="form-control" id="toDate" name="toDate" value="@DateTime.Now.ToString("yyyy-MM-dd")">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-filter"></i> Filtrer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Données pour le graphique des méthodes de paiement
+            const paymentMethodData = {
+                labels: [@Html.Raw(string.Join(",", Model.MonthSummary.SalesByPaymentMethod.Keys.Select(k => $"'{k}'")))],
+                datasets: [{
+                    label: 'Montant des ventes',
+                    data: [@string.Join(",", Model.MonthSummary.SalesByPaymentMethod.Values)],
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.5)',
+                        'rgba(255, 99, 132, 0.5)',
+                        'rgba(255, 206, 86, 0.5)',
+                        'rgba(75, 192, 192, 0.5)',
+                        'rgba(153, 102, 255, 0.5)'
+                    ],
+                    borderColor: [
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            // Données pour le graphique des statuts de vente
+            const saleStatusData = {
+                labels: [@Html.Raw(string.Join(",", Model.MonthSummary.SalesByStatus.Keys.Select(k => $"'{GetStatusText(k)}'")))],
+                datasets: [{
+                    label: 'Montant des ventes',
+                    data: [@string.Join(",", Model.MonthSummary.SalesByStatus.Values)],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.5)',
+                        'rgba(255, 193, 7, 0.5)',
+                        'rgba(108, 117, 125, 0.5)',
+                        'rgba(220, 53, 69, 0.5)'
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(108, 117, 125, 1)',
+                        'rgba(220, 53, 69, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            // Créer le graphique des méthodes de paiement
+            const paymentMethodChart = new Chart(
+                document.getElementById('paymentMethodChart').getContext('2d'),
+                {
+                    type: 'doughnut',
+                    data: paymentMethodData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.raw || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = Math.round((value / total) * 100);
+                                        return `${label}: ${value.toLocaleString('fr-FR')} FCFA (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            );
+
+            // Créer le graphique des statuts de vente
+            const saleStatusChart = new Chart(
+                document.getElementById('saleStatusChart').getContext('2d'),
+                {
+                    type: 'pie',
+                    data: saleStatusData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.raw || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = Math.round((value / total) * 100);
+                                        return `${label}: ${value.toLocaleString('fr-FR')} FCFA (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            );
+
+            // Gestion du formulaire de filtrage
+            $('#periodFilterForm').on('submit', function(e) {
+                e.preventDefault();
+                const fromDate = $('#fromDate').val();
+                const toDate = $('#toDate').val();
+
+                if (!fromDate || !toDate) {
+                    alert('Veuillez sélectionner des dates valides');
+                    return;
+                }
+
+                if (new Date(fromDate) > new Date(toDate)) {
+                    alert('La date de début doit être antérieure à la date de fin');
+                    return;
+                }
+
+                window.location.href = `@Url.Action("Dashboard")?fromDate=${fromDate}&toDate=${toDate}`;
+            });
+        });
+
+        // Fonction pour convertir les codes de statut en texte lisible
+        // function GetStatusText(statusCode) {
+        //     switch(statusCode) {
+        //         case 'Paid': return 'Payé';
+        //         case 'Partial': return 'Partiellement payé';
+        //         case 'Pending': return 'En attente';
+        //         case 'Cancelled': return 'Annulé';
+        //         default: return statusCode;
+        //     }
+        // }
+    </script>
+}
+@{
+    string GetStatusText(string statusCode) => statusCode switch
+    {
+        "Paid" => "Payé",
+        "Partial" => "Partiellement payé",
+        "Pending" => "En attente",
+        "Cancelled" => "Annulé",
+        _ => statusCode
+    };
+}

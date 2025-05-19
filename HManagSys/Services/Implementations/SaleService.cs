@@ -1341,6 +1341,9 @@ namespace HManagSys.Services.Implementations
                 throw;
             }
         }
+
+        public async Task<List<Sale>> QueryListAsync(Func<IQueryable<Sale>, IQueryable<Sale>> queryBuilder)
+                                                        => await _saleRepository.QueryListAsync(queryBuilder);
     }
 
     /// <summary>

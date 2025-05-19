@@ -11,50 +11,55 @@ namespace HManagSys.Services.Implementations;
 
 public class CareEpisodeService : ICareEpisodeService
 {
-    private readonly IGenericRepository<CareEpisode> _careEpisodeRepository;
-    private readonly IGenericRepository<CareService> _careServiceRepository;
-    private readonly IGenericRepository<CareServiceProduct> _careServiceProductRepository;
-    private readonly IGenericRepository<StockMovement> _stockMovementRepository;
-    private readonly IGenericRepository<Patient> _patientRepository;
-    private readonly IGenericRepository<User> _userRepository;
-    private readonly IGenericRepository<Diagnosis> _diagnosisRepository;
-    private readonly IGenericRepository<HospitalCenter> _centerRepository;
-    private readonly IGenericRepository<CareType> _careTypeRepository;
-    private readonly IGenericRepository<Product> _productRepository;
-    private readonly IGenericRepository<StockInventory> _stockInventoryRepository;
-    private readonly IApplicationLogger _logger;
-    private readonly IAuditService _auditService;
+    #region Attributes
+        private readonly IGenericRepository<CareEpisode> _careEpisodeRepository;
+        private readonly IGenericRepository<CareService> _careServiceRepository;
+        private readonly IGenericRepository<CareServiceProduct> _careServiceProductRepository;
+        private readonly IGenericRepository<StockMovement> _stockMovementRepository;
+        private readonly IGenericRepository<Patient> _patientRepository;
+        private readonly IGenericRepository<User> _userRepository;
+        private readonly IGenericRepository<Diagnosis> _diagnosisRepository;
+        private readonly IGenericRepository<HospitalCenter> _centerRepository;
+        private readonly IGenericRepository<CareType> _careTypeRepository;
+        private readonly IGenericRepository<Product> _productRepository;
+        private readonly IGenericRepository<StockInventory> _stockInventoryRepository;
+        private readonly IApplicationLogger _logger;
+        private readonly IAuditService _auditService;
 
-    public CareEpisodeService(
-        IGenericRepository<CareEpisode> careEpisodeRepository,
-        IGenericRepository<CareService> careServiceRepository,
-        IGenericRepository<CareServiceProduct> careServiceProductRepository,
-        IGenericRepository<StockMovement> stockMovementRepository,
-        IGenericRepository<Patient> patientRepository,
-        IGenericRepository<User> userRepository,
-        IGenericRepository<Diagnosis> diagnosisRepository,
-        IGenericRepository<HospitalCenter> centerRepository,
-        IGenericRepository<CareType> careTypeRepository,
-        IGenericRepository<Product> productRepository,
-        IGenericRepository<StockInventory> stockInventoryRepository,
-        IApplicationLogger logger,
-        IAuditService auditService)
-    {
-        _careEpisodeRepository = careEpisodeRepository;
-        _careServiceRepository = careServiceRepository;
-        _careServiceProductRepository = careServiceProductRepository;
-        _stockMovementRepository = stockMovementRepository;
-        _patientRepository = patientRepository;
-        _userRepository = userRepository;
-        _diagnosisRepository = diagnosisRepository;
-        _centerRepository = centerRepository;
-        _careTypeRepository = careTypeRepository;
-        _productRepository = productRepository;
-        _stockInventoryRepository = stockInventoryRepository;
-        _logger = logger;
-        _auditService = auditService;
-    }
+        public CareEpisodeService(
+            IGenericRepository<CareEpisode> careEpisodeRepository,
+            IGenericRepository<CareService> careServiceRepository,
+            IGenericRepository<CareServiceProduct> careServiceProductRepository,
+            IGenericRepository<StockMovement> stockMovementRepository,
+            IGenericRepository<Patient> patientRepository,
+            IGenericRepository<User> userRepository,
+            IGenericRepository<Diagnosis> diagnosisRepository,
+            IGenericRepository<HospitalCenter> centerRepository,
+            IGenericRepository<CareType> careTypeRepository,
+            IGenericRepository<Product> productRepository,
+            IGenericRepository<StockInventory> stockInventoryRepository,
+            IApplicationLogger logger,
+            IAuditService auditService)
+        {
+            _careEpisodeRepository = careEpisodeRepository;
+            _careServiceRepository = careServiceRepository;
+            _careServiceProductRepository = careServiceProductRepository;
+            _stockMovementRepository = stockMovementRepository;
+            _patientRepository = patientRepository;
+            _userRepository = userRepository;
+            _diagnosisRepository = diagnosisRepository;
+            _centerRepository = centerRepository;
+            _careTypeRepository = careTypeRepository;
+            _productRepository = productRepository;
+            _stockInventoryRepository = stockInventoryRepository;
+            _logger = logger;
+            _auditService = auditService;
+        }
+    #endregion
 
+
+    public async Task<List<CareEpisode>> QueryListAsync(Func<IQueryable<CareEpisode>, IQueryable<CareEpisode>> queryBuilder)
+                                                        => await _careEpisodeRepository.QueryListAsync(queryBuilder);
 
     public async Task<CareServiceProductModalsViewModel> GetServiceProducts(int serviceId)
     {

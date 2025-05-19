@@ -1,4 +1,5 @@
-﻿using HManagSys.Models.ViewModels.Patients;
+﻿using HManagSys.Models.EfModels;
+using HManagSys.Models.ViewModels.Patients;
 
 namespace HManagSys.Services.Interfaces
 {
@@ -7,6 +8,7 @@ namespace HManagSys.Services.Interfaces
     /// </summary>
     public interface IExaminationService
     {
+        Task<List<Examination>> QueryListAsync(Func<IQueryable<Examination>, IQueryable<Examination>> queryBuilder);
         Task<ExaminationViewModel?> GetByIdAsync(int id);
         Task<List<ExaminationViewModel>> GetByEpisodeAsync(int episodeId);
         Task<(List<ExaminationViewModel> Items, int TotalCount)> GetExaminationsAsync(ExaminationFilters filters);

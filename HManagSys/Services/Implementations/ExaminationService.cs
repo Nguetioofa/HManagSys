@@ -45,6 +45,10 @@ public class ExaminationService : IExaminationService
         //_fileStorageService = fileStorageService;
     }
 
+
+    public async Task<List<Examination>> QueryListAsync(Func<IQueryable<Examination>, IQueryable<Examination>> queryBuilder)
+                                                => await _examinationRepository.QueryListAsync(queryBuilder);
+
     // Récupérer un examen par ID
     public async Task<ExaminationViewModel?> GetByIdAsync(int id)
     {

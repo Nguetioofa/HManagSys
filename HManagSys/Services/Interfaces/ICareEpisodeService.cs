@@ -1,4 +1,5 @@
-﻿using HManagSys.Models.ViewModels.Patients;
+﻿using HManagSys.Models.EfModels;
+using HManagSys.Models.ViewModels.Patients;
 
 namespace HManagSys.Services.Interfaces
 {
@@ -7,6 +8,7 @@ namespace HManagSys.Services.Interfaces
     /// </summary>
     public interface ICareEpisodeService
     {
+        Task<List<CareEpisode>> QueryListAsync(Func<IQueryable<CareEpisode>, IQueryable<CareEpisode>> queryBuilder);
         Task<CareEpisodeViewModel?> GetByIdAsync(int id);
         Task<CareServiceProductModalsViewModel?> GetServiceProducts(int serviceId);
         Task<(List<CareEpisodeViewModel> Items, int TotalCount)> GetCareEpisodesAsync(CareEpisodeFilters filters);
