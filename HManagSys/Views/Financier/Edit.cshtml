@@ -1,0 +1,62 @@
+﻿@using HManagSys.Models.ViewModels.Finance
+@model EditFinancierViewModel
+@{
+    ViewData["Title"] = "Modifier Financier";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3"><i class="fas fa-edit"></i> Modifier Financier</h1>
+        <div>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Retour aux détails
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Modification des informations</h6>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label">Nom</label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ContactInfo" class="form-label">Informations de contact</label>
+                            <textarea asp-for="ContactInfo" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="ContactInfo" class="text-danger"></span>
+                            <div class="form-text">Téléphone, email, adresse, ou toute autre information de contact utile.</div>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input asp-for="IsActive" class="form-check-input" />
+                            <label asp-for="IsActive" class="form-check-label">Actif</label>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Enregistrer les modifications
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

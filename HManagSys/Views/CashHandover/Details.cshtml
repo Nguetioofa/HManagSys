@@ -1,0 +1,180 @@
+﻿@using HManagSys.Models.ViewModels.Finance
+@model CashHandoverViewModel
+@{
+    ViewData["Title"] = "Détails de la Remise d'Espèces";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3"><i class="fas fa-money-bill-wave"></i> Détails de la Remise d'Espèces</h1>
+        <div>
+            <a asp-action="List" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Retour à la liste
+            </a>
+            <a asp-action="Receipt" asp-route-id="@Model.Id" class="btn btn-success">
+                <i class="fas fa-receipt"></i> Voir le reçu
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Informations de la remise</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Date de remise:</div>
+                        <div class="col-md-8">@Model.FormattedHandoverDate</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Centre hospitalier:</div>
+                        <div class="col-md-8">@Model.HospitalCenterName</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Financier:</div>
+                        <div class="col-md-8">
+                            <a asp-controller="Financier" asp-action="Details" asp-route-id="@Model.FinancierId">
+                                @Model.FinancierName
+                            </a>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Remis par:</div>
+                        <div class="col-md-8">@Model.HandedOverByName</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Créé par:</div>
+                        <div class="col-md-8">@Model.CreatedByName</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Créé le:</div>
+                        <div class="col-md-8">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(Model.Notes))
+                    {
+                        <div class="row mb-3">
+                            <div class="col-md-4 fw-bold">Notes:</div>
+                            <div class="col-md-8">@Model.Notes</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Montants</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-6 col-md-6 mb-4">
+                            <div class="card border-left-primary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                Montant total en caisse
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedTotalCashAmount</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-wallet fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-6 col-md-6 mb-4">
+                            <div class="card border-left-success shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                Montant remis
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedHandoverAmount</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-xl-6 col-md-6 mb-4">
+                            <div class="card border-left-warning shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                Montant restant en caisse
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedRemainingCashAmount</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-coins fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-6 col-md-6 mb-4">
+                            <div class="card border-left-info shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                Pourcentage remis
+                                            </div>
+                                            <div class="row no-gutters align-items-center">
+                                                <div class="col-auto">
+                                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">@Model.HandoverPercentage%</div>
+                                                </div>
+                                                <div class="col">
+                                                    <div class="progress progress-sm mr-2">
+                                                        <div class="progress-bar bg-info" role="progressbar"
+                                                             style="width: @Model.HandoverPercentage%"
+                                                             aria-valuenow="@Model.HandoverPercentage" aria-valuemin="0" aria-valuemax="100">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-percentage fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <a asp-action="Receipt" asp-route-id="@Model.Id" class="btn btn-primary">
+                                            <i class="fas fa-receipt"></i> Voir le reçu de remise
+                                        </a>
+                                        <a asp-action="DownloadReceipt" asp-route-id="@Model.Id" class="btn btn-success">
+                                            <i class="fas fa-download"></i> Télécharger le bordereau (PDF)
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

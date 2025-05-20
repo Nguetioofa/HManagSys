@@ -1,0 +1,161 @@
+﻿@using HManagSys.Models.ViewModels.Finance
+@model FinancierViewModel
+@{
+    ViewData["Title"] = "Détails du Financier";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3"><i class="fas fa-user"></i> Détails du Financier</h1>
+        <div>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Retour à la liste
+            </a>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Modifier
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Informations du financier</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Nom:</div>
+                        <div class="col-md-8">@Model.Name</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Centre hospitalier:</div>
+                        <div class="col-md-8">@Model.HospitalCenterName</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Contact:</div>
+                        <div class="col-md-8">@(Model.ContactInfo ?? "Non spécifié")</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Statut:</div>
+                        <div class="col-md-8">
+                            <span class="@Model.StatusBadge">@Model.StatusText</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Créé le:</div>
+                        <div class="col-md-8">@Model.FormattedCreatedAt</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Créé par:</div>
+                        <div class="col-md-8">@Model.CreatedByName</div>
+                    </div>
+                    @if (Model.ModifiedAt.HasValue)
+                    {
+                        <div class="row mb-3">
+                            <div class="col-md-4 fw-bold">Dernière modification:</div>
+                            <div class="col-md-8">@Model.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4 fw-bold">Modifié par:</div>
+                            <div class="col-md-8">@Model.ModifiedByName</div>
+                        </div>
+                    }
+                </div>
+                <div class="card-footer">
+                    @if (Model.IsActive)
+                    {
+                        <form asp-action="ToggleStatus" method="post" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir désactiver ce financier?')">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="isActive" value="false" />
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="fas fa-ban"></i> Désactiver
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form asp-action="ToggleStatus" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="isActive" value="true" />
+                            <button type="submit" class="btn btn-outline-success">
+                                <i class="fas fa-check"></i> Activer
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Statistiques</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 col-xl-6 mb-4">
+                            <div class="card border-left-primary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                Remises effectuées
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalHandovers</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-exchange-alt fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 col-xl-6 mb-4">
+                            <div class="card border-left-success shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                Montant total collecté
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedTotalAmountCollected</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Dernière remise</h6>
+                                    @if (Model.LastHandoverDate.HasValue)
+                                    {
+                                        <p class="card-text">
+                                            <strong>Date:</strong> @Model.LastHandoverDate.Value.ToString("dd/MM/yyyy HH:mm")<br />
+                                            <strong>Il y a:</strong> @((DateTime.Now - Model.LastHandoverDate.Value).Days) jours
+                                        </p>
+                                        <a asp-controller="CashHandover" asp-action="List" asp-route-financierId="@Model.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-history"></i> Voir l'historique des remises
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <p class="card-text text-muted">Aucune remise effectuée pour l'instant</p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

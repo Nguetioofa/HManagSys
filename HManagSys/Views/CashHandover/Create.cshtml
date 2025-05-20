@@ -1,0 +1,184 @@
+﻿@using HManagSys.Models.ViewModels.Finance
+@model CreateCashHandoverViewModel
+@{
+    ViewData["Title"] = "Nouvelle Remise d'Espèces";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3"><i class="fas fa-money-bill-wave"></i> Nouvelle Remise d'Espèces</h1>
+        <div>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Annuler
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Formulaire de remise d'espèces</h6>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <!-- Champs cachés -->
+                        <input type="hidden" asp-for="HospitalCenterId" />
+                        <input type="hidden" asp-for="HospitalCenterName" />
+                        <input type="hidden" asp-for="HandedOverBy" />
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            Vous allez effectuer une remise d'espèces pour le centre <strong>@Model.HospitalCenterName</strong>.
+                            Le solde de caisse actuel est de <strong id="current-balance">@Model.TotalCashAmount.ToString("N0") FCFA</strong>.
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="FinancierId" class="form-label">Financier</label>
+                            <select asp-for="FinancierId" class="form-select" required>
+                                <option value="">-- Sélectionner un financier --</option>
+                                @if (Model.FinancierOptions != null)
+                                {
+                                    @foreach (var option in Model.FinancierOptions)
+                                    {
+                                        <option value="@option.Value">@option.Text</option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="FinancierId" class="text-danger"></span>
+                            <div class="form-text">Veuillez sélectionner le financier qui recevra la remise.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="HandoverDate" class="form-label">Date de remise</label>
+                            <input asp-for="HandoverDate" type="datetime-local" class="form-control" required />
+                            <span asp-validation-for="HandoverDate" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="TotalCashAmount" class="form-label">Montant total en caisse</label>
+                            <div class="input-group">
+                                <input asp-for="TotalCashAmount" type="number" step="1" min="0" class="form-control" required id="total-cash-amount" />
+                                <span class="input-group-text">FCFA</span>
+                            </div>
+                            <span asp-validation-for="TotalCashAmount" class="text-danger"></span>
+                            <div class="form-text">Montant total disponible en caisse, y compris le montant à remettre.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="HandoverAmount" class="form-label">Montant à remettre</label>
+                            <div class="input-group">
+                                <input asp-for="HandoverAmount" type="number" step="1" min="1" class="form-control" required id="handover-amount" />
+                                <span class="input-group-text">FCFA</span>
+                            </div>
+                            <span asp-validation-for="HandoverAmount" class="text-danger"></span>
+                            <div class="form-text">Montant à remettre au financier. Ne peut pas dépasser le montant total en caisse.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="RemainingCashAmount" class="form-label">Montant restant en caisse</label>
+                            <div class="input-group">
+                                <input asp-for="RemainingCashAmount" type="number" step="1" min="0" class="form-control" readonly id="remaining-amount" />
+                                <span class="input-group-text">FCFA</span>
+                            </div>
+                            <span asp-validation-for="RemainingCashAmount" class="text-danger"></span>
+                            <div class="form-text">Montant qui restera en caisse après la remise. Calculé automatiquement.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label">Notes</label>
+                            <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Notes" class="text-danger"></span>
+                            <div class="form-text">Informations complémentaires sur cette remise (optionnel).</div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="Index" class="btn btn-outline-secondary">Annuler</a>
+                            <button type="submit" class="btn btn-primary" id="submit-button">
+                                <i class="fas fa-save"></i> Enregistrer la remise
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function () {
+            // Fonction pour actualiser le solde de caisse
+            function refreshCashBalance() {
+                $.ajax({
+                    url: '@Url.Action("GetCurrentBalance")',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.success) {
+                            $('#current-balance').text(data.formattedBalance);
+                            $('#total-cash-amount').val(data.balance);
+                            calculateRemaining();
+                        }
+                    }
+                });
+            }
+
+            // Actualiser le solde au chargement
+            refreshCashBalance();
+
+            // Calculer le montant restant
+            function calculateRemaining() {
+                var total = parseFloat($('#total-cash-amount').val()) || 0;
+                var handover = parseFloat($('#handover-amount').val()) || 0;
+                var remaining = total - handover;
+
+                // Vérifier que le montant à remettre n'est pas supérieur au total
+                if (handover > total) {
+                    $('#handover-amount').val(total);
+                    handover = total;
+                    remaining = 0;
+                }
+
+                // Si le montant restant est négatif, l'ajuster à 0
+                if (remaining < 0) {
+                    remaining = 0;
+                }
+
+                $('#remaining-amount').val(remaining);
+            }
+
+            // Recalculer quand les montants changent
+            $('#total-cash-amount, #handover-amount').on('input', calculateRemaining);
+
+            // Validation côté client avant soumission
+            $('form').on('submit', function (e) {
+                var total = parseFloat($('#total-cash-amount').val()) || 0;
+                var handover = parseFloat($('#handover-amount').val()) || 0;
+
+                if (handover <= 0) {
+                    alert('Le montant à remettre doit être supérieur à 0.');
+                    e.preventDefault();
+                    return false;
+                }
+
+                if (handover > total) {
+                    alert('Le montant à remettre ne peut pas dépasser le montant total en caisse.');
+                    e.preventDefault();
+                    return false;
+                }
+
+                if ($('#FinancierId').val() === '') {
+                    alert('Veuillez sélectionner un financier.');
+                    e.preventDefault();
+                    return false;
+                }
+
+                return true;
+            });
+        });
+    </script>
+}

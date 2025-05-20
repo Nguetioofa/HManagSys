@@ -1,0 +1,293 @@
+﻿@using HManagSys.Controllers
+@model CashDashboardViewModel
+@{
+    ViewData["Title"] = "Gestion de Caisse";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3"><i class="fas fa-cash-register"></i> Gestion de Caisse</h1>
+        <div>
+            <a asp-action="List" class="btn btn-outline-secondary">
+                <i class="fas fa-list"></i> Historique des remises
+            </a>
+            <a asp-action="Movements" class="btn btn-outline-secondary">
+                <i class="fas fa-exchange-alt"></i> Mouvements de caisse
+            </a>
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fas fa-money-bill-wave"></i> Nouvelle Remise
+            </a>
+        </div>
+    </div>
+
+    <!-- Position de caisse -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Solde de caisse actuel
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="current-balance">
+                                @Model.CashPosition.FormattedCurrentBalance
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Recettes depuis dernière remise
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.CashPosition.FormattedReceiptsSinceLastHandover
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Dernière remise
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.CashPosition.FormattedLastHandoverAmount
+                            </div>
+                            <div class="text-xs mt-1">
+                                @Model.CashPosition.FormattedLastHandoverDate (@Model.CashPosition.DaysSinceLastHandover jours)
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Moyenne journalière
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.CashPosition.FormattedAverageDailyReceipts
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-bar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Réconciliation -->
+        <div class="col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Réconciliation de caisse</h6>
+                    <button id="refresh-reconciliation" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-sync"></i> Actualiser
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <tr>
+                                <th>Dernière remise le</th>
+                                <td>@Model.Reconciliation.FormattedLastHandoverDate</td>
+                            </tr>
+                            <tr>
+                                <th>Montant restant après dernière remise</th>
+                                <td>@Model.Reconciliation.FormattedLastHandoverRemainingAmount</td>
+                            </tr>
+                            <tr>
+                                <th>Recettes en espèces depuis</th>
+                                <td>@Model.Reconciliation.FormattedTotalCashReceiptsSince</td>
+                            </tr>
+                            <tr class="table-primary fw-bold">
+                                <th>Solde de caisse attendu</th>
+                                <td>@Model.Reconciliation.FormattedExpectedCashBalance</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    @if (Model.Reconciliation.PaymentDetails.Any())
+                    {
+                        <h6 class="mt-4 mb-3">Détail des encaissements (@Model.Reconciliation.PaymentCount)</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Type</th>
+                                        <th class="text-center">Nombre</th>
+                                        <th class="text-end">Montant</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var detail in Model.Reconciliation.PaymentDetails)
+                                    {
+                                        <tr>
+                                            <td>@detail.ReferenceType</td>
+                                            <td class="text-center">@detail.Count</td>
+                                            <td class="text-end">@detail.FormattedTotalAmount</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle"></i> Aucun encaissement en espèces depuis la dernière remise.
+                        </div>
+                    }
+
+                    <div class="d-grid gap-2 mt-4">
+                        <a asp-action="Create" class="btn btn-primary">
+                            <i class="fas fa-money-bill-wave"></i> Effectuer une remise d'espèces
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Derniers mouvements -->
+        <div class="col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Derniers mouvements de caisse</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.RecentMovements.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th class="text-end">Montant</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var movement in Model.RecentMovements)
+                                    {
+                                        <tr>
+                                            <td>@movement.FormattedDate</td>
+                                            <td>@movement.Description</td>
+                                            <td class="text-end @movement.AmountClass">
+                                                @movement.AmountPrefix @movement.FormattedAmount
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center mt-3">
+                            <a asp-action="Movements" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-history"></i> Voir tout l'historique
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Aucun mouvement de caisse récent.
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Actions rapides</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a asp-action="Create" class="btn btn-success mb-2">
+                            <i class="fas fa-money-bill-wave"></i> Nouvelle Remise d'Espèces
+                        </a>
+                        <a asp-action="Movements" class="btn btn-info mb-2">
+                            <i class="fas fa-exchange-alt"></i> Historique des Mouvements
+                        </a>
+                        <a asp-action="List" class="btn btn-secondary">
+                            <i class="fas fa-history"></i> Historique des Remises
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Actualiser le solde de caisse
+            function refreshCashBalance() {
+                $.ajax({
+                    url: '@Url.Action("GetCurrentBalance")',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.success) {
+                            $('#current-balance').text(data.formattedBalance);
+                        }
+                    }
+                });
+            }
+
+            // Actualiser la réconciliation
+            function refreshReconciliation() {
+                $.ajax({
+                    url: '@Url.Action("GetReconciliation")',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        if (data.success) {
+                            // Recharger la page pour actualiser les données
+                            location.reload();
+                        }
+                    }
+                });
+            }
+
+            // Bouton d'actualisation de la réconciliation
+            $('#refresh-reconciliation').click(function (e) {
+                e.preventDefault();
+                refreshReconciliation();
+            });
+
+            // Actualiser le solde toutes les 60 secondes
+            setInterval(refreshCashBalance, 60000);
+        });
+    </script>
+}

@@ -32,6 +32,11 @@ namespace HManagSys.Data.Repositories
 
         // ===== OPÉRATIONS CRUD DE BASE =====
 
+        public virtual IQueryable<TEntity> AsQueryable()
+        {
+            return _dbSet.AsQueryable();
+        }
+
         public virtual async Task<TEntity?> GetByIdAsync(int id)
         {
             try

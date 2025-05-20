@@ -1,0 +1,159 @@
+﻿@using HManagSys.Models.ViewModels.Finance
+@model CashHandoverViewModel
+@{
+    ViewData["Title"] = "Reçu de Remise d'Espèces";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3"><i class="fas fa-receipt"></i> Reçu de Remise d'Espèces</h1>
+        <div>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Retour aux détails
+            </a>
+            <a asp-action="DownloadReceipt" asp-route-id="@Model.Id" class="btn btn-success">
+                <i class="fas fa-download"></i> Télécharger (PDF)
+            </a>
+            <button onclick="window.print();" class="btn btn-primary">
+                <i class="fas fa-print"></i> Imprimer
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow mb-4">
+                <div class="card-body border p-4" id="receipt">
+                    <!-- En-tête du reçu -->
+                    <div class="text-center mb-4">
+                        <h4 class="font-weight-bold">BORDEREAU DE REMISE D'ESPÈCES</h4>
+                        <h5>Centre Hospitalier: @Model.HospitalCenterName</h5>
+                        <h6>Date: @Model.FormattedHandoverDate</h6>
+                        <p class="mb-0">Numéro de remise: #@Model.Id.ToString("D6")</p>
+                    </div>
+
+                    <hr class="my-4" />
+
+                    <!-- Détails de la remise -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="font-weight-bold">FINANCIER</h6>
+                            <p>@Model.FinancierName</p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <h6 class="font-weight-bold">REMIS PAR</h6>
+                            <p>@Model.HandedOverByName</p>
+                        </div>
+                    </div>
+
+                    <!-- Montants -->
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Description</th>
+                                    <th class="text-end">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Montant total en caisse</td>
+                                    <td class="text-end">@Model.FormattedTotalCashAmount</td>
+                                </tr>
+                                <tr>
+                                    <td>Montant remis</td>
+                                    <td class="text-end">@Model.FormattedHandoverAmount</td>
+                                </tr>
+                                <tr>
+                                    <td>Montant restant en caisse</td>
+                                    <td class="text-end">@Model.FormattedRemainingCashAmount</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Notes -->
+                    @if (!string.IsNullOrWhiteSpace(Model.Notes))
+                    {
+                        <div class="mb-4">
+                            <h6 class="font-weight-bold">NOTES</h6>
+                            <p>@Model.Notes</p>
+                        </div>
+                    }
+
+                    <hr class="my-4" />
+
+                    <!-- Signatures -->
+                    <div class="row mt-5">
+                        <div class="col-md-6 text-center">
+                            <p class="font-weight-bold">SIGNATURE DU CAISSIER</p>
+                            <div class="border-bottom my-5"></div>
+                            <p>@Model.HandedOverByName</p>
+                        </div>
+                        <div class="col-md-6 text-center">
+                            <p class="font-weight-bold">SIGNATURE DU FINANCIER</p>
+                            <div class="border-bottom my-5"></div>
+                            <p>@Model.FinancierName</p>
+                        </div>
+                    </div>
+
+                    <!-- Pied de page -->
+                    <div class="text-center mt-5 text-muted small">
+                        <p>
+                            Document généré le @DateTime.Now.ToString("dd/MM/yyyy HH:mm")<br />
+                            Conservez ce document comme preuve de remise
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style media="print">
+        /* Styles pour l'impression */
+        @@page {
+            size: A4;
+            margin: 15mm;
+        }
+
+        body {
+            background-color: white;
+        }
+
+        .container-fluid {
+            width: 100%;
+            padding: 0;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .d-flex.justify-content-between.align-items-center.mb-4,
+        .btn, .shadow {
+            display: none !important;
+            visibility: hidden !important;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+}

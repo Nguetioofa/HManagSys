@@ -88,11 +88,22 @@
                             </ul>
                         </li>
 
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-money-bill-wave"></i>
                                 Finances
                             </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" asp-controller="CashHandover" asp-action="Index"><i class="fas fa-cash-register"></i> Gestion de Caisse</a></li>
+                                <li><a class="dropdown-item" asp-controller="CashHandover" asp-action="List"><i class="fas fa-history"></i> Historique des Remises</a></li>
+                                <li><a class="dropdown-item" asp-controller="CashHandover" asp-action="Movements"><i class="fas fa-exchange-alt"></i> Mouvements de Caisse</a></li>
+                                @if (currentRole == "SuperAdmin")
+                                {
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" asp-controller="CashHandover" asp-action="Create"><i class="fas fa-money-bill-wave"></i> Nouvelle Remise</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Financier" asp-action="Index"><i class="fas fa-users"></i> Gestion des Financiers</a></li>
+                                }
+                            </ul>
                         </li>
                     </ul>
 
@@ -344,17 +355,6 @@
                         body: formData // Envoyer centerId dans le corps
                     });
 
-                    // Si vous préférez 'application/x-www-form-urlencoded'
-                    // const response = await fetch('@Url.Action("SwitchCenter", "Auth")', {
-                    //     method: 'POST',
-                    //     headers: {
-                    //         'RequestVerificationToken': token,
-                    //         'Content-Type': 'application/x-www-form-urlencoded'
-                    //     },
-                    //     body: new URLSearchParams({
-                    //         'centerId': centerId
-                    //     })
-                    // });
 
 
                     if (!response.ok) { // Vérifier si la réponse HTTP elle-même est une erreur

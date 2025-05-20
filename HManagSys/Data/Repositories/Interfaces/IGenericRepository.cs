@@ -10,7 +10,7 @@ namespace HManagSys.Data.Repositories.Interfaces;
 public interface IGenericRepository<TEntity> where TEntity : class, IEntity
 {
     // ===== OPÉRATIONS CRUD DE BASE =====
-
+    IQueryable<TEntity> AsQueryable();
     /// <summary>
     /// Récupère une entité par son ID
     /// Comme chercher un dossier spécifique dans les archives

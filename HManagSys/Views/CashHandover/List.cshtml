@@ -1,0 +1,256 @@
+﻿@using HManagSys.Models.ViewModels.Finance
+@model PagedViewModel<CashHandoverViewModel, CashHandoverFilters>
+@{
+    ViewData["Title"] = "Historique des Remises d'Espèces";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3"><i class="fas fa-history"></i> Historique des Remises d'Espèces</h1>
+        <div>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-tachometer-alt"></i> Tableau de bord
+            </a>
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nouvelle Remise
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Filtrer les remises</h6>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                <i class="fas fa-filter"></i> Filtres
+            </button>
+        </div>
+        <div class="collapse" id="filterCollapse">
+            <div class="card-body">
+                <form asp-action="List" method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Financier</label>
+                        <select name="FinancierId" class="form-select">
+                            <option value="">Tous</option>
+                            <!-- Options à remplir dynamiquement -->
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Remis par</label>
+                        <select name="HandedOverBy" class="form-select">
+                            <option value="">Tous</option>
+                            <!-- Options à remplir dynamiquement -->
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">De</label>
+                        <input type="date" name="FromDate" class="form-control" value="@(Model.Filters.FromDate?.ToString("yyyy-MM-dd"))">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">À</label>
+                        <input type="date" name="ToDate" class="form-control" value="@(Model.Filters.ToDate?.ToString("yyyy-MM-dd"))">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Montant minimum</label>
+                        <input type="number" name="MinAmount" class="form-control" value="@Model.Filters.MinAmount">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Montant maximum</label>
+                        <input type="number" name="MaxAmount" class="form-control" value="@Model.Filters.MaxAmount">
+                    </div>
+                    <div class="col-md-12 mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Rechercher
+                        </button>
+                        <a asp-action="List" class="btn btn-outline-secondary">
+                            <i class="fas fa-redo"></i> Réinitialiser
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Liste des Remises d'Espèces</h6>
+        </div>
+        <div class="card-body">
+            @if (!Model.Items.Any())
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Aucune remise d'espèces trouvée.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Financier</th>
+                                <th>Remis par</th>
+                                <th class="text-end">Montant remis</th>
+                                <th class="text-end">Montant restant</th>
+                                <th class="text-center">%</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr>
+                                    <td>@item.FormattedHandoverDate</td>
+                                    <td>
+                                        <a asp-controller="Financier" asp-action="Details" asp-route-id="@item.FinancierId">
+                                            @item.FinancierName
+                                        </a>
+                                    </td>
+                                    <td>@item.HandedOverByName</td>
+                                    <td class="text-end">@item.FormattedHandoverAmount</td>
+                                    <td class="text-end">@item.FormattedRemainingCashAmount</td>
+                                    <td class="text-center">
+                                        @item.HandoverPercentage%
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a asp-action="Receipt" asp-route-id="@item.Id" class="btn btn-success">
+                                                <i class="fas fa-receipt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        Affichage de <span class="fw-bold">@Model.Items.Count</span> sur <span class="fw-bold">@Model.Pagination.TotalCount</span> remises
+                    </div>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            @if (Model.Pagination.HasPreviousPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="List" asp-route-pageIndex="1" 
+                                       asp-route-financierId="@Model.Filters.FinancierId" 
+                                       asp-route-handedOverBy="@Model.Filters.HandedOverBy"
+                                       asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-minAmount="@Model.Filters.MinAmount"
+                                       asp-route-maxAmount="@Model.Filters.MaxAmount">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="List" asp-route-pageIndex="@Model.Pagination.PreviousPage"
+                                       asp-route-financierId="@Model.Filters.FinancierId" 
+                                       asp-route-handedOverBy="@Model.Filters.HandedOverBy"
+                                       asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-minAmount="@Model.Filters.MinAmount"
+                                       asp-route-maxAmount="@Model.Filters.MaxAmount">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            @for (int i = Math.Max(1, Model.Pagination.CurrentPage - 2); i <= Math.Min(Model.Pagination.TotalPages, Model.Pagination.CurrentPage + 2); i++)
+                            {
+                                <li class="page-item @(i == Model.Pagination.CurrentPage ? "active" : "")">
+                                    <a class="page-link" asp-action="List" asp-route-pageIndex="@i"
+                                       asp-route-financierId="@Model.Filters.FinancierId" 
+                                       asp-route-handedOverBy="@Model.Filters.HandedOverBy"
+                                       asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-minAmount="@Model.Filters.MinAmount"
+                                       asp-route-maxAmount="@Model.Filters.MaxAmount">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+
+                            @if (Model.Pagination.HasNextPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="List" asp-route-pageIndex="@Model.Pagination.NextPage"
+                                       asp-route-financierId="@Model.Filters.FinancierId" 
+                                       asp-route-handedOverBy="@Model.Filters.HandedOverBy"
+                                       asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-minAmount="@Model.Filters.MinAmount"
+                                       asp-route-maxAmount="@Model.Filters.MaxAmount">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="List" asp-route-pageIndex="@Model.Pagination.TotalPages"
+                                       asp-route-financierId="@Model.Filters.FinancierId" 
+                                       asp-route-handedOverBy="@Model.Filters.HandedOverBy"
+                                       asp-route-fromDate="@Model.Filters.FromDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-toDate="@Model.Filters.ToDate?.ToString("yyyy-MM-dd")"
+                                       asp-route-minAmount="@Model.Filters.MinAmount"
+                                       asp-route-maxAmount="@Model.Filters.MaxAmount">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Garder la section de filtres ouverte si des filtres sont appliqués
+        $(document).ready(function () {
+            const hasFilters = '@(Model.Filters.FinancierId.HasValue || Model.Filters.HandedOverBy.HasValue || Model.Filters.FromDate.HasValue || Model.Filters.ToDate.HasValue || Model.Filters.MinAmount.HasValue || Model.Filters.MaxAmount.HasValue)' === 'True';
+            if (hasFilters) {
+                $('#filterCollapse').addClass('show');
+            }
+            
+            // Charger les options des filtres via AJAX
+            $.ajax({
+                url: '@Url.Action("GetActiveFinanciers", "Financier")',
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    var financierSelect = $('select[name="FinancierId"]');
+                    financierSelect.empty();
+                    financierSelect.append('<option value="">Tous</option>');
+                    $.each(data, function (i, item) {
+                        var selected = '@Model.Filters.FinancierId' == item.value ? 'selected' : '';
+                        financierSelect.append('<option value="' + item.value + '" ' + selected + '>' + item.text + '</option>');
+                    });
+                }
+            });
+            
+            // Charger les utilisateurs pour le filtre "Remis par"
+            // Ce code est simplifié, vous devriez implémenter une API réelle pour cela
+            /*
+            $.ajax({
+                url: '@Url.Action("GetUsers", "Admin")',
+                type: 'GET',
+                dataType: 'json',
+                success: function (data) {
+                    var userSelect = $('select[name="HandedOverBy"]');
+                    userSelect.empty();
+                    userSelect.append('<option value="">Tous</option>');
+                    $.each(data, function (i, item) {
+                        var selected = '@Model.Filters.HandedOverBy' == item.id ? 'selected' : '';
+                        userSelect.append('<option value="' + item.id + '" ' + selected + '>' + item.name + '</option>');
+                    });
+                }
+            });
+            */
+        });
+    </script>
+}

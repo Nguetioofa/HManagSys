@@ -1,0 +1,206 @@
+﻿@using HManagSys.Controllers
+@model CashMovementsViewModel
+@{
+    ViewData["Title"] = "Mouvements de Caisse";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3"><i class="fas fa-exchange-alt"></i> Mouvements de Caisse</h1>
+        <div>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-tachometer-alt"></i> Tableau de bord
+            </a>
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Nouvelle Remise
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtre de date -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Période</h6>
+        </div>
+        <div class="card-body">
+            <form asp-action="Movements" method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Date de début</label>
+                    <input type="date" name="fromDate" class="form-control" value="@Model.FromDate.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Date de fin</label>
+                    <input type="date" name="toDate" class="form-control" value="@Model.ToDate.ToString("yyyy-MM-dd")">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter"></i> Filtrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Résumé des mouvements -->
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Résumé des mouvements de caisse</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-primary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                Solde initial
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedInitialBalance</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-wallet fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-success shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                Total entrant
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedTotalIn</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-arrow-down fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-danger shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                                Total sortant
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedTotalOut</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-arrow-up fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-info shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                Solde final
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedFinalBalance</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des mouvements -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Liste des mouvements</h6>
+            <button onclick="exportToExcel()" class="btn btn-sm btn-outline-success">
+                <i class="fas fa-file-excel"></i> Exporter
+            </button>
+        </div>
+        <div class="card-body">
+            @if (!Model.Movements.Any())
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Aucun mouvement de caisse sur cette période.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="movementsTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th class="text-center">Direction</th>
+                                <th class="text-end">Montant</th>
+                                <th class="text-end">Solde</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>@Model.FromDate.ToString("dd/MM/yyyy")</td>
+                                <td>Initial</td>
+                                <td>Solde de départ</td>
+                                <td class="text-center">-</td>
+                                <td class="text-end">-</td>
+                                <td class="text-end">@Model.FormattedInitialBalance</td>
+                            </tr>
+                            @foreach (var item in Model.Movements)
+                            {
+                                <tr>
+                                    <td>@item.FormattedDate</td>
+                                    <td>@item.Type</td>
+                                    <td>@item.Description</td>
+                                    <td class="text-center">
+                                        @if (item.Direction == "IN")
+                                        {
+                                            <span class="text-success"><i class="fas fa-arrow-down"></i> Entrée</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-danger"><i class="fas fa-arrow-up"></i> Sortie</span>
+                                        }
+                                    </td>
+                                    <td class="text-end @item.AmountClass">
+                                        @item.AmountPrefix @item.FormattedAmount
+                                    </td>
+                                    <td class="text-end">@item.FormattedBalance</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Fonction pour exporter en Excel
+        function exportToExcel() {
+            // Dans une implémentation réelle, utilisez une bibliothèque comme SheetJS ou un export côté serveur
+            alert("Fonctionnalité d'exportation Excel à implémenter");
+        }
+    </script>
+}
