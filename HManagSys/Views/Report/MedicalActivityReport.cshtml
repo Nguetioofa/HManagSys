@@ -1,0 +1,544 @@
+﻿@using HManagSys.Models.ViewModels.Reports
+@model MedicalActivityReportViewModel
+@{
+    ViewData["Title"] = "Rapport d'Activité Médicale";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-stethoscope"></i> Rapport d'Activité Médicale</h1>
+        <div>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exportModal">
+                <i class="fas fa-file-export"></i> Exporter
+            </button>
+            <a href="@Url.Action("Index", "Report")" class="btn btn-sm btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filtres</h6>
+        </div>
+        <div class="card-body">
+            <form id="filterForm" method="get" action="@Url.Action("MedicalActivityReport", "Report")">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="HospitalCenterId">Centre</label>
+                            <select class="form-select" id="HospitalCenterId" name="HospitalCenterId">
+                                @foreach (var item in ViewBag.Centers)
+                                {
+                                    <option value="@item.Value" @* @(Model.Filters != null && ((MedicalActivityReportFilters)Model.Filters).HospitalCenterId.ToString() == item.Value ? "selected" : "") *@>@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="FromDate">Date de début</label>
+                            <input type="date" class="form-control" id="FromDate" name="FromDate" 
+                                   value="@(Model.Filters != null ? ((MedicalActivityReportFilters)Model.Filters).FromDate?.ToString("yyyy-MM-dd") : DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd"))">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="ToDate">Date de fin</label>
+                            <input type="date" class="form-control" id="ToDate" name="ToDate" 
+                                   value="@(Model.Filters != null ? ((MedicalActivityReportFilters)Model.Filters).ToDate?.ToString("yyyy-MM-dd") : DateTime.Now.ToString("yyyy-MM-dd"))">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="CareTypeId">Type de soin</label>
+                            <select class="form-select" id="CareTypeId" name="CareTypeId">
+                                <option value="">Tous les types</option>
+                                <!-- Options des types de soins -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-12 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Filtrer
+                        </button>
+                        <a href="@Url.Action("MedicalActivityReport", "Report")" class="btn btn-outline-secondary">
+                            <i class="fas fa-sync"></i> Réinitialiser
+                        </a>
+                        @if (Context.Session.GetString("CurrentRole") == "SuperAdmin")
+                        {
+                            <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#refreshModal">
+                                <i class="fas fa-refresh"></i> Rafraîchir les données
+                            </button>
+                        }
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistiques Rapides -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Episodes de Soins
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalEpisodes</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-procedures fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Episodes Actifs
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalActiveEpisodes</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-heartbeat fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Examens Effectués
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalExaminations</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-microscope fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Patients Traités
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalPatients</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Évolution de l'Activité</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="activityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Répartition des Episodes par Diagnostic</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie pt-4 pb-2">
+                        <canvas id="episodeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tendances -->
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Patients par Jour</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-line">
+                        <canvas id="patientTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Revenus Quotidiens</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-line">
+                        <canvas id="revenueTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau de données -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Détails d'Activité</h6>
+            <div>
+                <span class="badge bg-secondary">Total: @Model.TotalCount jours</span>
+                @if (Model.TotalCount > 0)
+                {
+                    <span class="badge bg-info">Généré le: @Model.FormattedGeneratedAt</span>
+                }
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="activityTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Centre</th>
+                            <th>Nouveaux Patients</th>
+                            <th>Episodes</th>
+                            <th>Services</th>
+                            <th>Examens</th>
+                            <th>Prescriptions</th>
+                            <th>Revenus</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.FormattedActivityDate</td>
+                                <td>@item.HospitalCenterName</td>
+                                <td class="text-center">@item.NewPatients</td>
+                                <td class="text-center">@item.CareEpisodes</td>
+                                <td class="text-center">@item.CareServices</td>
+                                <td class="text-center">@item.Examinations</td>
+                                <td class="text-center">@item.Prescriptions</td>
+                                <td class="text-end">@item.FormattedTotalRevenue</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'export -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel">Exporter le Rapport</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportForm">
+                    <div class="form-group mb-3">
+                        <label for="exportFormat">Format</label>
+                        <select class="form-select" id="exportFormat" name="format">
+                            <option value="Excel">Excel (.xlsx)</option>
+                            <option value="PDF">PDF (.pdf)</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="exportTitle">Titre (optionnel)</label>
+                        <input type="text" class="form-control" id="exportTitle" name="title" placeholder="Titre du rapport">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="includeCharts" name="includeCharts" checked>
+                        <label class="form-check-label" for="includeCharts">
+                            Inclure les graphiques
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="exportExcel">
+                    <i class="fas fa-file-excel"></i> Exporter en Excel
+                </button>
+                <button type="button" class="btn btn-danger" id="exportPdf">
+                    <i class="fas fa-file-pdf"></i> Exporter en PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de rafraîchissement des données -->
+@if (Context.Session.GetString("CurrentRole") == "SuperAdmin")
+{
+    <div class="modal fade" id="refreshModal" tabindex="-1" aria-labelledby="refreshModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="refreshModalLabel">Rafraîchir les Données</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Cette opération va recalculer toutes les données du rapport d'activité médicale à partir des données sources.</p>
+                    <p>Le processus peut prendre quelques minutes. Souhaitez-vous continuer ?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <form method="post" action="@Url.Action("RefreshReportData", "Report")">
+                        <input type="hidden" name="reportType" value="MedicalActivityReport" />
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sync"></i> Rafraîchir les données
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Charger les graphiques
+        document.addEventListener('DOMContentLoaded', function () {
+            // Graphique d'activité
+            var dates = [@Html.Raw(string.Join(",", Model.Items.Select(i => "'" + i.FormattedActivityDate + "'").ToArray()))];
+            var episodes = [@Html.Raw(string.Join(",", Model.Items.Select(i => i.CareEpisodes).ToArray()))];
+            var services = [@Html.Raw(string.Join(",", Model.Items.Select(i => i.CareServices).ToArray()))];
+            var examinations = [@Html.Raw(string.Join(",", Model.Items.Select(i => i.Examinations).ToArray()))];
+            var prescriptions = [@Html.Raw(string.Join(",", Model.Items.Select(i => i.Prescriptions).ToArray()))];
+            
+            var activityCtx = document.getElementById('activityChart').getContext('2d');
+            var activityChart = new Chart(activityCtx, {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'Episodes',
+                            data: episodes,
+                            backgroundColor: 'rgba(78, 115, 223, 0.8)',
+                            borderColor: 'rgba(78, 115, 223, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Services',
+                            data: services,
+                            backgroundColor: 'rgba(28, 200, 138, 0.8)',
+                            borderColor: 'rgba(28, 200, 138, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Examens',
+                            data: examinations,
+                            backgroundColor: 'rgba(54, 185, 204, 0.8)',
+                            borderColor: 'rgba(54, 185, 204, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Prescriptions',
+                            data: prescriptions,
+                            backgroundColor: 'rgba(246, 194, 62, 0.8)',
+                            borderColor: 'rgba(246, 194, 62, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Graphique des épisodes par diagnostic
+            var diagnosisLabels = [];
+            var diagnosisCounts = [];
+            
+            @foreach (var item in Model.EpisodesByDiagnosis.Take(5))
+            {
+                <text>
+                diagnosisLabels.push('@item.Key');
+                diagnosisCounts.push(@item.Value);
+                </text>
+            }
+            
+            // Ajouter "Autres" si plus de 5 diagnostics
+            @if (Model.EpisodesByDiagnosis.Count > 5)
+            {
+                var otherCount = Model.EpisodesByDiagnosis.Skip(5).Sum(d => d.Value);
+                <text>
+                diagnosisLabels.push('Autres');
+                diagnosisCounts.push(@otherCount);
+                </text>
+            }
+            
+            var episodeCtx = document.getElementById('episodeChart').getContext('2d');
+            var episodeChart = new Chart(episodeCtx, {
+                type: 'pie',
+                data: {
+                    labels: diagnosisLabels,
+                    datasets: [{
+                        data: diagnosisCounts,
+                        backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796'],
+                        hoverBackgroundColor: ['#2e59d9', '#17a673', '#2c9faf', '#dfa913', '#be3024', '#666666'],
+                        hoverBorderColor: "rgba(234, 236, 244, 1)",
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Tendance des patients
+            var trendDates = [];
+            var trendPatients = [];
+            
+            @foreach (var point in Model.PatientTrend)
+            {
+                <text>
+                trendDates.push('@point.FormattedDate');
+                trendPatients.push(@point.Value);
+                </text>
+            }
+            
+            var patientTrendCtx = document.getElementById('patientTrendChart').getContext('2d');
+            var patientTrendChart = new Chart(patientTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: trendDates,
+                    datasets: [{
+                        label: 'Patients',
+                        data: trendPatients,
+                        backgroundColor: 'rgba(231, 74, 59, 0.05)',
+                        borderColor: 'rgba(231, 74, 59, 1)',
+                        pointRadius: 3,
+                        pointBackgroundColor: 'rgba(231, 74, 59, 1)',
+                        pointBorderColor: 'rgba(231, 74, 59, 1)',
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: 'rgba(231, 74, 59, 1)',
+                        pointHoverBorderColor: 'rgba(231, 74, 59, 1)',
+                        pointHitRadius: 10,
+                        pointBorderWidth: 2,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Tendance des revenus
+            var trendRevenues = [];
+            
+            @foreach (var point in Model.RevenueTrend)
+            {
+                <text>
+                trendRevenues.push(@point.Value);
+                </text>
+            }
+            
+            var revenueTrendCtx = document.getElementById('revenueTrendChart').getContext('2d');
+            var revenueTrendChart = new Chart(revenueTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: trendDates,
+                    datasets: [{
+                        label: 'Revenus (FCFA)',
+                        data: trendRevenues,
+                        backgroundColor: 'rgba(28, 200, 138, 0.05)',
+                        borderColor: 'rgba(28, 200, 138, 1)',
+                        pointRadius: 3,
+                        pointBackgroundColor: 'rgba(28, 200, 138, 1)',
+                        pointBorderColor: 'rgba(28, 200, 138, 1)',
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: 'rgba(28, 200, 138, 1)',
+                        pointHoverBorderColor: 'rgba(28, 200, 138, 1)',
+                        pointHitRadius: 10,
+                        pointBorderWidth: 2,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString() + ' FCFA';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Datatable
+            $(document).ready(function() {
+                $('#activityTable').DataTable({
+                    language: {
+                        url: 'https://cdn.datatables.net/plug-ins/1.10.25/i18n/French.json'
+                    },
+                    order: [[0, 'desc']] // Trier par date décroissante
+                });
+            });
+
+            // Export buttons
+            $('#exportExcel').on('click', function() {
+                var filters = @Html.Raw(Json.Serialize(Model.Filters));
+                var filtersJson = JSON.stringify(filters);
+                window.location.href = '@Url.Action("ExportToExcel", "Report")?reportType=MedicalActivityReport&filters=' + encodeURIComponent(filtersJson);
+            });
+            
+            $('#exportPdf').on('click', function() {
+                var filters = @Html.Raw(Json.Serialize(Model.Filters));
+                var filtersJson = JSON.stringify(filters);
+                window.location.href = '@Url.Action("ExportToPdf", "Report")?reportType=MedicalActivityReport&filters=' + encodeURIComponent(filtersJson);
+            });
+        });
+    </script>
+}

@@ -1,0 +1,448 @@
+﻿@using HManagSys.Models.ViewModels.Reports
+@model FinancialActivityReportViewModel
+@{
+    ViewData["Title"] = "Rapport d'Activité Financière";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-money-bill-wave"></i> Rapport d'Activité Financière</h1>
+        <div>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exportModal">
+                <i class="fas fa-file-export"></i> Exporter
+            </button>
+            <a href="@Url.Action("Index", "Report")" class="btn btn-sm btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filtres</h6>
+        </div>
+        <div class="card-body">
+            <form id="filterForm" method="get" action="@Url.Action("FinancialActivityReport", "Report")">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="HospitalCenterId">Centre</label>
+                            <select class="form-select" id="HospitalCenterId" name="HospitalCenterId">
+                                @foreach (var item in ViewBag.Centers)
+                                {
+                                    <option value="@item.Value" @* @(Model.Filters != null && ((FinancialActivityReportFilters)Model.Filters).HospitalCenterId.ToString() == item.Value ? "selected" : "") *@>@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="FromDate">Date de début</label>
+                            <input type="date" class="form-control" id="FromDate" name="FromDate" 
+                                   value="@(Model.Filters != null ? ((FinancialActivityReportFilters)Model.Filters).FromDate?.ToString("yyyy-MM-dd") : DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd"))">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="ToDate">Date de fin</label>
+                            <input type="date" class="form-control" id="ToDate" name="ToDate" 
+                                   value="@(Model.Filters != null ? ((FinancialActivityReportFilters)Model.Filters).ToDate?.ToString("yyyy-MM-dd") : DateTime.Now.ToString("yyyy-MM-dd"))">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="GroupBy">Grouper par</label>
+                            <select class="form-select" id="GroupBy" name="GroupBy">
+                                @foreach (var item in ViewBag.GroupByOptions)
+                                {
+                                    <option value="@item.Value" @* @(Model.Filters != null && ((FinancialActivityReportFilters)Model.Filters).GroupBy == item.Value ? "selected" : "") *@>@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-12 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Filtrer
+                        </button>
+                        <a href="@Url.Action("FinancialActivityReport", "Report")" class="btn btn-outline-secondary">
+                            <i class="fas fa-sync"></i> Réinitialiser
+                        </a>
+                        @if (Context.Session.GetString("CurrentRole") == "SuperAdmin")
+                        {
+                            <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#refreshModal">
+                                <i class="fas fa-refresh"></i> Rafraîchir les données
+                            </button>
+                        }
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistiques Rapides -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Revenus Totaux
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedTotalRevenue</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Ventes
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedTotalSales</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Soins
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedTotalCareRevenue</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-stethoscope fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Examens
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedTotalExaminationRevenue</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-microscope fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Évolution des Revenus</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="revenueEvolutionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Répartition des Revenus</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie pt-4 pb-2">
+                        <canvas id="revenueDistributionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau de données -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Détails des Revenus</h6>
+            <div>
+                <span class="badge bg-secondary">Total: @Model.TotalCount jours</span>
+                @if (Model.TotalCount > 0)
+                {
+                    <span class="badge bg-info">Généré le: @Model.FormattedGeneratedAt</span>
+                }
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="financeTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Centre</th>
+                            <th>Ventes</th>
+                            <th>Soins</th>
+                            <th>Examens</th>
+                            <th>Total</th>
+                            <th>Paiements Espèces</th>
+                            <th>Paiements Mobile</th>
+                            <th>Transactions</th>
+                            <th>Patients</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.FormattedReportDate</td>
+                                <td>@item.HospitalCenterName</td>
+                                <td class="text-end">@item.FormattedTotalSales</td>
+                                <td class="text-end">@item.FormattedTotalCareRevenue</td>
+                                <td class="text-end">@item.FormattedTotalExaminationRevenue</td>
+                                <td class="text-end fw-bold">@item.FormattedTotalRevenue</td>
+                                <td class="text-end">@item.TotalCashPayments.ToString("N0") FCFA</td>
+                                <td class="text-end">@item.TotalMobilePayments.ToString("N0") FCFA</td>
+                                <td class="text-center">@item.TransactionCount</td>
+                                <td class="text-center">@item.PatientCount</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'export -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel">Exporter le Rapport</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportForm">
+                    <div class="form-group mb-3">
+                        <label for="exportFormat">Format</label>
+                        <select class="form-select" id="exportFormat" name="format">
+                            <option value="Excel">Excel (.xlsx)</option>
+                            <option value="PDF">PDF (.pdf)</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="exportTitle">Titre (optionnel)</label>
+                        <input type="text" class="form-control" id="exportTitle" name="title" placeholder="Titre du rapport">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="includeCharts" name="includeCharts" checked>
+                        <label class="form-check-label" for="includeCharts">
+                            Inclure les graphiques
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="exportExcel">
+                    <i class="fas fa-file-excel"></i> Exporter en Excel
+                </button>
+                <button type="button" class="btn btn-danger" id="exportPdf">
+                    <i class="fas fa-file-pdf"></i> Exporter en PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de rafraîchissement des données -->
+@if (Context.Session.GetString("CurrentRole") == "SuperAdmin")
+{
+    <div class="modal fade" id="refreshModal" tabindex="-1" aria-labelledby="refreshModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="refreshModalLabel">Rafraîchir les Données</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Cette opération va recalculer toutes les données du rapport d'activité financière à partir des données sources.</p>
+                    <p>Le processus peut prendre quelques minutes. Souhaitez-vous continuer ?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <form method="post" action="@Url.Action("RefreshReportData", "Report")">
+                        <input type="hidden" name="reportType" value="FinancialActivityReport" />
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sync"></i> Rafraîchir les données
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Charger les graphiques
+        document.addEventListener('DOMContentLoaded', function () {
+            // Évolution des revenus
+            var dates = [@Html.Raw(string.Join(",", Model.Items.Select(i => "'" + i.FormattedReportDate + "'").ToArray()))];
+            var totalRevenues = [@Html.Raw(string.Join(",", Model.Items.Select(i => i.TotalRevenue).ToArray()))];
+            var salesRevenues = [@Html.Raw(string.Join(",", Model.Items.Select(i => i.TotalSales).ToArray()))];
+            var careRevenues = [@Html.Raw(string.Join(",", Model.Items.Select(i => i.TotalCareRevenue).ToArray()))];
+            var examRevenues = [@Html.Raw(string.Join(",", Model.Items.Select(i => i.TotalExaminationRevenue).ToArray()))];
+            
+            var evolutionCtx = document.getElementById('revenueEvolutionChart').getContext('2d');
+            var evolutionChart = new Chart(evolutionCtx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [
+                        {
+                            label: 'Total',
+                            data: totalRevenues,
+                            backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                            borderColor: 'rgba(78, 115, 223, 1)',
+                            pointRadius: 3,
+                            pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                            pointBorderColor: 'rgba(78, 115, 223, 1)',
+                            pointHoverRadius: 5,
+                            pointHoverBackgroundColor: 'rgba(78, 115, 223, 1)',
+                            pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+                            pointHitRadius: 10,
+                            pointBorderWidth: 2,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Ventes',
+                            data: salesRevenues,
+                            backgroundColor: 'rgba(28, 200, 138, 0.05)',
+                            borderColor: 'rgba(28, 200, 138, 1)',
+                            pointRadius: 3,
+                            pointBackgroundColor: 'rgba(28, 200, 138, 1)',
+                            pointBorderColor: 'rgba(28, 200, 138, 1)',
+                            pointHoverRadius: 5,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Soins',
+                            data: careRevenues,
+                            backgroundColor: 'rgba(54, 185, 204, 0.05)',
+                            borderColor: 'rgba(54, 185, 204, 1)',
+                            pointRadius: 3,
+                            pointBackgroundColor: 'rgba(54, 185, 204, 1)',
+                            pointBorderColor: 'rgba(54, 185, 204, 1)',
+                            pointHoverRadius: 5,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Examens',
+                            data: examRevenues,
+                            backgroundColor: 'rgba(246, 194, 62, 0.05)',
+                            borderColor: 'rgba(246, 194, 62, 1)',
+                            pointRadius: 3,
+                            pointBackgroundColor: 'rgba(246, 194, 62, 1)',
+                            pointBorderColor: 'rgba(246, 194, 62, 1)',
+                            pointHoverRadius: 5,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                // Format des nombres
+                                callback: function(value) {
+                                    return value.toLocaleString() + ' FCFA';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Distribution des revenus
+            var distributionCtx = document.getElementById('revenueDistributionChart').getContext('2d');
+            var distributionChart = new Chart(distributionCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Ventes', 'Soins', 'Examens'],
+                    datasets: [{
+                        data: [@Model.TotalSales, @Model.TotalCareRevenue, @Model.TotalExaminationRevenue],
+                        backgroundColor: ['#1cc88a', '#36b9cc', '#f6c23e'],
+                        hoverBackgroundColor: ['#17a673', '#2c9faf', '#dfa913'],
+                        hoverBorderColor: "rgba(234, 236, 244, 1)",
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var label = context.label || '';
+                                    var value = context.raw || 0;
+                                    var percentage = Math.round(value / @Model.TotalRevenue * 100);
+                                    return label + ': ' + value.toLocaleString() + ' FCFA (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Datatable
+            $(document).ready(function() {
+                $('#financeTable').DataTable({
+                    language: {
+                        url: 'https://cdn.datatables.net/plug-ins/1.10.25/i18n/French.json'
+                    },
+                    order: [[0, 'desc']] // Trier par date décroissante
+                });
+            });
+
+            // Export buttons
+            $('#exportExcel').on('click', function() {
+                var filters = @Html.Raw(Json.Serialize(Model.Filters));
+                var filtersJson = JSON.stringify(filters);
+                window.location.href = '@Url.Action("ExportToExcel", "Report")?reportType=FinancialActivityReport&filters=' + encodeURIComponent(filtersJson);
+            });
+            
+            $('#exportPdf').on('click', function() {
+                var filters = @Html.Raw(Json.Serialize(Model.Filters));
+                var filtersJson = JSON.stringify(filters);
+                window.location.href = '@Url.Action("ExportToPdf", "Report")?reportType=FinancialActivityReport&filters=' + encodeURIComponent(filtersJson);
+            });
+        });
+    </script>
+}

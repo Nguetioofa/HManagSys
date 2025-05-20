@@ -1,0 +1,307 @@
+﻿@using HManagSys.Models.ViewModels.Reports
+@model StockValuationReportViewModel
+@{
+    ViewData["Title"] = "Rapport de Valorisation des Stocks";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-calculator"></i> Rapport de Valorisation des Stocks</h1>
+        <div>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exportModal">
+                <i class="fas fa-file-export"></i> Exporter
+            </button>
+            <a href="@Url.Action("Index", "Report")" class="btn btn-sm btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filtres</h6>
+        </div>
+        <div class="card-body">
+            <form id="filterForm" method="get" action="@Url.Action("StockValuationReport", "Report")">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group mb-2">
+                            <label for="HospitalCenterId">Centre</label>
+                            <select class="form-select" id="HospitalCenterId" name="HospitalCenterId">
+                                @foreach (var item in ViewBag.Centers)
+                                {
+                                    <option value="@item.Value" @* @(Model.Filters != null && ((StockValuationReportFilters)Model.Filters).HospitalCenterId.ToString() == item.Value ? "selected" : "") *@>@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-2">
+                            <label for="ProductCategoryId">Catégorie</label>
+                            <select class="form-select" id="ProductCategoryId" name="ProductCategoryId">
+                                @foreach (var item in ViewBag.Categories)
+                                {
+                                    <option value="@item.Value" @* @(Model.Filters != null && ((StockValuationReportFilters)Model.Filters).ProductCategoryId.ToString() == item.Value ? "selected" : "") *@>@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-2">
+                            <label for="ValuationType">Valoriser au prix de</label>
+                            <select class="form-select" id="ValuationType" name="ValuationType">
+                                @foreach (var item in ViewBag.ValuationTypes)
+                                {
+                                    <option value="@item.Value" @* @(Model.Filters != null && ((StockValuationReportFilters)Model.Filters).ValuationType == item.Value ? "selected" : "") *@>@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-12 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Filtrer
+                        </button>
+                        <a href="@Url.Action("StockValuationReport", "Report")" class="btn btn-outline-secondary">
+                            <i class="fas fa-sync"></i> Réinitialiser
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Résumé de Valorisation -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Valorisation par Catégorie</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-bar mb-4 mt-3">
+                        <canvas id="categoryValueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Résumé de Valorisation</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="card bg-primary text-white shadow">
+                            <div class="card-body py-3">
+                                <div class="text-center">
+                                    <h5>Valeur Totale</h5>
+                                    <div class="h2 mb-0">@Model.FormattedTotalValue</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <tbody>
+                                <tr>
+                                    <th>Nombre de Produits</th>
+                                    <td class="text-end">@Model.Items.Count</td>
+                                </tr>
+                                <tr>
+                                    <th>Valeur Moyenne</th>
+                                    <td class="text-end">@(Model.Items.Count > 0 ? (Model.TotalValue / Model.Items.Count).ToString("N0") : "0") FCFA</td>
+                                </tr>
+                                <tr>
+                                    <th>Date de Valorisation</th>
+                                    <td class="text-end">@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</td>
+                                </tr>
+                                <tr>
+                                    <th>Type de Valorisation</th>
+                                    <td class="text-end">
+                                        @{
+                                            var valType = ((StockValuationReportFilters)Model.Filters).ValuationType;
+                                            var valText = valType switch
+                                            {
+                                                "SellingPrice" => "Prix de vente",
+                                                "LastPurchasePrice" => "Dernier prix d'achat",
+                                                "AveragePrice" => "Prix moyen",
+                                                _ => "Prix de vente"
+                                            };
+                                        }
+                                        @valText
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau de données -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Détails de Valorisation</h6>
+            <div>
+                <span class="badge bg-success">Total: @Model.FormattedTotalValue</span>
+                <span class="badge bg-secondary">@Model.Items.Count produits</span>
+                @if (Model.Items.Count > 0)
+                {
+                    <span class="badge bg-info">Généré le: @Model.FormattedGeneratedAt</span>
+                }
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="valuationTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Produit</th>
+                            <th>Catégorie</th>
+                            <th>Centre</th>
+                            <th>Quantité</th>
+                            <th>Prix Unitaire</th>
+                            <th>Valeur Totale</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.ProductName</td>
+                                <td>@item.CategoryName</td>
+                                <td>@item.HospitalCenterName</td>
+                                <td class="text-end">@item.FormattedQuantity</td>
+                                <td class="text-end">@item.FormattedUnitPrice</td>
+                                <td class="text-end fw-bold">@item.FormattedTotalValue</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-secondary">
+                            <th colspan="5" class="text-end">Total:</th>
+                            <th class="text-end">@Model.FormattedTotalValue</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'export -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel">Exporter le Rapport</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportForm">
+                    <div class="form-group mb-3">
+                        <label for="exportFormat">Format</label>
+                        <select class="form-select" id="exportFormat" name="format">
+                            <option value="Excel">Excel (.xlsx)</option>
+                            <option value="PDF">PDF (.pdf)</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="exportTitle">Titre (optionnel)</label>
+                        <input type="text" class="form-control" id="exportTitle" name="title" placeholder="Titre du rapport">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="includeCharts" name="includeCharts" checked>
+                        <label class="form-check-label" for="includeCharts">
+                            Inclure les graphiques
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="exportExcel">
+                    <i class="fas fa-file-excel"></i> Exporter en Excel
+                </button>
+                <button type="button" class="btn btn-danger" id="exportPdf">
+                    <i class="fas fa-file-pdf"></i> Exporter en PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Charger les graphiques
+        document.addEventListener('DOMContentLoaded', function () {
+            // Graphique par catégorie
+            var categoryLabels = [];
+            var categoryValues = [];
+            
+            @foreach (var item in Model.ValueByCategory)
+            {
+                <text>
+                categoryLabels.push('@item.Key');
+                categoryValues.push(@item.Value);
+                </text>
+            }
+            
+            var categoryCtx = document.getElementById('categoryValueChart').getContext('2d');
+            var categoryChart = new Chart(categoryCtx, {
+                type: 'bar',
+                data: {
+                    labels: categoryLabels,
+                    datasets: [{
+                        label: 'Valeur (FCFA)',
+                        data: categoryValues,
+                        backgroundColor: 'rgba(54, 185, 204, 0.8)',
+                        borderColor: 'rgba(54, 185, 204, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString() + ' FCFA';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Datatable
+            $(document).ready(function() {
+                $('#valuationTable').DataTable({
+                    language: {
+                        url: 'https://cdn.datatables.net/plug-ins/1.10.25/i18n/French.json'
+                    },
+                    order: [[5, 'desc']] // Trier par valeur totale décroissante
+                });
+            });
+
+            // Export buttons
+            $('#exportExcel').on('click', function() {
+                var filters = @Html.Raw(Json.Serialize(Model.Filters));
+                var filtersJson = JSON.stringify(filters);
+                window.location.href = '@Url.Action("ExportToExcel", "Report")?reportType=StockValuationReport&filters=' + encodeURIComponent(filtersJson);
+            });
+            
+            $('#exportPdf').on('click', function() {
+                var filters = @Html.Raw(Json.Serialize(Model.Filters));
+                var filtersJson = JSON.stringify(filters);
+                window.location.href = '@Url.Action("ExportToPdf", "Report")?reportType=StockValuationReport&filters=' + encodeURIComponent(filtersJson);
+            });
+        });
+    </script>
+}

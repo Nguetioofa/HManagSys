@@ -1,0 +1,437 @@
+﻿@using HManagSys.Models.ViewModels.Reports
+@model CaregiverPerformanceReportViewModel
+@{
+    ViewData["Title"] = "Rapport de Performance des Soignants";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-user-md"></i> Rapport de Performance des Soignants</h1>
+        <div>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exportModal">
+                <i class="fas fa-file-export"></i> Exporter
+            </button>
+            <a href="@Url.Action("Index", "Report")" class="btn btn-sm btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filtres</h6>
+        </div>
+        <div class="card-body">
+            <form id="filterForm" method="get" action="@Url.Action("CaregiverPerformanceReport", "Report")">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="HospitalCenterId">Centre</label>
+                            <select class="form-select" id="HospitalCenterId" name="HospitalCenterId">
+                                @foreach (var item in ViewBag.Centers)
+                                {
+                                    <option value="@item.Value" @* @(Model.Filters != null && ((CaregiverPerformanceReportFilters)Model.Filters).HospitalCenterId.ToString() == item.Value ? "selected" : "") *@>@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="UserId">Soignant</label>
+                            <select class="form-select" id="UserId" name="UserId">
+                                @foreach (var item in ViewBag.Users)
+                                {
+                                    <option value="@item.Value" @* @(Model.Filters != null && ((CaregiverPerformanceReportFilters)Model.Filters).UserId.ToString() == item.Value ? "selected" : "") *@>@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="FromDate">Date de début</label>
+                            <input type="date" class="form-control" id="FromDate" name="FromDate" 
+                                   value="@(Model.Filters != null ? ((CaregiverPerformanceReportFilters)Model.Filters).FromDate?.ToString("yyyy-MM-dd") : DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd"))">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="ToDate">Date de fin</label>
+                            <input type="date" class="form-control" id="ToDate" name="ToDate" 
+                                   value="@(Model.Filters != null ? ((CaregiverPerformanceReportFilters)Model.Filters).ToDate?.ToString("yyyy-MM-dd") : DateTime.Now.ToString("yyyy-MM-dd"))">
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-12 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Filtrer
+                        </button>
+                        <a href="@Url.Action("CaregiverPerformanceReport", "Report")" class="btn btn-outline-secondary">
+                            <i class="fas fa-sync"></i> Réinitialiser
+                        </a>
+                        @if (Context.Session.GetString("CurrentRole") == "SuperAdmin")
+                        {
+                            <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#refreshModal">
+                                <i class="fas fa-refresh"></i> Rafraîchir les données
+                            </button>
+                        }
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistiques Rapides -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Soignants Actifs
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalCaregivers</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-nurse fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Revenus Générés
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedTotalRevenueGenerated</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Patients Servis
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalPatientsServed</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Rev. Moyen/Soignant
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedAverageRevenuePerCaregiver</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Performance par Soignant</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-bar">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Répartition des Services</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie pt-4 pb-2">
+                        <canvas id="servicesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau de données -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Détails de Performance</h6>
+            <div>
+                <span class="badge bg-secondary">Total: @Model.TotalCount soignants</span>
+                @if (Model.TotalCount > 0)
+                {
+                    <span class="badge bg-info">Généré le: @Model.FormattedGeneratedAt</span>
+                }
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="performanceTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Soignant</th>
+                            <th>Centre</th>
+                            <th>Date</th>
+                            <th>Patients</th>
+                            <th>Services</th>
+                            <th>Examens</th>
+                            <th>Prescriptions</th>
+                            <th>Ventes</th>
+                            <th>Revenus</th>
+                            <th>Rev. / Patient</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.CaregiverName</td>
+                                <td>@item.HospitalCenterName</td>
+                                <td>@item.FormattedReportDate</td>
+                                <td class="text-center">@item.PatientsServed</td>
+                                <td class="text-center">@item.CareServicesProvided</td>
+                                <td class="text-center">@item.ExaminationsRequested</td>
+                                <td class="text-center">@item.PrescriptionsIssued</td>
+                                <td class="text-center">@item.SalesMade</td>
+                                <td class="text-end">@item.FormattedTotalRevenueGenerated</td>
+                                <td class="text-end">@item.FormattedAverageRevenuePerPatient</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'export -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel">Exporter le Rapport</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportForm">
+                    <div class="form-group mb-3">
+                        <label for="exportFormat">Format</label>
+                        <select class="form-select" id="exportFormat" name="format">
+                            <option value="Excel">Excel (.xlsx)</option>
+                            <option value="PDF">PDF (.pdf)</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="exportTitle">Titre (optionnel)</label>
+                        <input type="text" class="form-control" id="exportTitle" name="title" placeholder="Titre du rapport">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="includeCharts" name="includeCharts" checked>
+                        <label class="form-check-label" for="includeCharts">
+                            Inclure les graphiques
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="exportExcel">
+                    <i class="fas fa-file-excel"></i> Exporter en Excel
+                </button>
+                <button type="button" class="btn btn-danger" id="exportPdf">
+                    <i class="fas fa-file-pdf"></i> Exporter en PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de rafraîchissement des données -->
+@if (Context.Session.GetString("CurrentRole") == "SuperAdmin")
+{
+    <div class="modal fade" id="refreshModal" tabindex="-1" aria-labelledby="refreshModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="refreshModalLabel">Rafraîchir les Données</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Cette opération va recalculer toutes les données du rapport de performance des soignants à partir des données sources.</p>
+                    <p>Le processus peut prendre quelques minutes. Souhaitez-vous continuer ?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <form method="post" action="@Url.Action("RefreshReportData", "Report")">
+                        <input type="hidden" name="reportType" value="CaregiverPerformanceReport" />
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sync"></i> Rafraîchir les données
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Charger les graphiques
+        document.addEventListener('DOMContentLoaded', function () {
+            // Graphique de performance
+            var caregiverNames = [@Html.Raw(string.Join(",", Model.Items.Select(i => "'" + i.CaregiverName + "'").Distinct().Take(10).ToArray()))];
+            var caregiverRevenues = [];
+            var caregiverPatients = [];
+            
+            // Regrouper par soignant
+            @foreach (var caregiverGroup in Model.Items.GroupBy(i => i.CaregiverName).Take(10))
+            {
+                <text>
+                caregiverRevenues.push(@caregiverGroup.Sum(i => i.TotalRevenueGenerated));
+                caregiverPatients.push(@caregiverGroup.Sum(i => i.PatientsServed));
+                </text>
+            }
+            
+            var performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            var performanceChart = new Chart(performanceCtx, {
+                type: 'bar',
+                data: {
+                    labels: caregiverNames,
+                    datasets: [
+                        {
+                            label: 'Revenus (FCFA)',
+                            yAxisID: 'y',
+                            data: caregiverRevenues,
+                            backgroundColor: 'rgba(78, 115, 223, 0.8)',
+                            borderColor: 'rgba(78, 115, 223, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Patients',
+                            yAxisID: 'y1',
+                            data: caregiverPatients,
+                            type: 'line',
+                            backgroundColor: 'rgba(231, 74, 59, 0.05)',
+                            borderColor: 'rgba(231, 74, 59, 1)',
+                            borderWidth: 2,
+                            pointBackgroundColor: 'rgba(231, 74, 59, 1)',
+                            pointBorderColor: 'rgba(231, 74, 59, 1)',
+                            pointRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Revenus (FCFA)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString() + ' FCFA';
+                                }
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Patients'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Graphique des services
+            var totalCareServices = @Model.TotalCareServicesProvided;
+            var totalExaminations = @Model.TotalExaminationsRequested;
+            var totalPrescriptions = @Model.TotalPrescriptionsIssued;
+            var totalSales = @Model.TotalSalesMade;
+            
+            var servicesCtx = document.getElementById('servicesChart').getContext('2d');
+            var servicesChart = new Chart(servicesCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Services de soins', 'Examens', 'Prescriptions', 'Ventes'],
+                    datasets: [{
+                        data: [totalCareServices, totalExaminations, totalPrescriptions, totalSales],
+                        backgroundColor: ['#1cc88a', '#4e73df', '#f6c23e', '#e74a3b'],
+                        hoverBackgroundColor: ['#17a673', '#2e59d9', '#dfa913', '#be3024'],
+                        hoverBorderColor: "rgba(234, 236, 244, 1)",
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Datatable
+            $(document).ready(function() {
+                $('#performanceTable').DataTable({
+                    language: {
+                        url: 'https://cdn.datatables.net/plug-ins/1.10.25/i18n/French.json'
+                    },
+                    order: [[8, 'desc']] // Trier par revenus décroissants
+                });
+            });
+
+            // Export buttons
+            $('#exportExcel').on('click', function() {
+                var filters = @Html.Raw(Json.Serialize(Model.Filters));
+                var filtersJson = JSON.stringify(filters);
+                window.location.href = '@Url.Action("ExportToExcel", "Report")?reportType=CaregiverPerformanceReport&filters=' + encodeURIComponent(filtersJson);
+            });
+            
+            $('#exportPdf').on('click', function() {
+                var filters = @Html.Raw(Json.Serialize(Model.Filters));
+                var filtersJson = JSON.stringify(filters);
+                window.location.href = '@Url.Action("ExportToPdf", "Report")?reportType=CaregiverPerformanceReport&filters=' + encodeURIComponent(filtersJson);
+            });
+        });
+    </script>
+}

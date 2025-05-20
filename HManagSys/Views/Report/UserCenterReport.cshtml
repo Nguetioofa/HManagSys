@@ -1,0 +1,414 @@
+﻿@model HManagSys.Models.ViewModels.Reports.UserCenterReportViewModel
+@{
+    ViewData["Title"] = "Rapport Utilisateurs-Centres";
+    var filters = Model.Filters as HManagSys.Models.ViewModels.Reports.UserCenterReportFilters;
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-users-cog"></i> Rapport Utilisateurs-Centres</h1>
+        <div>
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#filtersModal">
+                <i class="fas fa-filter"></i> Filtres
+            </button>
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown">
+                    <i class="fas fa-download"></i> Exporter
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="javascript:exportReport('Excel')">
+                            <i class="fas fa-file-excel text-success"></i> Excel
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="javascript:exportReport('PDF')">
+                            <i class="fas fa-file-pdf text-danger"></i> PDF
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <button type="button" class="btn btn-sm btn-info" onclick="printReport()">
+                <i class="fas fa-print"></i> Imprimer
+            </button>
+        </div>
+    </div>
+
+    <!-- Rapport Header -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Résumé du rapport</h6>
+            <div>
+                <small class="text-muted">
+                    Généré le @Model.FormattedGeneratedAt par @Model.GeneratedBy
+                </small>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        Utilisateurs
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalUsers</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-users fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Utilisateurs actifs
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ActiveUsers</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Affectations
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalAssignments</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        Affectations actives
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ActiveAssignments</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-hospital-user fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Distribution par rôle</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="roleDistributionChart" width="100%" height="50"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Distribution par centre</h6>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="centerDistributionChart" width="100%" height="50"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Données du rapport -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Détails des affectations utilisateurs-centres</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Utilisateur</th>
+                            <th>Email</th>
+                            <th>Statut</th>
+                            <th>Centre</th>
+                            <th>Rôle</th>
+                            <th>Statut Affectation</th>
+                            <th>Début</th>
+                            <th>Fin</th>
+                            <th>Dernière connexion</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.FullName</td>
+                                <td>@item.Email</td>
+                                <td><span class="@item.UserStatusBadge">@item.UserStatusText</span></td>
+                                <td>@item.HospitalCenterName</td>
+                                <td>@(item.RoleType == "SuperAdmin" ? "Super Admin" : "Personnel Soignant")</td>
+                                <td><span class="@item.AssignmentStatusBadge">@item.AssignmentStatusText</span></td>
+                                <td>@item.FormattedStartDate</td>
+                                <td>@item.FormattedEndDate</td>
+                                <td>@item.FormattedLastLogin</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal des filtres -->
+<div class="modal fade" id="filtersModal" tabindex="-1" aria-labelledby="filtersModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="filtersModalLabel">Filtres du rapport</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="get" action="@Url.Action("UserCenterReport", "Report")">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="HospitalCenterId" class="form-label">Centre hospitalier</label>
+                        <select class="form-select" id="HospitalCenterId" name="HospitalCenterId">
+                            @foreach (var option in ViewBag.Centers)
+                            {
+                                if (filters?.HospitalCenterId?.ToString() == option.Value)
+                                {
+                                    <option value="@option.Value" selected>@option.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@option.Value">@option.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="RoleType" class="form-label">Rôle</label>
+                        <select class="form-select" id="RoleType" name="RoleType">
+                            @foreach (var option in ViewBag.Roles)
+                            {
+                                if (filters?.RoleType == option.Value)
+                                {
+                                    <option value="@option.Value" selected>@option.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@option.Value">@option.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+@*                     <div class="mb-3">
+                        <label for="RoleType" class="form-label">Rôle</label>
+                        <select class="form-select" id="RoleType" name="RoleType">
+                            @foreach (var option in ViewBag.Roles)
+                            {
+                                <option value="@option.Value" @(filters?.RoleType == option.Value ? "selected" : "")>@option.Text</option>
+                            }
+                        </select>
+                    </div> *@
+                    <div class="mb-3">
+                        <label for="IsUserActive" class="form-label">Statut utilisateur</label>
+                        <select class="form-select" id="IsUserActive" name="IsUserActive">
+                            <option value="">Tous</option>
+                            <option value="true" @* @(filters?.IsUserActive == true ? "selected" : "") *@>Actif</option>
+                            <option value="false" @* @(filters?.IsUserActive == false ? "selected" : "") *@>Inactif</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="IsAssignmentActive" class="form-label">Statut affectation</label>
+                        <select class="form-select" id="IsAssignmentActive" name="IsAssignmentActive">
+                            <option value="">Tous</option>
+                            <option value="true" @* @(filters?.IsAssignmentActive == true ? "selected" : "") *@>Active</option>
+                            <option value="false" @* @(filters?.IsAssignmentActive == false ? "selected" : "") *@>Inactive</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="SearchTerm" class="form-label">Recherche</label>
+                        <input type="text" class="form-control" id="SearchTerm" name="SearchTerm" value="@filters?.SearchTerm">
+                        <div class="form-text">Rechercher par nom, email ou téléphone</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    <button type="submit" class="btn btn-primary">Appliquer les filtres</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Préparation des données pour les graphiques
+        const roleLabels = [@Html.Raw(string.Join(",", Model.UsersByRole.Keys.Select(k => $"'{k}'")))];
+        const roleData = [@Html.Raw(string.Join(",", Model.UsersByRole.Values))];
+        const roleColors = ['#4e73df', '#1cc88a'];
+
+        const centerLabels = [@Html.Raw(string.Join(",", Model.UsersByCenter.Keys.Select(k => $"'{k}'")))];
+        const centerData = [@Html.Raw(string.Join(",", Model.UsersByCenter.Values))];
+        const centerColors = Array(centerLabels.length).fill().map((_, i) => 
+            `hsl(${(i * 360 / centerLabels.length) % 360}, 70%, 60%)`);
+
+        // Graphique distribution par rôle
+        const roleCtx = document.getElementById('roleDistributionChart').getContext('2d');
+        const roleChart = new Chart(roleCtx, {
+            type: 'pie',
+            data: {
+                labels: roleLabels,
+                datasets: [{
+                    data: roleData,
+                    backgroundColor: roleColors,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += context.raw + ' utilisateurs';
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Graphique distribution par centre
+        const centerCtx = document.getElementById('centerDistributionChart').getContext('2d');
+        const centerChart = new Chart(centerCtx, {
+            type: 'bar',
+            data: {
+                labels: centerLabels,
+                datasets: [{
+                    label: 'Utilisateurs',
+                    data: centerData,
+                    backgroundColor: centerColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Nombre d\'utilisateurs'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Centre hospitalier'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Initialisation de DataTables
+        $(document).ready(function () {
+            $('#dataTable').DataTable({
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.10.24/i18n/French.json'
+                },
+                pageLength: 25,
+                order: [[0, 'asc']]
+            });
+        });
+
+        // Fonction d'export
+        function exportReport(format) {
+            // Sérialiser les filtres actuels
+            const filters = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(filters));
+            
+            // Construire l'URL d'export
+            let exportUrl = '';
+            if (format === 'Excel') {
+                exportUrl = '@Url.Action("ExportToExcel", "Report", new { reportType = "UserCenterReport" })';
+            } else {
+                exportUrl = '@Url.Action("ExportToPdf", "Report", new { reportType = "UserCenterReport" })';
+            }
+            
+            // Ajouter les filtres sérialisés
+            exportUrl += '&filters=' + encodeURIComponent(JSON.stringify(filters));
+            
+            // Rediriger vers l'URL d'export
+            window.location.href = exportUrl;
+        }
+
+        // Fonction d'impression
+        function printReport() {
+            window.print();
+        }
+    </script>
+}
+
+@section Styles {
+    <link href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <style>
+        @@media print {
+            .no-print {
+                display: none !important;
+            }
+            .card {
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .card-header {
+                background-color: white !important;
+                border-bottom: 1px solid #ddd !important;
+            }
+            .table {
+                width: 100% !important;
+            }
+        }
+    </style>
+}

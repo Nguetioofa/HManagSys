@@ -555,8 +555,16 @@ namespace HManagSys.Controllers
                 // Désérialiser les filtres à partir de la chaîne JSON
                 var filtersObj = DeserializeFilters(reportType, filters);
 
+                int maxLength = 31;
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string extension = ".xlsx";
+
+                int maxReportTypeLength = maxLength - (timestamp.Length + extension.Length + 1);
+
+                string fileName = $"{(reportType.Length > maxReportTypeLength ? reportType.Substring(0, maxReportTypeLength) : reportType)}_{timestamp}{extension}";
+
+
                 // Définir le nom du fichier
-                string fileName = $"{reportType}_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
 
                 // Créer les paramètres d'export
                 var parameters = new ExportParameters

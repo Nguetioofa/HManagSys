@@ -1,0 +1,286 @@
+﻿@model List<HManagSys.Models.ViewModels.Reports.RecurringReportViewModel>
+@{
+    ViewData["Title"] = "Rapports Planifiés";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-calendar-alt"></i> Rapports Planifiés</h1>
+        <a href="@Url.Action("ScheduleReport", "Report")" class="btn btn-sm btn-primary">
+            <i class="fas fa-plus"></i> Nouveau rapport planifié
+        </a>
+    </div>
+
+    <!-- Explication -->
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Automatisation des rapports</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-calendar-check fa-4x text-primary mb-3"></i>
+                                <h5>Planification Flexible</h5>
+                                <p>Configurez des rapports à générer quotidiennement, hebdomadairement ou mensuellement.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-file-export fa-4x text-success mb-3"></i>
+                                <h5>Export Automatique</h5>
+                                <p>Les rapports peuvent être automatiquement exportés en PDF ou Excel et sauvegardés sur le serveur.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center mb-3">
+                                <i class="fas fa-envelope fa-4x text-info mb-3"></i>
+                                <h5>Distribution par Email</h5>
+                                <p>Envoyez les rapports directement par email aux parties prenantes concernées.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des rapports planifiés -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Rapports planifiés existants</h6>
+        </div>
+        <div class="card-body">
+            @if (Model.Count == 0)
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Aucun rapport planifié n'a été configuré.
+                    <a href="@Url.Action("ScheduleReport", "Report")" class="alert-link">Planifier un nouveau rapport</a>.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="scheduledReportsTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Type de rapport</th>
+                                <th>Fréquence</th>
+                                <th>Format</th>
+                                <th>Statut</th>
+                                <th>Dernière exécution</th>
+                                <th>Prochaine exécution</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>@item.ReportName</td>
+                                    <td>@GetReportTypeName(item.ReportType)</td>
+                                    <td>
+                                        <span title="@item.ScheduleDescription">@GetFrequencyName(item.Frequency)</span>
+                                    </td>
+                                    <td>
+                                        @if (item.Format == "Excel")
+                                        {
+                                            <i class="fas fa-file-excel text-success"></i>
+                                        }
+                                        else
+                                        {
+                                            <i class="fas fa-file-pdf text-danger"></i>
+                                        }
+                                        @item.Format
+                                    </td>
+                                    <td><span class="@item.StatusBadge">@item.StatusText</span></td>
+                                    <td>@item.FormattedLastExecution</td>
+                                    <td>@item.FormattedNextExecution</td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <a href="@Url.Action("ScheduleReport", "Report", new { id = item.Id })" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-danger" onclick="confirmDelete(@item.Id, '@item.ReportName')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Récapitulatif -->
+    @if (Model.Count > 0)
+    {
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Répartition par type de rapport</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="reportTypeChart" width="100%" height="50"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Répartition par fréquence</h6>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="frequencyChart" width="100%" height="50"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">Confirmer la suppression</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Êtes-vous sûr de vouloir supprimer le rapport planifié <strong id="reportNameToDelete"></strong> ?</p>
+                <p class="text-danger">Cette action est irréversible.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <form id="deleteForm" method="post" action="@Url.Action("DeleteScheduledReport", "Report")">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="reportIdToDelete" name="id" value="">
+                    <button type="submit" class="btn btn-danger">Confirmer la suppression</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Initialisation de DataTables
+        $(document).ready(function () {
+            $('#scheduledReportsTable').DataTable({
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.10.24/i18n/French.json'
+                },
+                pageLength: 10,
+                order: [[6, 'asc']]
+            });
+        });
+
+        // Fonction pour confirmer la suppression
+        function confirmDelete(id, name) {
+            document.getElementById('reportIdToDelete').value = id;
+            document.getElementById('reportNameToDelete').textContent = name;
+
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+            deleteModal.show();
+        }
+
+        @if (Model.Count > 0)
+        {
+                <text>
+                // Préparation des données pour les graphiques
+                const reportTypeLabels = [@Html.Raw(string.Join(",", Model.GroupBy(r => r.ReportType).Select(g => $"'{GetReportTypeName(g.Key)}'").ToList()))];
+                const reportTypeData = [@Html.Raw(string.Join(",", Model.GroupBy(r => r.ReportType).Select(g => g.Count()).ToList()))];
+                const reportTypeColors = Array(reportTypeLabels.length).fill().map((_, i) =>
+                    `hsl(${(i * 360 / reportTypeLabels.length) % 360}, 70%, 60%)`);
+
+                const frequencyLabels = [@Html.Raw(string.Join(",", Model.GroupBy(r => r.Frequency).Select(g => $"'{GetFrequencyName(g.Key)}'").ToList()))];
+                const frequencyData = [@Html.Raw(string.Join(",", Model.GroupBy(r => r.Frequency).Select(g => g.Count()).ToList()))];
+                const frequencyColors = ['#4e73df', '#1cc88a', '#36b9cc'];
+
+                // Graphique répartition par type de rapport
+                const reportTypeCtx = document.getElementById('reportTypeChart').getContext('2d');
+                const reportTypeChart = new Chart(reportTypeCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: reportTypeLabels,
+                        datasets: [{
+                            data: reportTypeData,
+                            backgroundColor: reportTypeColors,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            }
+                        }
+                    }
+                });
+
+                // Graphique répartition par fréquence
+                const frequencyCtx = document.getElementById('frequencyChart').getContext('2d');
+                const frequencyChart = new Chart(frequencyCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: frequencyLabels,
+                        datasets: [{
+                            data: frequencyData,
+                            backgroundColor: frequencyColors,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            }
+                        }
+                    }
+                });
+                </text>
+        }
+    </script>
+}
+
+@functions {
+    string GetReportTypeName(string reportType)
+    {
+        return reportType switch
+        {
+            "UserCenterReport" => "Utilisateurs-Centres",
+            "ActiveSessionsReport" => "Sessions Actives",
+            "StockStatusReport" => "État des Stocks",
+            "StockMovementReport" => "Mouvements de Stock",
+            "StockValuationReport" => "Valorisation des Stocks",
+            "FinancialActivityReport" => "Activité Financière",
+            "PaymentReport" => "Paiements",
+            "SalesReport" => "Ventes",
+            "CaregiverPerformanceReport" => "Performance des Soignants",
+            "MedicalActivityReport" => "Activité Médicale",
+            _ => reportType
+        };
+    }
+
+    string GetFrequencyName(string frequency)
+    {
+        return frequency switch
+        {
+            "Daily" => "Quotidien",
+            "Weekly" => "Hebdomadaire",
+            "Monthly" => "Mensuel",
+            _ => frequency
+        };
+    }
+}

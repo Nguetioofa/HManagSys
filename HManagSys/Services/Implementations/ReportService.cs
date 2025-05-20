@@ -1492,8 +1492,8 @@ namespace HManagSys.Services.Implementations
                 {
                     container.Page(page =>
                     {
-                        page.Size(PageSizes.A4);
-                        page.Margin(2, Unit.Centimetre);
+                        page.Size(PageSizes.A4.Landscape());
+                        page.Margin(1.5f, Unit.Centimetre);
                         page.DefaultTextStyle(style => style.FontSize(10));
 
                         // Entête
@@ -1881,6 +1881,22 @@ namespace HManagSys.Services.Implementations
                     }
                     break;
 
+                case "ActiveSessionsReport":
+                    var activeSessionsReport = (ActiveSessionsReportViewModel)reportData;
+                    foreach (var item in activeSessionsReport.Items)
+                    {
+                        result.Add(new List<object>
+                        {
+                            item.UserName,
+                            item.Email,
+                            item.CurrentHospitalCenter,
+                            item.FormattedLoginTime,
+                            item.IpAddress,
+                            item.ConnectionDuration
+                        });
+                    }
+                    break;
+
                 case "StockStatusReport":
                     var stockStatusReport = (StockStatusReportViewModel)reportData;
                     foreach (var item in stockStatusReport.Items)
@@ -1900,7 +1916,134 @@ namespace HManagSys.Services.Implementations
                     }
                     break;
 
-                // Ajouter les autres types de rapports selon les besoins
+                case "StockMovementReport":
+                    var stockMovementReport = (StockMovementReportViewModel)reportData;
+                    foreach (var item in stockMovementReport.Items)
+                    {
+                        result.Add(new List<object>
+                        {
+                            item.FormattedMovementDate,
+                            item.ProductName,
+                            item.HospitalCenterName,
+                            item.MovementType,
+                            item.FormattedQuantity,
+                            item.ReferenceType + (item.ReferenceId.HasValue ? " #" + item.ReferenceId : ""),
+                            item.Notes,
+                            item.CreatedByName
+                        });
+                    }
+                    break;
+
+                case "StockValuationReport":
+                    var stockValuationReport = (StockValuationReportViewModel)reportData;
+                    foreach (var item in stockValuationReport.Items)
+                    {
+                        result.Add(new List<object>
+                        {
+                            item.ProductName,
+                            item.CategoryName,
+                            item.HospitalCenterName,
+                            item.FormattedQuantity,
+                            item.FormattedUnitPrice,
+                            item.FormattedTotalValue
+                        });
+                    }
+                    break;
+
+                case "FinancialActivityReport":
+                    var financialActivityReport = (FinancialActivityReportViewModel)reportData;
+                    foreach (var item in financialActivityReport.Items)
+                    {
+                        result.Add(new List<object>
+                        {
+                            item.FormattedReportDate,
+                            item.HospitalCenterName,
+                            item.TotalSales,
+                            item.TotalCareRevenue,
+                            item.TotalExaminationRevenue,
+                            item.TotalRevenue,
+                            item.TotalCashPayments,
+                            item.TotalMobilePayments,
+                            item.TransactionCount,
+                            item.PatientCount
+                        });
+                    }
+                    break;
+
+                case "PaymentReport":
+                    var paymentReport = (PaymentReportViewModel)reportData;
+                    foreach (var item in paymentReport.Items)
+                    {
+                        result.Add(new List<object>
+                        {
+                            item.FormattedPaymentDate,
+                            item.PatientName,
+                            item.HospitalCenterName,
+                            item.PaymentMethodName,
+                            item.ReferenceType + " #" + item.ReferenceId,
+                            item.FormattedAmount,
+                            item.ReceivedByName,
+                            item.TransactionReference
+                        });
+                    }
+                    break;
+
+                case "SalesReport":
+                    var salesReport = (SalesReportViewModel)reportData;
+                    foreach (var item in salesReport.Items)
+                    {
+                        result.Add(new List<object>
+                        {
+                            item.SaleNumber,
+                            item.FormattedSaleDate,
+                            item.PatientName,
+                            item.HospitalCenterName,
+                            item.SoldByName,
+                            item.FormattedTotalAmount,
+                            item.FormattedDiscountAmount,
+                            item.FormattedFinalAmount,
+                            item.PaymentStatus,
+                            item.ItemCount
+                        });
+                    }
+                    break;
+
+                case "CaregiverPerformanceReport":
+                    var caregiverPerformanceReport = (CaregiverPerformanceReportViewModel)reportData;
+                    foreach (var item in caregiverPerformanceReport.Items)
+                    {
+                        result.Add(new List<object>
+                        {
+                            item.FormattedReportDate,
+                            item.CaregiverName,
+                            item.HospitalCenterName,
+                            item.PatientsServed,
+                            item.CareServicesProvided,
+                            item.ExaminationsRequested,
+                            item.PrescriptionsIssued,
+                            item.SalesMade,
+                            item.FormattedTotalRevenueGenerated
+                        });
+                    }
+                    break;
+
+                case "MedicalActivityReport":
+                    var medicalActivityReport = (MedicalActivityReportViewModel)reportData;
+                    foreach (var item in medicalActivityReport.Items)
+                    {
+                        result.Add(new List<object>
+                        {
+                            item.FormattedActivityDate,
+                            item.HospitalCenterName,
+                            item.NewPatients,
+                            item.CareEpisodes,
+                            item.CareServices,
+                            item.Examinations,
+                            item.Prescriptions,
+                            item.FormattedTotalRevenue
+                        });
+                    }
+                    break;
 
                 default:
                     // Pour les types non gérés, retourner une liste vide

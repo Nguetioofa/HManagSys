@@ -1,0 +1,303 @@
+﻿@{
+    ViewData["Title"] = "Tableau de Bord des Rapports";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-tachometer-alt"></i> Tableau de Bord des Rapports</h1>
+        <div>
+            <a href="@Url.Action("Index", "Report")" class="btn btn-sm btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <!-- Vue d'ensemble -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Stock Critique
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.CriticalStockCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-danger bg-opacity-10">
+                    <a href="@Url.Action("StockStatusReport", "Report", new { StockStatus = "Critical" })" class="text-danger">
+                        <i class="fas fa-arrow-right"></i> Voir détails
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Stock Bas
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.LowStockCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-boxes fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-warning bg-opacity-10">
+                    <a href="@Url.Action("StockStatusReport", "Report", new { StockStatus = "Low" })" class="text-warning">
+                        <i class="fas fa-arrow-right"></i> Voir détails
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Revenus (7 derniers jours)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@string.Format("{0:N0} FCFA", ViewBag.TotalRevenue7Days)</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-success bg-opacity-10">
+                    <a href="@Url.Action("FinancialActivityReport", "Report")" class="text-success">
+                        <i class="fas fa-arrow-right"></i> Voir détails
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Sessions Actives
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.ActiveSessionsCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-primary bg-opacity-10">
+                    <a href="@Url.Action("ActiveSessionsReport", "Report")" class="text-primary">
+                        <i class="fas fa-arrow-right"></i> Voir détails
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rapports Récents -->
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Activité Financière</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                           data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                             aria-labelledby="dropdownMenuLink">
+                            <div class="dropdown-header">Actions:</div>
+                            <a class="dropdown-item" href="@Url.Action("FinancialActivityReport", "Report")">Rapport complet</a>
+                            <a class="dropdown-item" href="@Url.Action("PaymentReport", "Report")">Détails des paiements</a>
+                            <a class="dropdown-item" href="@Url.Action("SalesReport", "Report")">Détails des ventes</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Performance des Soignants</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink2"
+                           data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                             aria-labelledby="dropdownMenuLink2">
+                            <div class="dropdown-header">Actions:</div>
+                            <a class="dropdown-item" href="@Url.Action("CaregiverPerformanceReport", "Report")">Rapport complet</a>
+                            <a class="dropdown-item" href="@Url.Action("MedicalActivityReport", "Report")">Activité médicale</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rapports populaires -->
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Rapports Populaires</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-4 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Stock et Inventaire</h5>
+                                    <p class="card-text">État des stocks, mouvements et valorisation.</p>
+                                    <div class="btn-group">
+                                        <a href="@Url.Action("StockStatusReport", "Report")" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-boxes"></i> État des stocks
+                                        </a>
+                                        <a href="@Url.Action("StockMovementReport", "Report")" class="btn btn-sm btn-info">
+                                            <i class="fas fa-exchange-alt"></i> Mouvements
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Activité Financière</h5>
+                                    <p class="card-text">Revenus, paiements et ventes.</p>
+                                    <div class="btn-group">
+                                        <a href="@Url.Action("FinancialActivityReport", "Report")" class="btn btn-sm btn-success">
+                                            <i class="fas fa-money-bill-wave"></i> Finances
+                                        </a>
+                                        <a href="@Url.Action("SalesReport", "Report")" class="btn btn-sm btn-success">
+                                            <i class="fas fa-shopping-cart"></i> Ventes
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">Activité Médicale</h5>
+                                    <p class="card-text">Performance et activité des soignants.</p>
+                                    <div class="btn-group">
+                                        <a href="@Url.Action("CaregiverPerformanceReport", "Report")" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-user-md"></i> Performance
+                                        </a>
+                                        <a href="@Url.Action("MedicalActivityReport", "Report")" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-stethoscope"></i> Activité
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Charger les graphiques
+        document.addEventListener('DOMContentLoaded', function () {
+            // Graphique des revenus (données exemple)
+            var revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            var revenueChart = new Chart(revenueCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+                    datasets: [{
+                        label: 'Revenus (FCFA)',
+                        data: [250000, 320000, 280000, 450000, 380000, 290000, 350000],
+                        backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                        borderColor: 'rgba(78, 115, 223, 1)',
+                        pointRadius: 3,
+                        pointBackgroundColor: 'rgba(78, 115, 223, 1)',
+                        pointBorderColor: 'rgba(78, 115, 223, 1)',
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: 'rgba(78, 115, 223, 1)',
+                        pointHoverBorderColor: 'rgba(78, 115, 223, 1)',
+                        pointHitRadius: 10,
+                        pointBorderWidth: 2,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                // Format des nombres
+                                callback: function(value) {
+                                    return value.toLocaleString() + ' FCFA';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Graphique de performance (données exemple)
+            var performanceCtx = document.getElementById('performanceChart').getContext('2d');
+            var performanceChart = new Chart(performanceCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Dr. Kamga', 'Dr. Manga', 'Dr. Fofana', 'Inf. Tabi', 'Inf. Moussa'],
+                    datasets: [{
+                        label: 'Patients traités',
+                        data: [42, 38, 45, 32, 28],
+                        backgroundColor: 'rgba(220, 53, 69, 0.7)'
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

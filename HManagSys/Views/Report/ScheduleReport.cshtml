@@ -1,0 +1,368 @@
+﻿@model HManagSys.Models.ViewModels.Reports.RecurringReportSchedule
+@{
+    ViewData["Title"] = "Planifier un Rapport";
+    var isEdit = Model.Id.HasValue;
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <h1 class="h3 mb-0 text-gray-800">
+                    <i class="fas fa-calendar-plus"></i> @(isEdit ? "Modifier" : "Planifier") un Rapport
+                </h1>
+                <a href="@Url.Action("ScheduledReports", "Report")" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Retour à la liste
+                </a>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Formulaire de planification</h6>
+                </div>
+                <div class="card-body">
+                    <form asp-controller="Report" asp-action="ScheduleReport" method="post" id="scheduleForm">
+                        @Html.AntiForgeryToken()
+
+                        <!-- Champs cachés pour l'édition -->
+                        @if (isEdit)
+                        {
+                            <input type="hidden" asp-for="Id" />
+                            <input type="hidden" asp-for="CreatedBy" />
+                        }
+
+                        <div class="row">
+                            <!-- Paramètres généraux -->
+                            <div class="col-md-6">
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h6 class="m-0 font-weight-bold text-primary">Informations générales</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label asp-for="ReportName" class="form-label">Nom du rapport</label>
+                                            <input asp-for="ReportName" class="form-control" placeholder="Exemple: Rapport mensuel des stocks" required />
+                                            <span asp-validation-for="ReportName" class="text-danger"></span>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label asp-for="ReportType" class="form-label">Type de rapport</label>
+                                            <select asp-for="ReportType" class="form-select" required>
+                                                @foreach (var item in ViewBag.ReportTypes)
+                                                {
+                                                    <option value="@item.Value" selected="@(item.Value == Model.ReportType)">@item.Text</option>
+                                                }
+                                            </select>
+                                            <span asp-validation-for="ReportType" class="text-danger"></span>
+                                            <div class="form-text">Le type de rapport définit les données et le format qui seront générés.</div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label asp-for="Format" class="form-label">Format d'export</label>
+                                            <select asp-for="Format" class="form-select" required>
+                                                @foreach (var item in ViewBag.Formats)
+                                                {
+                                                    <option value="@item.Value" selected="@(item.Value == Model.Format)">@item.Text</option>
+                                                }
+                                            </select>
+                                            <span asp-validation-for="Format" class="text-danger"></span>
+                                        </div>
+
+                                        <div class="form-check form-switch mb-3">
+                                            <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" id="isActiveSwitch">
+                                            <label class="form-check-label" for="isActiveSwitch">Activer ce rapport planifié</label>
+                                            <span asp-validation-for="IsActive" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Paramètres de planification -->
+                            <div class="col-md-6">
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h6 class="m-0 font-weight-bold text-primary">Planification</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label asp-for="Frequency" class="form-label">Fréquence</label>
+                                            <select asp-for="Frequency" class="form-select" required id="frequencySelect">
+                                                @foreach (var item in ViewBag.Frequencies)
+                                                {
+                                                    <option value="@item.Value" selected="@(item.Value == Model.Frequency)">@item.Text</option>
+                                                }
+                                            </select>
+                                            <span asp-validation-for="Frequency" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Options pour la fréquence hebdomadaire -->
+                                        <div id="weeklyOptions" class="mb-3 frequency-options" style="display: none;">
+                                            <label asp-for="DayOfWeek" class="form-label">Jour de la semaine</label>
+                                            <select asp-for="DayOfWeek" class="form-select">
+                                                @foreach (var item in ViewBag.DaysOfWeek)
+                                                {
+                                                    <option value="@item.Value" selected="@(item.Value == ((int?)Model.DayOfWeek)?.ToString())">@item.Text</option>
+                                                }
+                                            </select>
+                                            <span asp-validation-for="DayOfWeek" class="text-danger"></span>
+                                        </div>
+
+                                        <!-- Options pour la fréquence mensuelle -->
+                                        <div id="monthlyOptions" class="mb-3 frequency-options" style="display: none;">
+                                            <label asp-for="DayOfMonth" class="form-label">Jour du mois</label>
+                                            <input asp-for="DayOfMonth" type="number" class="form-control" min="1" max="31" />
+                                            <span asp-validation-for="DayOfMonth" class="text-danger"></span>
+                                            <div class="form-text">Choisissez un jour entre 1 et 31. Si le jour n'existe pas dans le mois, le dernier jour du mois sera utilisé.</div>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label asp-for="ExecutionTime" class="form-label">Heure d'exécution</label>
+                                            <input asp-for="ExecutionTime" type="time" class="form-control" required />
+                                            <span asp-validation-for="ExecutionTime" class="text-danger"></span>
+                                            <div class="form-text">L'heure à laquelle le rapport sera généré (heure du serveur).</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Options de distribution -->
+                            <div class="col-md-12">
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h6 class="m-0 font-weight-bold text-primary">Distribution</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <div class="form-check form-switch">
+                                                        <input asp-for="SaveToServer" class="form-check-input" type="checkbox" role="switch" id="saveToServerSwitch">
+                                                        <label class="form-check-label" for="saveToServerSwitch">Sauvegarder sur le serveur</label>
+                                                    </div>
+                                                    <div id="serverPathContainer" class="mt-2" style="display: none;">
+                                                        <label asp-for="ServerPath" class="form-label">Chemin sur le serveur</label>
+                                                        <input asp-for="ServerPath" class="form-control" placeholder="/reports/scheduled/" />
+                                                        <span asp-validation-for="ServerPath" class="text-danger"></span>
+                                                        <div class="form-text">Laissez vide pour utiliser le dossier par défaut.</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label asp-for="EmailRecipients" class="form-label">Destinataires email</label>
+                                                    <input asp-for="EmailRecipients" class="form-control" placeholder="email1@example.com, email2@example.com" />
+                                                    <span asp-validation-for="EmailRecipients" class="text-danger"></span>
+                                                    <div class="form-text">Séparez les adresses email par des virgules.</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Filtres du rapport -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h6 class="m-0 font-weight-bold text-primary">Filtres du rapport</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="alert alert-info">
+                                            <i class="fas fa-info-circle"></i> Les filtres disponibles dépendent du type de rapport sélectionné. Ils seront chargés dynamiquement.
+                                        </div>
+
+                                        <div id="dynamicFilters">
+                                            <!-- Les filtres seront chargés ici en fonction du type de rapport -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-save"></i> @(isEdit ? "Mettre à jour" : "Planifier") le rapport
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Gestion de l'affichage des options en fonction de la fréquence
+            function updateFrequencyOptions() {
+                const frequency = $('#frequencySelect').val();
+                $('.frequency-options').hide();
+
+                switch(frequency) {
+                    case 'Weekly':
+                        $('#weeklyOptions').show();
+                        break;
+                    case 'Monthly':
+                        $('#monthlyOptions').show();
+                        break;
+                }
+            }
+
+            // Gestion de l'affichage du chemin serveur
+            function updateServerPathVisibility() {
+                const saveToServer = $('#saveToServerSwitch').is(':checked');
+                $('#serverPathContainer').toggle(saveToServer);
+            }
+
+            // Appliquer lors du chargement initial
+            updateFrequencyOptions();
+            updateServerPathVisibility();
+
+            // Écouter les changements
+            $('#frequencySelect').on('change', updateFrequencyOptions);
+            $('#saveToServerSwitch').on('change', updateServerPathVisibility);
+
+            // Fonction pour charger les filtres en fonction du type de rapport
+            function loadReportFilters() {
+                const reportType = $('#ReportType').val();
+
+                // Exemple de logique pour charger différents filtres selon le type
+                let filtersHtml = '';
+
+                switch(reportType) {
+                    case 'StockStatusReport':
+                        filtersHtml = `
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Centre hospitalier</label>
+                                    <select name="Filters.HospitalCenterId" class="form-select">
+                                        <option value="">Tous les centres</option>
+                                        <!-- Options du centre ici -->
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Catégorie de produit</label>
+                                    <select name="Filters.ProductCategoryId" class="form-select">
+                                        <option value="">Toutes les catégories</option>
+                                        <!-- Options des catégories ici -->
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Statut de stock</label>
+                                    <select name="Filters.StockStatus" class="form-select">
+                                        <option value="">Tous les statuts</option>
+                                        <option value="Critical">Critique</option>
+                                        <option value="Low">Bas</option>
+                                        <option value="Normal">Normal</option>
+                                        <option value="Overstock">Surstock</option>
+                                    </select>
+                                </div>
+                            </div>
+                        `;
+                        break;
+
+                    case 'FinancialActivityReport':
+                        filtersHtml = `
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Centre hospitalier</label>
+                                    <select name="Filters.HospitalCenterId" class="form-select">
+                                        <option value="">Tous les centres</option>
+                                        <!-- Options du centre ici -->
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Grouper par</label>
+                                    <select name="Filters.GroupBy" class="form-select">
+                                        <option value="Day">Jour</option>
+                                        <option value="Week">Semaine</option>
+                                        <option value="Month">Mois</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Période</label>
+                                    <select name="Filters.Period" class="form-select">
+                                        <option value="Last7Days">7 derniers jours</option>
+                                        <option value="Last30Days">30 derniers jours</option>
+                                        <option value="CurrentMonth">Mois en cours</option>
+                                        <option value="PreviousMonth">Mois précédent</option>
+                                    </select>
+                                </div>
+                            </div>
+                        `;
+                        break;
+
+                    case 'CaregiverPerformanceReport':
+                        filtersHtml = `
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Centre hospitalier</label>
+                                    <select name="Filters.HospitalCenterId" class="form-select">
+                                        <option value="">Tous les centres</option>
+                                        <!-- Options du centre ici -->
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Soignant</label>
+                                    <select name="Filters.UserId" class="form-select">
+                                        <option value="">Tous les soignants</option>
+                                        <!-- Options des soignants ici -->
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Date de début</label>
+                                    <input type="date" name="Filters.FromDate" class="form-control" />
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Date de fin</label>
+                                    <input type="date" name="Filters.ToDate" class="form-control" />
+                                </div>
+                            </div>
+                        `;
+                        break;
+
+                    default:
+                        filtersHtml = `
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i> Aucun filtre spécifique n'est disponible pour ce type de rapport.
+                            </div>
+                        `;
+                }
+
+                $('#dynamicFilters').html(filtersHtml);
+            }
+
+            // Charger les filtres initiaux
+            loadReportFilters();
+
+            // Écouter les changements de type de rapport
+            $('#ReportType').on('change', loadReportFilters);
+
+            // Validation du formulaire
+            $('#scheduleForm').on('submit', function(e) {
+                // Validation personnalisée si nécessaire
+                const frequency = $('#frequencySelect').val();
+                let valid = true;
+
+                if (frequency === 'Weekly' && $('#DayOfWeek').val() === '') {
+                    $('#DayOfWeek').addClass('is-invalid');
+                    valid = false;
+                }
+
+                if (frequency === 'Monthly' && $('#DayOfMonth').val() === '') {
+                    $('#DayOfMonth').addClass('is-invalid');
+                    valid = false;
+                }
+
+                return valid;
+            });
+        });
+    </script>
+}

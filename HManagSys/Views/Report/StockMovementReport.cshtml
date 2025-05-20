@@ -1,0 +1,425 @@
+﻿@using HManagSys.Models.ViewModels.Reports
+@model StockMovementReportViewModel
+@{
+    ViewData["Title"] = "Rapport des Mouvements de Stock";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-exchange-alt"></i> Rapport des Mouvements de Stock</h1>
+        <div>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exportModal">
+                <i class="fas fa-file-export"></i> Exporter
+            </button>
+            <a href="@Url.Action("Index", "Report")" class="btn btn-sm btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Filtres</h6>
+        </div>
+        <div class="card-body">
+            <form id="filterForm" method="get" action="@Url.Action("StockMovementReport", "Report")">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="HospitalCenterId">Centre</label>
+                            <select class="form-select" id="HospitalCenterId" name="HospitalCenterId">
+                                @foreach (var item in ViewBag.Centers)
+                                {
+@*                                     @(Model.Filters != null && ((StockMovementReportFilters)Model.Filters).HospitalCenterId.ToString() == item.Value ? "selected" : "")
+ *@                                    <option value="@item.Value" >@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="MovementType">Type de mouvement</label>
+                            <select class="form-select" id="MovementType" name="MovementType">
+                                @foreach (var item in ViewBag.MovementTypes)
+                                {
+                                    <option value="@item.Value" @* @(Model.Filters != null && ((StockMovementReportFilters)Model.Filters).MovementType == item.Value ? "selected" : "") *@>@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="ReferenceType">Type de référence</label>
+                            <select class="form-select" id="ReferenceType" name="ReferenceType">
+                                @foreach (var item in ViewBag.ReferenceTypes)
+                                {
+                                    <option value="@item.Value"@*  @(Model.Filters != null && ((StockMovementReportFilters)Model.Filters).ReferenceType == item.Value ? "selected" : "") *@>@item.Text</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="ProductId">Produit</label>
+                            <select class="form-select" id="ProductId" name="ProductId">
+                                <option value="">Tous les produits</option>
+                                <!-- Options de produits -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="FromDate">Date de début</label>
+                            <input type="date" class="form-control" id="FromDate" name="FromDate" 
+                                   value="@(Model.Filters != null ? ((StockMovementReportFilters)Model.Filters).FromDate?.ToString("yyyy-MM-dd") : DateTime.Now.AddDays(-30).ToString("yyyy-MM-dd"))">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group mb-2">
+                            <label for="ToDate">Date de fin</label>
+                            <input type="date" class="form-control" id="ToDate" name="ToDate" 
+                                   value="@(Model.Filters != null ? ((StockMovementReportFilters)Model.Filters).ToDate?.ToString("yyyy-MM-dd") : DateTime.Now.ToString("yyyy-MM-dd"))">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mb-2">
+                            <label for="SearchTerm">Recherche</label>
+                            <input type="text" class="form-control" id="SearchTerm" name="SearchTerm" 
+                                   value="@(Model.Filters != null ? ((StockMovementReportFilters)Model.Filters).SearchTerm : "")" 
+                                   placeholder="Rechercher...">
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-12 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Filtrer
+                        </button>
+                        <a href="@Url.Action("StockMovementReport", "Report")" class="btn btn-outline-secondary">
+                            <i class="fas fa-sync"></i> Réinitialiser
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistiques Rapides -->
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Mouvements par Type</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        @foreach (var movement in Model.MovementsByType.OrderByDescending(m => m.Value))
+                        {
+                            var colorClass = movement.Key switch
+                            {
+                                "Initial" => "primary",
+                                "Entry" => "success",
+                                "Sale" => "danger",
+                                "Transfer" => "info",
+                                "Adjustment" => "warning",
+                                "Care" => "secondary",
+                                _ => "secondary"
+                            };
+                            
+                            <div class="col-lg-6 mb-4">
+                                <div class="card bg-@colorClass text-white shadow">
+                                    <div class="card-body py-2">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                                    @movement.Key
+                                                </div>
+                                                <div class="h5 mb-0 font-weight-bold">@movement.Value</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                @{
+                                                    var icon = movement.Key switch
+                                                    {
+                                                        "Initial" => "fa-clipboard-list",
+                                                        "Entry" => "fa-arrow-down",
+                                                        "Sale" => "fa-shopping-cart",
+                                                        "Transfer" => "fa-exchange-alt",
+                                                        "Adjustment" => "fa-tools",
+                                                        "Care" => "fa-heartbeat",
+                                                        _ => "fa-random"
+                                                    };
+                                                }
+                                                <i class="fas @icon fa-2x text-white-50"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Bilan des Mouvements</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie mb-4">
+                        <canvas id="movementTypeChart"></canvas>
+                    </div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span>Entrées totales</span>
+                            <span class="text-success">+@Model.TotalInQuantity.ToString("N2")</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span>Sorties totales</span>
+                            <span class="text-danger">-@Model.TotalOutQuantity.ToString("N2")</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center font-weight-bold pt-2 border-top">
+                            <span>Changement net</span>
+                            <span class="@(Model.NetChange >= 0 ? "text-success" : "text-danger")">
+                                @(Model.NetChange >= 0 ? "+" : "")@Model.NetChange.ToString("N2")
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique des quantités -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Quantités par Type de Mouvement</h6>
+        </div>
+        <div class="card-body">
+            <div class="chart-bar">
+                <canvas id="quantityChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau de données -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Détails des Mouvements</h6>
+            <div>
+                <span class="badge bg-secondary">Total: @Model.TotalCount mouvements</span>
+                @if (Model.TotalCount > 0)
+                {
+                    <span class="badge bg-info">Généré le: @Model.FormattedGeneratedAt</span>
+                }
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="movementsTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Produit</th>
+                            <th>Centre</th>
+                            <th>Type</th>
+                            <th>Quantité</th>
+                            <th>Référence</th>
+                            <th>Notes</th>
+                            <th>Date</th>
+                            <th>Créé par</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.MovementId</td>
+                                <td>@item.ProductName</td>
+                                <td>@item.HospitalCenterName</td>
+                                <td>
+                                    <span class="@item.MovementTypeBadge">@item.MovementType</span>
+                                </td>
+                                <td class="@item.QuantityClass">
+                                    @(item.QuantityPrefix != "-" ? "+" : "")@item.FormattedQuantity
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(item.ReferenceType))
+                                    {
+                                        <span>@item.ReferenceType #@item.ReferenceId</span>
+                                    }
+                                    else
+                                    {
+                                        <span>-</span>
+                                    }
+                                </td>
+                                <td>@(string.IsNullOrEmpty(item.Notes) ? "-" : item.Notes)</td>
+                                <td>@item.FormattedMovementDate</td>
+                                <td>@item.CreatedByName</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'export -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel">Exporter le Rapport</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportForm">
+                    <div class="form-group mb-3">
+                        <label for="exportFormat">Format</label>
+                        <select class="form-select" id="exportFormat" name="format">
+                            <option value="Excel">Excel (.xlsx)</option>
+                            <option value="PDF">PDF (.pdf)</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="exportTitle">Titre (optionnel)</label>
+                        <input type="text" class="form-control" id="exportTitle" name="title" placeholder="Titre du rapport">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="includeCharts" name="includeCharts" checked>
+                        <label class="form-check-label" for="includeCharts">
+                            Inclure les graphiques
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" id="exportExcel">
+                    <i class="fas fa-file-excel"></i> Exporter en Excel
+                </button>
+                <button type="button" class="btn btn-danger" id="exportPdf">
+                    <i class="fas fa-file-pdf"></i> Exporter en PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Charger les graphiques
+        document.addEventListener('DOMContentLoaded', function () {
+            // Graphique par type de mouvement
+            var typeLabels = [];
+            var typeCounts = [];
+            var typeColors = ['#4e73df', '#1cc88a', '#e74a3b', '#36b9cc', '#f6c23e', '#858796'];
+            var typeHoverColors = ['#2e59d9', '#17a673', '#be3024', '#2c9faf', '#dfa913', '#666666'];
+            
+            @foreach (var item in Model.MovementsByType)
+            {
+                <text>
+                typeLabels.push('@item.Key');
+                typeCounts.push(@item.Value);
+                </text>
+            }
+            
+            var typeCtx = document.getElementById('movementTypeChart').getContext('2d');
+            var typeChart = new Chart(typeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: typeLabels,
+                    datasets: [{
+                        data: typeCounts,
+                        backgroundColor: typeColors.slice(0, typeLabels.length),
+                        hoverBackgroundColor: typeHoverColors.slice(0, typeLabels.length),
+                        hoverBorderColor: "rgba(234, 236, 244, 1)",
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Graphique des quantités
+            var quantityLabels = [];
+            var quantityValues = [];
+            var quantityColors = [];
+            
+            @foreach (var item in Model.QuantityByType)
+            {
+                var color = item.Key switch
+                {
+                    "Initial" => "rgba(78, 115, 223, 0.8)",
+                    "Entry" => "rgba(28, 200, 138, 0.8)",
+                    "Sale" => "rgba(231, 74, 59, 0.8)",
+                    "Transfer" => "rgba(54, 185, 204, 0.8)",
+                    "Adjustment" => "rgba(246, 194, 62, 0.8)",
+                    "Care" => "rgba(133, 135, 150, 0.8)",
+                    _ => "rgba(133, 135, 150, 0.8)"
+                };
+                
+                <text>
+                quantityLabels.push('@item.Key');
+                quantityValues.push(@Math.Abs(item.Value));
+                quantityColors.push('@color');
+                </text>
+            }
+            
+            var quantityCtx = document.getElementById('quantityChart').getContext('2d');
+            var quantityChart = new Chart(quantityCtx, {
+                type: 'bar',
+                data: {
+                    labels: quantityLabels,
+                    datasets: [{
+                        label: 'Quantité',
+                        data: quantityValues,
+                        backgroundColor: quantityColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Datatable
+            $(document).ready(function() {
+                $('#movementsTable').DataTable({
+                    language: {
+                        url: 'https://cdn.datatables.net/plug-ins/1.10.25/i18n/French.json'
+                    },
+                    order: [[7, 'desc']] // Trier par date décroissante
+                });
+            });
+
+            // Export buttons
+            $('#exportExcel').on('click', function() {
+                var filters = @Html.Raw(Json.Serialize(Model.Filters));
+                var filtersJson = JSON.stringify(filters);
+                window.location.href = '@Url.Action("ExportToExcel", "Report")?reportType=StockMovementReport&filters=' + encodeURIComponent(filtersJson);
+            });
+            
+            $('#exportPdf').on('click', function() {
+                var filters = @Html.Raw(Json.Serialize(Model.Filters));
+                var filtersJson = JSON.stringify(filters);
+                window.location.href = '@Url.Action("ExportToPdf", "Report")?reportType=StockMovementReport&filters=' + encodeURIComponent(filtersJson);
+            });
+        });
+    </script>
+}
