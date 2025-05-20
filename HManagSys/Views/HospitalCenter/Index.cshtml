@@ -1,0 +1,260 @@
+﻿@model HManagSys.Models.ViewModels.HospitalCenter.HospitalCenterListViewModel
+@{
+    ViewData["Title"] = "Gestion des Centres Hospitaliers";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3"><i class="fas fa-hospital"></i> Gestion des Centres Hospitaliers</h1>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nouveau Centre
+        </a>
+    </div>
+
+    <!-- Network Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Centres Actifs
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.Statistics.ActiveCenters / @Model.Statistics.TotalCenters</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-hospital fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Ventes Aujourd'hui
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.Statistics.FormattedTotalSalesToday</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Utilisateurs Réseau
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.Statistics.TotalUsersNetwork</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Épisodes de Soins Actifs
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.Statistics.ActiveCareEpisodesNetwork</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-stethoscope fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Filtrer les centres</h6>
+            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                <i class="fas fa-filter"></i> Filtres
+            </button>
+        </div>
+        <div class="collapse" id="filterCollapse">
+            <div class="card-body">
+                <form asp-action="Index" method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Recherche</label>
+                        <input type="text" name="SearchTerm" class="form-control" placeholder="Nom, adresse, email..." value="@Model.Filters.SearchTerm">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Statut</label>
+                        <select name="IsActive" class="form-select">
+                            <option value="" selected>Tous</option>
+                            <option value="true" selected="@(Model.Filters.IsActive == true)">Actifs</option>
+                            <option value="false" selected="@(Model.Filters.IsActive == false)">Inactifs</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Région</label>
+                        <input type="text" name="Region" class="form-control" placeholder="Filtrer par région" value="@Model.Filters.Region">
+                    </div>
+                    <div class="col-md-12 mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Rechercher
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-redo"></i> Réinitialiser
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Centers List -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Liste des Centres Hospitaliers</h6>
+        </div>
+        <div class="card-body">
+            @if (!Model.Centers.Any())
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Aucun centre hospitalier trouvé.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nom</th>
+                                <th>Adresse</th>
+                                <th>Contact</th>
+                                <th>Statut</th>
+                                <th>Utilisateurs</th>
+                                <th>Créé le</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Centers)
+                            {
+                                <tr>
+                                    <td>
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-primary">
+                                            @item.Name
+                                        </a>
+                                    </td>
+                                    <td>@item.Address</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.PhoneNumber))
+                                        {
+                                            <div><i class="fas fa-phone me-1"></i> @item.PhoneNumber</div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(item.Email))
+                                        {
+                                            <div><i class="fas fa-envelope me-1"></i> @item.Email</div>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="@item.StatusBadge">@item.StatusText</span>
+                                    </td>
+                                    <td>@item.ActiveUsersCount</td>
+                                    <td>@item.FormattedCreatedAt</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a asp-action="ActivityReport" asp-route-id="@item.Id" class="btn btn-secondary">
+                                                <i class="fas fa-chart-bar"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        Affichage de <span class="fw-bold">@Model.Centers.Count</span> sur <span class="fw-bold">@Model.Pagination.TotalCount</span> centres
+                    </div>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            @if (Model.Pagination.HasPreviousPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="1" asp-route-searchTerm="@Model.Filters.SearchTerm" asp-route-isActive="@Model.Filters.IsActive" asp-route-region="@Model.Filters.Region">
+                                        <i class="fas fa-angle-double-left"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="@Model.Pagination.PreviousPage" asp-route-searchTerm="@Model.Filters.SearchTerm" asp-route-isActive="@Model.Filters.IsActive" asp-route-region="@Model.Filters.Region">
+                                        <i class="fas fa-angle-left"></i>
+                                    </a>
+                                </li>
+                            }
+
+                            @for (int i = Math.Max(1, Model.Pagination.CurrentPage - 2); i <= Math.Min(Model.Pagination.TotalPages, Model.Pagination.CurrentPage + 2); i++)
+                            {
+                                <li class="page-item @(i == Model.Pagination.CurrentPage ? "active" : "")">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="@i" asp-route-searchTerm="@Model.Filters.SearchTerm" asp-route-isActive="@Model.Filters.IsActive" asp-route-region="@Model.Filters.Region">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+
+                            @if (Model.Pagination.HasNextPage)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="@Model.Pagination.NextPage" asp-route-searchTerm="@Model.Filters.SearchTerm" asp-route-isActive="@Model.Filters.IsActive" asp-route-region="@Model.Filters.Region">
+                                        <i class="fas fa-angle-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" asp-action="Index" asp-route-pageIndex="@Model.Pagination.TotalPages" asp-route-searchTerm="@Model.Filters.SearchTerm" asp-route-isActive="@Model.Filters.IsActive" asp-route-region="@Model.Filters.Region">
+                                        <i class="fas fa-angle-double-right"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Keep filter section open if filters are applied
+        $(document).ready(function () {
+            const hasFilters = '@(!string.IsNullOrEmpty(Model.Filters.SearchTerm) || Model.Filters.IsActive.HasValue || !string.IsNullOrEmpty(Model.Filters.Region))' === 'True';
+            if (hasFilters) {
+                $('#filterCollapse').addClass('show');
+            }
+        });
+    </script>
+}

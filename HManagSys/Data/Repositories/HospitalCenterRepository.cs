@@ -43,17 +43,6 @@ namespace HManagSys.Data.Repositories
                 if (center == null)
                     return null;
 
-                // Calculer les statistiques en parallèle pour optimiser
-                var tasks = new[]
-                {
-                    _context.UserCenterAssignments.CountAsync(uca =>
-                        uca.HospitalCenterId == centerId && uca.IsActive),
-                    _context.StockInventories.CountAsync(si => si.HospitalCenterId == centerId),
-                    _context.Sales.CountAsync(s => s.HospitalCenterId == centerId),
-                    _context.CareEpisodes.CountAsync(ce => ce.HospitalCenterId == centerId)
-                };
-
-                var results = await Task.WhenAll(tasks);
 
                 var centerWithStats = new HospitalCenterWithStats
                 {
@@ -64,10 +53,10 @@ namespace HManagSys.Data.Repositories
                     Email = center.Email,
                     IsActive = center.IsActive,
                     CreatedAt = center.CreatedAt,
-                    ActiveUsers = results[0],
-                    ProductsInStock = results[1],
-                    TotalSales = results[2],
-                    ActiveCareEpisodes = results[3]
+                    ActiveUsers = await _context.UserCenterAssignments.CountAsync(uca => uca.HospitalCenterId == centerId && uca.IsActive),
+                    ProductsInStock = await _context.StockInventories.CountAsync(si => si.HospitalCenterId == centerId),
+                    TotalSales = await _context.Sales.CountAsync(s => s.HospitalCenterId == centerId),
+                    ActiveCareEpisodes = await _context.CareEpisodes.CountAsync(ce => ce.HospitalCenterId == centerId)
                 };
 
                 await _appLogger.LogInfoAsync("HospitalCenterRepository", "CenterStatsRetrieved",
@@ -276,10 +265,10 @@ namespace HManagSys.Data.Repositories
                     CenterName = center.Name,
                     FromDate = fromDate,
                     ToDate = toDate,
-                    TotalRevenue = (decimal)results1,
-                    CareEpisodesCreated = (int)results2,
-                    ExaminationsPerformed = (int)results3,
-                    UniquePatients = (int)results4,
+                    TotalRevenue = results1,
+                    CareEpisodesCreated = results2,
+                    ExaminationsPerformed = results3,
+                    UniquePatients = results4,
                     ReportGeneratedAt = TimeZoneHelper.GetCameroonTime()
                 };
 

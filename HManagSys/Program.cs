@@ -54,7 +54,7 @@ builder.Services.AddScoped<ICashManagementService, CashManagementService>();
 
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IProductCategoryRepository, ProductCategoryRepository>();
-
+builder.Services.AddScoped<IHospitalCenterService, HospitalCenterService>();
 
 
 builder.Services.AddScoped<IDocumentGenerationService, DocumentGenerationService>();

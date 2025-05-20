@@ -1,0 +1,202 @@
+﻿@model HManagSys.Models.ViewModels.HospitalCenter.HospitalCenterDetailsViewModel
+@{
+    ViewData["Title"] = "Détails du Centre Hospitalier";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3"><i class="fas fa-hospital"></i> @Model.Name</h1>
+        <div>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Retour à la liste
+            </a>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Modifier
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Informations du centre</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Nom:</div>
+                        <div class="col-md-8">@Model.Name</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Adresse:</div>
+                        <div class="col-md-8">@Model.Address</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Téléphone:</div>
+                        <div class="col-md-8">@(Model.PhoneNumber ?? "Non spécifié")</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Email:</div>
+                        <div class="col-md-8">@(Model.Email ?? "Non spécifié")</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Statut:</div>
+                        <div class="col-md-8">
+                            <span class="@Model.StatusBadge">@Model.StatusText</span>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Créé le:</div>
+                        <div class="col-md-8">@Model.FormattedCreatedAt</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4 fw-bold">Créé par:</div>
+                        <div class="col-md-8">@Model.CreatedByName</div>
+                    </div>
+                    @if (Model.ModifiedAt.HasValue)
+                    {
+                        <div class="row mb-3">
+                            <div class="col-md-4 fw-bold">Dernière modification:</div>
+                            <div class="col-md-8">@Model.FormattedModifiedAt</div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4 fw-bold">Modifié par:</div>
+                            <div class="col-md-8">@Model.ModifiedByName</div>
+                        </div>
+                    }
+                </div>
+                <div class="card-footer">
+                    @if (Model.IsActive)
+                    {
+                        <form asp-action="ToggleStatus" method="post" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir désactiver ce centre?')">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="isActive" value="false" />
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="fas fa-ban"></i> Désactiver
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form asp-action="ToggleStatus" method="post" class="d-inline">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="isActive" value="true" />
+                            <button type="submit" class="btn btn-outline-success">
+                                <i class="fas fa-check"></i> Activer
+                            </button>
+                        </form>
+                    }
+                    <a asp-action="ActivityReport" asp-route-id="@Model.Id" class="btn btn-outline-primary ms-2">
+                        <i class="fas fa-chart-line"></i> Rapport d'activité
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Statistiques</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 col-xl-6 mb-4">
+                            <div class="card border-left-primary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                Utilisateurs actifs
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ActiveUsers</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 col-xl-6 mb-4">
+                            <div class="card border-left-success shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                                Produits en stock
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ProductsInStock</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-box fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 col-xl-6 mb-4">
+                            <div class="card border-left-info shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                Ventes totales
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalSales</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-cash-register fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 col-xl-6 mb-4">
+                            <div class="card border-left-warning shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                Épisodes de soins actifs
+                                            </div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ActiveCareEpisodes</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-stethoscope fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Liens rapides</h6>
+                                    <div class="d-grid gap-2">
+                                        <a asp-controller="User" asp-action="CenterUsers" asp-route-centerId="@Model.Id" class="btn btn-outline-primary">
+                                            <i class="fas fa-users"></i> Gestion des utilisateurs
+                                        </a>
+                                        <a asp-controller="Stock" asp-action="CenterInventory" asp-route-centerId="@Model.Id" class="btn btn-outline-info">
+                                            <i class="fas fa-boxes"></i> Inventaire du stock
+                                        </a>
+                                        <a asp-controller="Report" asp-action="CenterReports" asp-route-centerId="@Model.Id" class="btn btn-outline-success">
+                                            <i class="fas fa-chart-bar"></i> Rapports détaillés
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

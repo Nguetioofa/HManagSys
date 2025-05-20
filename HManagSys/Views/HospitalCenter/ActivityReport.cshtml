@@ -1,0 +1,171 @@
+﻿@model HManagSys.Models.ViewModels.HospitalCenter.CenterActivityReport
+@{
+    ViewData["Title"] = "Rapport d'Activité";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3"><i class="fas fa-chart-line"></i> Rapport d'Activité - @ViewBag.CenterName</h1>
+        <div>
+            <a asp-action="Details" asp-route-id="@Model.HospitalCenterId" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Retour aux détails
+            </a>
+            <button class="btn btn-success" onclick="printReport()">
+                <i class="fas fa-print"></i> Imprimer
+            </button>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                Période: @Model.FormattedFromDate - @Model.FormattedToDate
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 col-sm-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        Chiffre d'Affaires
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.FormattedTotalRevenue</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-sm-6 mb-4">
+                    <div class="card border-left-success shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                        Patients Uniques
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.UniquePatients</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-users fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-sm-6 mb-4">
+                    <div class="card border-left-info shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                        Épisodes de Soins
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.CareEpisodesCreated</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-stethoscope fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-sm-6 mb-4">
+                    <div class="card border-left-warning shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                        Examens Effectués
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ExaminationsPerformed</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-microscope fa-2x text-gray-300"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card shadow mb-4">
+                        <div class="card-header py-3">
+                            <h6 class="m-0 font-weight-bold text-primary">Sélection de période</h6>
+                        </div>
+                        <div class="card-body">
+                            <form asp-action="ActivityReport" method="get" class="row g-3">
+                                <input type="hidden" name="id" value="@Model.HospitalCenterId" />
+
+                                <div class="col-md-4">
+                                    <label class="form-label">Date de début</label>
+                                    <input type="date" name="fromDate" class="form-control" value="@Model.FromDate.ToString("yyyy-MM-dd")" />
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">Date de fin</label>
+                                    <input type="date" name="toDate" class="form-control" value="@Model.ToDate.ToString("yyyy-MM-dd")" />
+                                </div>
+
+                                <div class="col-md-4 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-filter"></i> Filtrer
+                                    </button>
+
+                                    <div class="dropdown ms-2">
+                                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="periodDropdown" data-bs-toggle="dropdown">
+                                            <i class="fas fa-calendar"></i> Périodes prédéfinies
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="javascript:setDateRange(7)">7 derniers jours</a></li>
+                                            <li><a class="dropdown-item" href="javascript:setDateRange(30)">30 derniers jours</a></li>
+                                            <li><a class="dropdown-item" href="javascript:setDateRange(90)">3 derniers mois</a></li>
+                                            <li><a class="dropdown-item" href="javascript:setDateRange(365)">Année en cours</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-2">
+                <div class="col-md-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Rapport généré le @Model.FormattedReportDate
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function setDateRange(days) {
+            const today = new Date();
+            const fromDate = new Date();
+            fromDate.setDate(today.getDate() - days);
+
+            document.querySelector('input[name="fromDate"]').value = fromDate.toISOString().split('T')[0];
+            document.querySelector('input[name="toDate"]').value = today.toISOString().split('T')[0];
+
+            document.querySelector('form').submit();
+        }
+
+        function printReport() {
+            window.print();
+        }
+    </script>
+}
