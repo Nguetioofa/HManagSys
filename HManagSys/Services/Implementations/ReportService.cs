@@ -1433,8 +1433,7 @@ namespace HManagSys.Services.Implementations
                     }
 
                     rowIndex++;
-                    XLCellValue tt;
-                    //tt.
+
                     // Ajouter les données
                     var data = GetReportExcelData(parameters.ReportType, reportData);
                     foreach (var row in data)
@@ -1529,7 +1528,7 @@ namespace HManagSys.Services.Implementations
         public async Task<bool> ScheduleRecurringReportAsync(RecurringReportSchedule schedule)
         {
             // Dans un projet réel, on implémenterait ici la logique de planification
-            // avec Hangfire, Quartz.NET ou autre système de tâches planifiées
+
 
             // Pour ce prototype, on simule juste le succès
             await _logger.LogInfoAsync("ReportService", "ScheduleRecurringReport",
@@ -1649,18 +1648,15 @@ namespace HManagSys.Services.Implementations
                         break;
 
                     case "UserCenterReport":
-                        // Dans un projet réel, on exécuterait la procédure stockée correspondante
                          await _context.Database.ExecuteSqlRawAsync("EXEC sp_UpdateUserCenterDetails");
                         break;
 
                     case "FinancialActivityReport":
-                        // Dans un projet réel, on exécuterait la procédure stockée correspondante
                         await _context.Database.ExecuteSqlRawAsync("EXEC sp_UpdateFinancialActivity @asOfDate",
                            new SqlParameter("@asOfDate", asOfDate ?? DateTime.Now));
                         break;
 
                     case "CaregiverPerformanceReport":
-                        // Dans un projet réel, on exécuterait la procédure stockée correspondante
                         await _context.Database.ExecuteSqlRawAsync("EXEC sp_UpdateCaregiverPerformance @asOfDate",
                            new SqlParameter("@asOfDate", asOfDate ?? DateTime.Now));
                         break;
@@ -1763,7 +1759,6 @@ namespace HManagSys.Services.Implementations
         private Dictionary<string, string> GetFilterDescription(string reportType, object filters)
         {
             var result = new Dictionary<string, string>();
-
             switch (reportType)
             {
                 case "UserCenterReport":
@@ -1786,6 +1781,22 @@ namespace HManagSys.Services.Implementations
                     }
                     break;
 
+                case "ActiveSessionsReport":
+                    var activeSessionsFilters = (ActiveSessionsReportFilters)filters;
+                    if (activeSessionsFilters.HospitalCenterId.HasValue)
+                    {
+                        result.Add("Centre", GetCenterName(activeSessionsFilters.HospitalCenterId.Value));
+                    }
+                    if (activeSessionsFilters.MinHoursConnected.HasValue)
+                    {
+                        result.Add("Durée minimale", $"{activeSessionsFilters.MinHoursConnected.Value} heures");
+                    }
+                    if (!string.IsNullOrEmpty(activeSessionsFilters.SearchTerm))
+                    {
+                        result.Add("Recherche", activeSessionsFilters.SearchTerm);
+                    }
+                    break;
+
                 case "StockStatusReport":
                     var stockStatusFilters = (StockStatusReportFilters)filters;
                     if (stockStatusFilters.HospitalCenterId.HasValue)
@@ -1802,14 +1813,197 @@ namespace HManagSys.Services.Implementations
                     }
                     break;
 
-                // Ajouter les autres types de rapports selon les besoins
+                case "StockMovementReport":
+                    var stockMovementFilters = (StockMovementReportFilters)filters;
+                    if (stockMovementFilters.HospitalCenterId.HasValue)
+                    {
+                        result.Add("Centre", GetCenterName(stockMovementFilters.HospitalCenterId.Value));
+                    }
+                    //if (stockMovementFilters.ProductId.HasValue)
+                    //{
+                    //    result.Add("Produit", GetProductName(stockMovementFilters.ProductId.Value));
+                    //}
+                    if (!string.IsNullOrEmpty(stockMovementFilters.MovementType))
+                    {
+                        result.Add("Type de mouvement", stockMovementFilters.MovementType);
+                    }
+                    if (!string.IsNullOrEmpty(stockMovementFilters.ReferenceType))
+                    {
+                        result.Add("Type de référence", stockMovementFilters.ReferenceType);
+                    }
+                    if (stockMovementFilters.FromDate.HasValue)
+                    {
+                        result.Add("Du", stockMovementFilters.FromDate.Value.ToString("dd/MM/yyyy"));
+                    }
+                    if (stockMovementFilters.ToDate.HasValue)
+                    {
+                        result.Add("Au", stockMovementFilters.ToDate.Value.ToString("dd/MM/yyyy"));
+                    }
+                    break;
+
+                case "StockValuationReport":
+                    var stockValuationFilters = (StockValuationReportFilters)filters;
+                    if (stockValuationFilters.HospitalCenterId.HasValue)
+                    {
+                        result.Add("Centre", GetCenterName(stockValuationFilters.HospitalCenterId.Value));
+                    }
+                    if (stockValuationFilters.ProductCategoryId.HasValue)
+                    {
+                        result.Add("Catégorie", GetCategoryName(stockValuationFilters.ProductCategoryId.Value));
+                    }
+                    result.Add("Valorisation au", stockValuationFilters.ValuationType switch
+                    {
+                        "SellingPrice" => "Prix de vente",
+                        "LastPurchasePrice" => "Dernier prix d'achat",
+                        "AveragePrice" => "Prix moyen",
+                        _ => stockValuationFilters.ValuationType
+                    });
+                    break;
+
+                case "FinancialActivityReport":
+                    var financialActivityFilters = (FinancialActivityReportFilters)filters;
+                    if (financialActivityFilters.HospitalCenterId.HasValue)
+                    {
+                        result.Add("Centre", GetCenterName(financialActivityFilters.HospitalCenterId.Value));
+                    }
+                    result.Add("Groupé par", financialActivityFilters.GroupBy switch
+                    {
+                        "Day" => "Jour",
+                        "Week" => "Semaine",
+                        "Month" => "Mois",
+                        _ => financialActivityFilters.GroupBy
+                    });
+                    if (financialActivityFilters.FromDate.HasValue)
+                    {
+                        result.Add("Du", financialActivityFilters.FromDate.Value.ToString("dd/MM/yyyy"));
+                    }
+                    if (financialActivityFilters.ToDate.HasValue)
+                    {
+                        result.Add("Au", financialActivityFilters.ToDate.Value.ToString("dd/MM/yyyy"));
+                    }
+                    break;
+
+                case "PaymentReport":
+                    var paymentFilters = (PaymentReportFilters)filters;
+                    if (paymentFilters.HospitalCenterId.HasValue)
+                    {
+                        result.Add("Centre", GetCenterName(paymentFilters.HospitalCenterId.Value));
+                    }
+                    //if (paymentFilters.PaymentMethodId.HasValue)
+                    //{
+                    //    result.Add("Méthode de paiement", GetPaymentMethodName(paymentFilters.PaymentMethodId.Value));
+                    //}
+                    if (!string.IsNullOrEmpty(paymentFilters.ReferenceType))
+                    {
+                        result.Add("Type de référence", paymentFilters.ReferenceType);
+                    }
+                    //if (paymentFilters.PatientId.HasValue)
+                    //{
+                    //    result.Add("Patient", GetPatientName(paymentFilters.PatientId.Value));
+                    //}
+                    //if (paymentFilters.ReceivedBy.HasValue)
+                    //{
+                    //    result.Add("Reçu par", GetUserName(paymentFilters.ReceivedBy.Value));
+                    //}
+                    if (paymentFilters.MinAmount.HasValue)
+                    {
+                        result.Add("Montant minimum", $"{paymentFilters.MinAmount.Value:N0} FCFA");
+                    }
+                    if (paymentFilters.MaxAmount.HasValue)
+                    {
+                        result.Add("Montant maximum", $"{paymentFilters.MaxAmount.Value:N0} FCFA");
+                    }
+                    if (paymentFilters.FromDate.HasValue)
+                    {
+                        result.Add("Du", paymentFilters.FromDate.Value.ToString("dd/MM/yyyy"));
+                    }
+                    if (paymentFilters.ToDate.HasValue)
+                    {
+                        result.Add("Au", paymentFilters.ToDate.Value.ToString("dd/MM/yyyy"));
+                    }
+                    break;
+
+                case "SalesReport":
+                    var salesFilters = (SalesReportFilters)filters;
+                    if (salesFilters.HospitalCenterId.HasValue)
+                    {
+                        result.Add("Centre", GetCenterName(salesFilters.HospitalCenterId.Value));
+                    }
+                    if (!string.IsNullOrEmpty(salesFilters.PaymentStatus))
+                    {
+                        result.Add("Statut de paiement", salesFilters.PaymentStatus);
+                    }
+                    //if (salesFilters.PatientId.HasValue)
+                    //{
+                    //    result.Add("Patient", GetPatientName(salesFilters.PatientId.Value));
+                    //}
+                    //if (salesFilters.SoldBy.HasValue)
+                    //{
+                    //    result.Add("Vendu par", GetUserName(salesFilters.SoldBy.Value));
+                    //}
+                    //if (salesFilters.ProductId.HasValue)
+                    //{
+                    //    result.Add("Produit", GetProductName(salesFilters.ProductId.Value));
+                    //}
+                    if (salesFilters.FromDate.HasValue)
+                    {
+                        result.Add("Du", salesFilters.FromDate.Value.ToString("dd/MM/yyyy"));
+                    }
+                    if (salesFilters.ToDate.HasValue)
+                    {
+                        result.Add("Au", salesFilters.ToDate.Value.ToString("dd/MM/yyyy"));
+                    }
+                    break;
+
+                case "CaregiverPerformanceReport":
+                    var caregiverPerformanceFilters = (CaregiverPerformanceReportFilters)filters;
+                    if (caregiverPerformanceFilters.HospitalCenterId.HasValue)
+                    {
+                        result.Add("Centre", GetCenterName(caregiverPerformanceFilters.HospitalCenterId.Value));
+                    }
+                    //if (caregiverPerformanceFilters.UserId.HasValue)
+                    //{
+                    //    result.Add("Soignant", GetUserName(caregiverPerformanceFilters.UserId.Value));
+                    //}
+                    if (caregiverPerformanceFilters.FromDate.HasValue)
+                    {
+                        result.Add("Du", caregiverPerformanceFilters.FromDate.Value.ToString("dd/MM/yyyy"));
+                    }
+                    if (caregiverPerformanceFilters.ToDate.HasValue)
+                    {
+                        result.Add("Au", caregiverPerformanceFilters.ToDate.Value.ToString("dd/MM/yyyy"));
+                    }
+                    break;
+
+                case "MedicalActivityReport":
+                    var medicalActivityFilters = (MedicalActivityReportFilters)filters;
+                    if (medicalActivityFilters.HospitalCenterId.HasValue)
+                    {
+                        result.Add("Centre", GetCenterName(medicalActivityFilters.HospitalCenterId.Value));
+                    }
+                    //if (medicalActivityFilters.CareTypeId.HasValue)
+                    //{
+                    //    result.Add("Type de soin", GetCareTypeName(medicalActivityFilters.CareTypeId.Value));
+                    //}
+                    //if (medicalActivityFilters.ExaminationTypeId.HasValue)
+                    //{
+                    //    result.Add("Type d'examen", GetExaminationTypeName(medicalActivityFilters.ExaminationTypeId.Value));
+                    //}
+                    if (medicalActivityFilters.FromDate.HasValue)
+                    {
+                        result.Add("Du", medicalActivityFilters.FromDate.Value.ToString("dd/MM/yyyy"));
+                    }
+                    if (medicalActivityFilters.ToDate.HasValue)
+                    {
+                        result.Add("Au", medicalActivityFilters.ToDate.Value.ToString("dd/MM/yyyy"));
+                    }
+                    break;
 
                 default:
                     // Pour les types non gérés, extraire les dates si disponibles
                     var type = filters.GetType();
                     var fromDateProp = type.GetProperty("FromDate");
                     var toDateProp = type.GetProperty("ToDate");
-
                     if (fromDateProp != null)
                     {
                         var fromDate = fromDateProp.GetValue(filters) as DateTime?;
@@ -1818,7 +2012,6 @@ namespace HManagSys.Services.Implementations
                             result.Add("Du", fromDate.Value.ToString("dd/MM/yyyy"));
                         }
                     }
-
                     if (toDateProp != null)
                     {
                         var toDate = toDateProp.GetValue(filters) as DateTime?;
@@ -1829,7 +2022,6 @@ namespace HManagSys.Services.Implementations
                     }
                     break;
             }
-
             return result;
         }
 
@@ -2059,7 +2251,6 @@ namespace HManagSys.Services.Implementations
         private Dictionary<string, object> GetReportStatistics(string reportType, object reportData)
         {
             var result = new Dictionary<string, object>();
-
             switch (reportType)
             {
                 case "UserCenterReport":
@@ -2068,6 +2259,12 @@ namespace HManagSys.Services.Implementations
                     result.Add("Utilisateurs Actifs", userCenterReport.ActiveUsers);
                     result.Add("Total Affectations", userCenterReport.TotalAssignments);
                     result.Add("Affectations Actives", userCenterReport.ActiveAssignments);
+                    break;
+
+                case "ActiveSessionsReport":
+                    var activeSessionsReport = (ActiveSessionsReportViewModel)reportData;
+                    result.Add("Sessions Actives", activeSessionsReport.TotalActiveSessions);
+                    result.Add("Durée Moyenne (minutes)", activeSessionsReport.AverageSessionDuration);
                     break;
 
                 case "StockStatusReport":
@@ -2080,20 +2277,78 @@ namespace HManagSys.Services.Implementations
                     result.Add("Valeur Totale du Stock", stockStatusReport.TotalStockValue);
                     break;
 
-                // Ajouter les autres types de rapports selon les besoins
+                case "StockMovementReport":
+                    var stockMovementReport = (StockMovementReportViewModel)reportData;
+                    result.Add("Total Mouvements", stockMovementReport.TotalMovements);
+                    result.Add("Entrées Totales", stockMovementReport.TotalInQuantity);
+                    result.Add("Sorties Totales", stockMovementReport.TotalOutQuantity);
+                    result.Add("Changement Net", stockMovementReport.NetChange);
+                    break;
+
+                case "StockValuationReport":
+                    var stockValuationReport = (StockValuationReportViewModel)reportData;
+                    result.Add("Valeur Totale", stockValuationReport.TotalValue);
+                    result.Add("Nombre de Produits", stockValuationReport.Items.Count);
+                    break;
+
+                case "FinancialActivityReport":
+                    var financialActivityReport = (FinancialActivityReportViewModel)reportData;
+                    result.Add("Revenus Totaux", financialActivityReport.TotalRevenue);
+                    result.Add("Ventes", financialActivityReport.TotalSales);
+                    result.Add("Revenus Soins", financialActivityReport.TotalCareRevenue);
+                    result.Add("Revenus Examens", financialActivityReport.TotalExaminationRevenue);
+                    result.Add("Transactions", financialActivityReport.TotalTransactionCount);
+                    result.Add("Patients Uniques", financialActivityReport.TotalPatientCount);
+                    break;
+
+                case "PaymentReport":
+                    var paymentReport = (PaymentReportViewModel)reportData;
+                    result.Add("Total Paiements", paymentReport.TotalPayments);
+                    foreach (var method in paymentReport.PaymentsByMethod)
+                    {
+                        result.Add($"Paiements {method.Key}", method.Value);
+                    }
+                    break;
+
+                case "SalesReport":
+                    var salesReport = (SalesReportViewModel)reportData;
+                    result.Add("Montant Total Ventes", salesReport.TotalSalesAmount);
+                    result.Add("Montant Total Remises", salesReport.TotalDiscountAmount);
+                    result.Add("Montant Final", salesReport.TotalFinalAmount);
+                    result.Add("Produits Vendus", salesReport.TotalProductsSold);
+                    break;
+
+                case "CaregiverPerformanceReport":
+                    var caregiverPerformanceReport = (CaregiverPerformanceReportViewModel)reportData;
+                    result.Add("Total Soignants", caregiverPerformanceReport.TotalCaregivers);
+                    result.Add("Patients Servis", caregiverPerformanceReport.TotalPatientsServed);
+                    result.Add("Services Fournis", caregiverPerformanceReport.TotalCareServicesProvided);
+                    result.Add("Examens Demandés", caregiverPerformanceReport.TotalExaminationsRequested);
+                    result.Add("Prescriptions Émises", caregiverPerformanceReport.TotalPrescriptionsIssued);
+                    result.Add("Ventes Réalisées", caregiverPerformanceReport.TotalSalesMade);
+                    result.Add("Revenus Générés", caregiverPerformanceReport.TotalRevenueGenerated);
+                    break;
+
+                case "MedicalActivityReport":
+                    var medicalActivityReport = (MedicalActivityReportViewModel)reportData;
+                    result.Add("Total Épisodes", medicalActivityReport.TotalEpisodes);
+                    result.Add("Épisodes Actifs", medicalActivityReport.TotalActiveEpisodes);
+                    result.Add("Épisodes Terminés", medicalActivityReport.TotalCompletedEpisodes);
+                    result.Add("Total Examens", medicalActivityReport.TotalExaminations);
+                    result.Add("Total Prescriptions", medicalActivityReport.TotalPrescriptions);
+                    result.Add("Patients Uniques", medicalActivityReport.TotalPatients);
+                    break;
 
                 default:
                     // Pour les types non gérés, retourner un dictionnaire vide
                     break;
             }
-
             return result;
         }
-
         /// <summary>
         /// Crée l'en-tête d'un document PDF
         /// </summary>
-        private Action<QuestPDF.Infrastructure.IContainer> CreateHeader(ExportParameters parameters)
+        private Action<IContainer> CreateHeader(ExportParameters parameters)
         {
             return container =>
             {
