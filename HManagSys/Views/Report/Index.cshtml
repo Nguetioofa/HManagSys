@@ -1,0 +1,262 @@
+﻿@{
+    ViewData["Title"] = "Rapports et Analyses";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-chart-bar"></i> Rapports et Analyses</h1>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Tableau de bord des rapports</h6>
+                </div>
+                <div class="card-body">
+                    <p>
+                        Bienvenue dans le module de rapports et analyses de HManagSys. Utilisez les différentes
+                        catégories de rapports pour analyser les données de votre centre hospitalier.
+                    </p>
+                    <p>
+                        <a href="@Url.Action("Dashboard", "Report")" class="btn btn-primary">
+                            <i class="fas fa-tachometer-alt"></i> Accéder au tableau de bord
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Rapports Stock et Inventaire -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Stock et Inventaire</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="card-icon mb-2">
+                            <i class="fas fa-boxes fa-2x text-info"></i>
+                        </div>
+                        <h5 class="card-title">État des Stocks</h5>
+                        <p class="card-text">Vue complète de l'état actuel des stocks avec statuts et alertes.</p>
+                        <a href="@Url.Action("StockStatusReport", "Report")" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-arrow-right"></i> Consulter
+                        </a>
+                    </div>
+                    <hr>
+                    <div class="mb-4">
+                        <div class="card-icon mb-2">
+                            <i class="fas fa-exchange-alt fa-2x text-info"></i>
+                        </div>
+                        <h5 class="card-title">Mouvements de Stock</h5>
+                        <p class="card-text">Historique des entrées, sorties et transferts de produits.</p>
+                        <a href="@Url.Action("StockMovementReport", "Report")" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-arrow-right"></i> Consulter
+                        </a>
+                    </div>
+                    <hr>
+                    <div class="mb-2">
+                        <div class="card-icon mb-2">
+                            <i class="fas fa-calculator fa-2x text-info"></i>
+                        </div>
+                        <h5 class="card-title">Valorisation des Stocks</h5>
+                        <p class="card-text">Analyse de la valeur des stocks par produit et catégorie.</p>
+                        <a href="@Url.Action("StockValuationReport", "Report")" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-arrow-right"></i> Consulter
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rapports Financiers -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Finance et Ventes</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="card-icon mb-2">
+                            <i class="fas fa-money-bill-wave fa-2x text-success"></i>
+                        </div>
+                        <h5 class="card-title">Activité Financière</h5>
+                        <p class="card-text">Vue d'ensemble des revenus par source et par période.</p>
+                        <a href="@Url.Action("FinancialActivityReport", "Report")" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-arrow-right"></i> Consulter
+                        </a>
+                    </div>
+                    <hr>
+                    <div class="mb-4">
+                        <div class="card-icon mb-2">
+                            <i class="fas fa-credit-card fa-2x text-success"></i>
+                        </div>
+                        <h5 class="card-title">Paiements</h5>
+                        <p class="card-text">Analyse détaillée des paiements reçus par méthode et référence.</p>
+                        <a href="@Url.Action("PaymentReport", "Report")" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-arrow-right"></i> Consulter
+                        </a>
+                    </div>
+                    <hr>
+                    <div class="mb-2">
+                        <div class="card-icon mb-2">
+                            <i class="fas fa-shopping-cart fa-2x text-success"></i>
+                        </div>
+                        <h5 class="card-title">Ventes</h5>
+                        <p class="card-text">Historique des ventes avec produits et statistiques.</p>
+                        <a href="@Url.Action("SalesReport", "Report")" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-arrow-right"></i> Consulter
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rapports Performances et Médicaux -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Activité Médicale</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <div class="card-icon mb-2">
+                            <i class="fas fa-user-md fa-2x text-danger"></i>
+                        </div>
+                        <h5 class="card-title">Performance des Soignants</h5>
+                        <p class="card-text">Analyse de l'activité et des performances du personnel soignant.</p>
+                        <a href="@Url.Action("CaregiverPerformanceReport", "Report")" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-arrow-right"></i> Consulter
+                        </a>
+                    </div>
+                    <hr>
+                    <div class="mb-4">
+                        <div class="card-icon mb-2">
+                            <i class="fas fa-stethoscope fa-2x text-danger"></i>
+                        </div>
+                        <h5 class="card-title">Activité Médicale</h5>
+                        <p class="card-text">Statistiques sur les soins, examens et prescriptions.</p>
+                        <a href="@Url.Action("MedicalActivityReport", "Report")" class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-arrow-right"></i> Consulter
+                        </a>
+                    </div>
+                    <hr>
+                    <!-- Pour les Super Admins seulement -->
+                    @if (Context.Session.GetString("CurrentRole") == "SuperAdmin")
+                    {
+                        <div class="mb-2">
+                            <div class="card-icon mb-2">
+                                <i class="fas fa-users-cog fa-2x text-purple"></i>
+                            </div>
+                            <h5 class="card-title">Utilisateurs et Centres</h5>
+                            <p class="card-text">Rapports d'administration des utilisateurs et centres.</p>
+                            <a href="@Url.Action("UserCenterReport", "Report")" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-arrow-right"></i> Consulter
+                            </a>
+                            <a href="@Url.Action("ActiveSessionsReport", "Report")" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-clock"></i> Sessions
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-2">
+                            <div class="card-icon mb-2">
+                                <i class="fas fa-notes-medical fa-2x text-danger"></i>
+                            </div>
+                            <h5 class="card-title">Historique Patient</h5>
+                            <p class="card-text">Consultez l'historique médical complet des patients.</p>
+                            <a href="@Url.Action("Index", "Patient")" class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-arrow-right"></i> Patients
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rapports planifiés (Admin seulement) -->
+    @if (Context.Session.GetString("CurrentRole") == "SuperAdmin")
+    {
+        <div class="row">
+            <div class="col-lg-12 mb-4">
+                <div class="card shadow">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Rapports Planifiés</h6>
+                        <a href="@Url.Action("ScheduledReports", "Report")" class="btn btn-sm btn-primary">
+                            <i class="fas fa-list"></i> Voir les rapports planifiés
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <h5>Automatisez vos rapports</h5>
+                                    <p>
+                                        Planifiez des rapports réguliers pour une génération et une distribution
+                                        automatiques. Les rapports peuvent être envoyés par email ou stockés sur le serveur.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <h5>Maintenance des Rapports</h5>
+                                    <p>
+                                        Les administrateurs peuvent rafraîchir les données des rapports et définir
+                                        des tâches planifiées pour la mise à jour automatique.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <a href="@Url.Action("ScheduleReport", "Report")" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Planifier un nouveau rapport
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Styles {
+    <style>
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card {
+            transition: transform 0.3s;
+        }
+
+            .card:hover {
+                transform: translateY(-5px);
+            }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Animation pour les cartes de rapport
+            $('.card').hover(
+                function () {
+                    $(this).addClass('shadow-lg');
+                },
+                function () {
+                    $(this).removeClass('shadow-lg');
+                }
+            );
+        });
+    </script>
+}

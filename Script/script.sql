@@ -9,7 +9,7 @@ GO
 
 USE HospitalManagementSystem
 GO
-FK_AuditLog_Users
+
 -- =====================================================
 -- SECTION 1: TABLES FONDAMENTALES
 -- =====================================================
@@ -1165,22 +1165,550 @@ GO
 -- COMMENTAIRES FINAUX
 -- =====================================================
 
-/*
-Ce script établit une architecture complète pour le système hospitalier avec :
+-- =============================================
+-- Procédures stockées pour les rapports
+-- =============================================
 
-1. GESTION DES UTILISATEURS : Authentification flexible, multi-centres, gestion des rôles
-2. STOCKS : Gestion complète avec mouvements, transferts, seuils d'alerte
-3. PATIENTS : Dossiers complets avec diagnostics et historique
-4. SOINS : Épisodes de soins avec tracking des produits utilisés
-5. PRESCRIPTIONS : Gestion complète avec détails des médicaments
-6. EXAMENS : Types d'examens, planification, résultats
-7. VENTES : Facturation avec gestion des paiements multiples
-8. FINANCES : Encaissements, remises aux financiers
-9. AUDIT : Traçabilité complète de toutes les actions
-10. RAPPORTS : Tables matérialisées pour tableaux de bord
+-- =====================================================
+-- PROCÉDURE : sp_UpdateStockReports
+-- Description : Met à jour la table rpt_StockStatus
+-- =====================================================
+CREATE OR ALTER PROCEDURE sp_UpdateStockReports
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Vider la table existante
+    TRUNCATE TABLE rpt_StockStatus;
+    
+    -- Insérer les nouvelles données
+    INSERT INTO rpt_StockStatus (
+        ProductId, ProductName, ProductCategory, HospitalCenterId, HospitalCenterName,
+        CurrentQuantity, MinimumThreshold, MaximumThreshold, StockStatus, LastMovementDate,
+        ReportGeneratedAt, CreatedBy
+    )
+    SELECT 
+        p.Id AS ProductId,
+        p.Name AS ProductName,
+        pc.Name AS ProductCategory,
+        hc.Id AS HospitalCenterId,
+        hc.Name AS HospitalCenterName,
+        ISNULL(si.CurrentQuantity, 0) AS CurrentQuantity,
+        si.MinimumThreshold,
+        si.MaximumThreshold,
+        CASE 
+            WHEN si.CurrentQuantity IS NULL OR si.CurrentQuantity = 0 THEN 'OutOfStock'
+            WHEN si.MinimumThreshold IS NOT NULL AND si.CurrentQuantity <= si.MinimumThreshold THEN 'Critical'
+            WHEN si.MinimumThreshold IS NOT NULL AND si.CurrentQuantity <= (si.MinimumThreshold * 1.5) THEN 'Low'
+            WHEN si.MaximumThreshold IS NOT NULL AND si.CurrentQuantity >= si.MaximumThreshold THEN 'Overstock'
+            ELSE 'Normal'
+        END AS StockStatus,
+        (SELECT MAX(MovementDate) FROM StockMovements WHERE ProductId = p.Id AND HospitalCenterId = hc.Id) AS LastMovementDate,
+        GETUTCDATE() AS ReportGeneratedAt,
+        1 AS CreatedBy
+    FROM 
+        Products p
+    CROSS JOIN 
+        HospitalCenters hc
+    LEFT JOIN 
+        StockInventory si ON p.Id = si.ProductId AND hc.Id = si.HospitalCenterId
+    INNER JOIN 
+        ProductCategories pc ON p.ProductCategoryId = pc.Id
+    WHERE 
+        p.IsActive = 1 AND hc.IsActive = 1
+    ORDER BY 
+        hc.Name, pc.Name, p.Name;
+    
+    -- Mettre à jour les champs d'audit
+    UPDATE rpt_StockStatus
+    SET CreatedAt = ReportGeneratedAt;
+    
+    RETURN 0;
+END
+GO
 
-Toutes les tables ont des champs d'audit complets.
-L'architecture supporte la croissance future.
-Les index optimisent les performances des requêtes fréquentes.
-Les contraintes maintiennent l'intégrité référentielle.
-*/
+-- =====================================================
+-- PROCÉDURE : sp_UpdateUserCenterDetails
+-- Description : Met à jour la table rpt_UserCenterDetails
+-- =====================================================
+CREATE OR ALTER PROCEDURE sp_UpdateUserCenterDetails
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Vider la table existante
+    TRUNCATE TABLE rpt_UserCenterDetails;
+    
+    -- Insérer les nouvelles données
+    INSERT INTO rpt_UserCenterDetails (
+        UserId, FirstName, LastName, Email, PhoneNumber, UserIsActive, LastLoginDate,
+        AssignmentId, RoleType, AssignmentIsActive, HospitalCenterId, HospitalCenterName,
+        AssignmentStartDate, AssignmentEndDate, ReportGeneratedAt, CreatedBy
+    )
+    SELECT 
+        u.Id AS UserId,
+        u.FirstName,
+        u.LastName,
+        u.Email,
+        u.PhoneNumber,
+        u.IsActive AS UserIsActive,
+        u.LastLoginDate,
+        uca.Id AS AssignmentId,
+        uca.RoleType,
+        uca.IsActive AS AssignmentIsActive,
+        hc.Id AS HospitalCenterId,
+        hc.Name AS HospitalCenterName,
+        uca.AssignmentStartDate,
+        uca.AssignmentEndDate,
+        GETUTCDATE() AS ReportGeneratedAt,
+        1 AS CreatedBy
+    FROM 
+        Users u
+    LEFT JOIN 
+        UserCenterAssignments uca ON u.Id = uca.UserId
+    LEFT JOIN 
+        HospitalCenters hc ON uca.HospitalCenterId = hc.Id
+    ORDER BY 
+        u.LastName, u.FirstName, hc.Name;
+    
+    -- Mettre à jour les champs d'audit
+    UPDATE rpt_UserCenterDetails
+    SET CreatedAt = ReportGeneratedAt;
+    
+    RETURN 0;
+END
+GO
+
+-- =====================================================
+-- PROCÉDURE : sp_UpdateActiveSessions
+-- Description : Met à jour la table rpt_ActiveSessions
+-- =====================================================
+CREATE OR ALTER PROCEDURE sp_UpdateActiveSessions
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Vider la table existante
+    TRUNCATE TABLE rpt_ActiveSessions;
+    
+    -- Insérer les nouvelles données
+    INSERT INTO rpt_ActiveSessions (
+        SessionId, UserId, UserName, Email, CurrentHospitalCenter, LoginTime,
+        IpAddress, HoursConnected, ReportGeneratedAt, CreatedBy
+    )
+    SELECT 
+        us.Id AS SessionId,
+        u.Id AS UserId,
+        u.FirstName + ' ' + u.LastName AS UserName,
+        u.Email,
+        hc.Name AS CurrentHospitalCenter,
+        us.LoginTime,
+        us.IpAddress,
+        DATEDIFF(HOUR, us.LoginTime, GETUTCDATE()) AS HoursConnected,
+        GETUTCDATE() AS ReportGeneratedAt,
+        1 AS CreatedBy
+    FROM 
+        UserSessions us
+    INNER JOIN 
+        Users u ON us.UserId = u.Id
+    INNER JOIN 
+        HospitalCenters hc ON us.CurrentHospitalCenterId = hc.Id
+    WHERE 
+        us.IsActive = 1 AND us.LogoutTime IS NULL
+    ORDER BY 
+        us.LoginTime DESC;
+    
+    -- Mettre à jour les champs d'audit
+    UPDATE rpt_ActiveSessions
+    SET CreatedAt = ReportGeneratedAt;
+    
+    RETURN 0;
+END
+GO
+
+-- =====================================================
+-- PROCÉDURE : sp_UpdateFinancialActivity
+-- Description : Met à jour la table rpt_FinancialActivity
+-- =====================================================
+CREATE OR ALTER PROCEDURE sp_UpdateFinancialActivity
+    @DateFrom DATE = NULL,
+    @DateTo DATE = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Définir les dates par défaut si non spécifiées
+    IF @DateFrom IS NULL
+        SET @DateFrom = DATEADD(MONTH, -1, GETUTCDATE());
+    
+    IF @DateTo IS NULL
+        SET @DateTo = GETUTCDATE();
+    
+    -- Supprimer les anciennes données pour la période spécifiée
+    DELETE FROM rpt_FinancialActivity
+    WHERE CAST(ReportDate AS DATE) BETWEEN @DateFrom AND @DateTo;
+    
+    -- Créer une table temporaire avec toutes les dates de la période
+    DECLARE @Dates TABLE (ReportDate DATE);
+    DECLARE @CurrentDate DATE = @DateFrom;
+    
+    WHILE @CurrentDate <= @DateTo
+    BEGIN
+        INSERT INTO @Dates (ReportDate) VALUES (@CurrentDate);
+        SET @CurrentDate = DATEADD(DAY, 1, @CurrentDate);
+    END;
+    
+    -- Créer une table temporaire avec tous les centres
+    DECLARE @Centers TABLE (HospitalCenterId INT, HospitalCenterName NVARCHAR(200));
+    
+    INSERT INTO @Centers (HospitalCenterId, HospitalCenterName)
+    SELECT Id, Name FROM HospitalCenters WHERE IsActive = 1;
+    
+    -- Insérer les nouvelles données
+    INSERT INTO rpt_FinancialActivity (
+        HospitalCenterId, HospitalCenterName, ReportDate, 
+        TotalSales, TotalCareRevenue, TotalExaminationRevenue, TotalRevenue,
+        TotalCashPayments, TotalMobilePayments, TransactionCount, PatientCount,
+        ReportGeneratedAt, CreatedBy
+    )
+    SELECT 
+        c.HospitalCenterId,
+        c.HospitalCenterName,
+        d.ReportDate,
+        -- Ventes
+        ISNULL((
+            SELECT SUM(s.FinalAmount)
+            FROM Sales s
+            WHERE s.HospitalCenterId = c.HospitalCenterId
+              AND CAST(s.SaleDate AS DATE) = d.ReportDate
+        ), 0) AS TotalSales,
+        -- Revenus Soins
+        ISNULL((
+            SELECT SUM(ce.TotalCost)
+            FROM CareEpisodes ce
+            WHERE ce.HospitalCenterId = c.HospitalCenterId
+              AND CAST(ce.EpisodeStartDate AS DATE) = d.ReportDate
+        ), 0) AS TotalCareRevenue,
+        -- Revenus Examens
+        ISNULL((
+            SELECT SUM(e.FinalPrice)
+            FROM Examinations e
+            WHERE e.HospitalCenterId = c.HospitalCenterId
+              AND CAST(e.RequestDate AS DATE) = d.ReportDate
+        ), 0) AS TotalExaminationRevenue,
+        -- Revenus Totaux (somme des précédents)
+        ISNULL((
+            SELECT SUM(s.FinalAmount)
+            FROM Sales s
+            WHERE s.HospitalCenterId = c.HospitalCenterId
+              AND CAST(s.SaleDate AS DATE) = d.ReportDate
+        ), 0) +
+        ISNULL((
+            SELECT SUM(ce.TotalCost)
+            FROM CareEpisodes ce
+            WHERE ce.HospitalCenterId = c.HospitalCenterId
+              AND CAST(ce.EpisodeStartDate AS DATE) = d.ReportDate
+        ), 0) +
+        ISNULL((
+            SELECT SUM(e.FinalPrice)
+            FROM Examinations e
+            WHERE e.HospitalCenterId = c.HospitalCenterId
+              AND CAST(e.RequestDate AS DATE) = d.ReportDate
+        ), 0) AS TotalRevenue,
+        -- Paiements en espèces
+        ISNULL((
+            SELECT SUM(p.Amount)
+            FROM Payments p
+            WHERE p.HospitalCenterId = c.HospitalCenterId
+              AND CAST(p.PaymentDate AS DATE) = d.ReportDate
+              AND p.PaymentMethodId = 1 -- ID pour Espèces
+        ), 0) AS TotalCashPayments,
+        -- Paiements mobile
+        ISNULL((
+            SELECT SUM(p.Amount)
+            FROM Payments p
+            WHERE p.HospitalCenterId = c.HospitalCenterId
+              AND CAST(p.PaymentDate AS DATE) = d.ReportDate
+              AND p.PaymentMethodId IN (2, 3) -- IDs pour Orange Money et MTN Money
+        ), 0) AS TotalMobilePayments,
+        -- Nombre de transactions
+        ISNULL((
+            SELECT COUNT(*)
+            FROM Payments p
+            WHERE p.HospitalCenterId = c.HospitalCenterId
+              AND CAST(p.PaymentDate AS DATE) = d.ReportDate
+        ), 0) AS TransactionCount,
+        -- Nombre de patients uniques
+        ISNULL((
+            SELECT COUNT(DISTINCT p.PatientId)
+            FROM (
+                SELECT s.PatientId
+                FROM Sales s
+                WHERE s.HospitalCenterId = c.HospitalCenterId
+                  AND CAST(s.SaleDate AS DATE) = d.ReportDate
+                  AND s.PatientId IS NOT NULL
+                UNION
+                SELECT ce.PatientId
+                FROM CareEpisodes ce
+                WHERE ce.HospitalCenterId = c.HospitalCenterId
+                  AND CAST(ce.EpisodeStartDate AS DATE) = d.ReportDate
+                UNION
+                SELECT e.PatientId
+                FROM Examinations e
+                WHERE e.HospitalCenterId = c.HospitalCenterId
+                  AND CAST(e.RequestDate AS DATE) = d.ReportDate
+            ) p
+        ), 0) AS PatientCount,
+        GETUTCDATE() AS ReportGeneratedAt,
+        1 AS CreatedBy
+    FROM 
+        @Dates d
+    CROSS JOIN
+        @Centers c
+    ORDER BY 
+        d.ReportDate, c.HospitalCenterName;
+    
+    -- Mettre à jour les champs d'audit
+    UPDATE rpt_FinancialActivity
+    SET CreatedAt = ReportGeneratedAt
+    WHERE CAST(ReportDate AS DATE) BETWEEN @DateFrom AND @DateTo;
+    
+    RETURN 0;
+END
+GO
+
+-- =====================================================
+-- PROCÉDURE : sp_UpdateCaregiverPerformance
+-- Description : Met à jour la table rpt_CaregiverPerformance
+-- =====================================================
+CREATE OR ALTER PROCEDURE sp_UpdateCaregiverPerformance
+    @DateFrom DATE = NULL,
+    @DateTo DATE = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Définir les dates par défaut si non spécifiées
+    IF @DateFrom IS NULL
+        SET @DateFrom = DATEADD(MONTH, -1, GETUTCDATE());
+    
+    IF @DateTo IS NULL
+        SET @DateTo = GETUTCDATE();
+    
+    -- Supprimer les anciennes données pour la période spécifiée
+    DELETE FROM rpt_CaregiverPerformance
+    WHERE CAST(ReportDate AS DATE) BETWEEN @DateFrom AND @DateTo;
+    
+    -- Créer une table temporaire avec toutes les dates de la période
+    DECLARE @Dates TABLE (ReportDate DATE);
+    DECLARE @CurrentDate DATE = @DateFrom;
+    
+    WHILE @CurrentDate <= @DateTo
+    BEGIN
+        INSERT INTO @Dates (ReportDate) VALUES (@CurrentDate);
+        SET @CurrentDate = DATEADD(DAY, 1, @CurrentDate);
+    END;
+    
+    -- Récupérer tous les utilisateurs qui sont Personnel Soignant
+    DECLARE @MedicalStaff TABLE (
+        UserId INT, 
+        UserName NVARCHAR(201),
+        HospitalCenterId INT,
+        HospitalCenterName NVARCHAR(200)
+    );
+    
+    INSERT INTO @MedicalStaff (UserId, UserName, HospitalCenterId, HospitalCenterName)
+    SELECT 
+        u.Id AS UserId,
+        u.FirstName + ' ' + u.LastName AS UserName,
+        uca.HospitalCenterId,
+        hc.Name AS HospitalCenterName
+    FROM 
+        Users u
+    INNER JOIN 
+        UserCenterAssignments uca ON u.Id = uca.UserId
+    INNER JOIN 
+        HospitalCenters hc ON uca.HospitalCenterId = hc.Id
+    WHERE 
+        u.IsActive = 1
+        AND uca.IsActive = 1
+        AND (uca.RoleType = 'MedicalStaff' OR uca.RoleType = 'SuperAdmin') -- Inclure les SuperAdmin qui peuvent aussi être soignants
+    ORDER BY 
+        u.LastName, u.FirstName;
+    
+    -- Insérer les nouvelles données
+    INSERT INTO rpt_CaregiverPerformance (
+        UserId, CaregiverName, HospitalCenterId, HospitalCenterName, ReportDate,
+        PatientsServed, CareServicesProvided, ExaminationsRequested, PrescriptionsIssued,
+        SalesMade, TotalRevenueGenerated, ReportGeneratedAt, CreatedBy
+    )
+    SELECT 
+        ms.UserId,
+        ms.UserName AS CaregiverName,
+        ms.HospitalCenterId,
+        ms.HospitalCenterName,
+        d.ReportDate,
+        -- Patients servis (épisodes de soins commencés)
+        ISNULL((
+            SELECT COUNT(DISTINCT ce.PatientId)
+            FROM CareEpisodes ce
+            WHERE ce.PrimaryCaregiver = ms.UserId
+              AND ce.HospitalCenterId = ms.HospitalCenterId
+              AND CAST(ce.EpisodeStartDate AS DATE) = d.ReportDate
+        ), 0) AS PatientsServed,
+        -- Services de soins fournis
+        ISNULL((
+            SELECT COUNT(*)
+            FROM CareServices cs
+            INNER JOIN CareEpisodes ce ON cs.CareEpisodeId = ce.Id
+            WHERE cs.AdministeredBy = ms.UserId
+              AND ce.HospitalCenterId = ms.HospitalCenterId
+              AND CAST(cs.ServiceDate AS DATE) = d.ReportDate
+        ), 0) AS CareServicesProvided,
+        -- Examens demandés
+        ISNULL((
+            SELECT COUNT(*)
+            FROM Examinations e
+            WHERE e.RequestedBy = ms.UserId
+              AND e.HospitalCenterId = ms.HospitalCenterId
+              AND CAST(e.RequestDate AS DATE) = d.ReportDate
+        ), 0) AS ExaminationsRequested,
+        -- Prescriptions émises
+        ISNULL((
+            SELECT COUNT(*)
+            FROM Prescriptions p
+            WHERE p.PrescribedBy = ms.UserId
+              AND p.HospitalCenterId = ms.HospitalCenterId
+              AND CAST(p.PrescriptionDate AS DATE) = d.ReportDate
+        ), 0) AS PrescriptionsIssued,
+        -- Ventes effectuées
+        ISNULL((
+            SELECT COUNT(*)
+            FROM Sales s
+            WHERE s.SoldBy = ms.UserId
+              AND s.HospitalCenterId = ms.HospitalCenterId
+              AND CAST(s.SaleDate AS DATE) = d.ReportDate
+        ), 0) AS SalesMade,
+        -- Revenus générés
+        ISNULL((
+            SELECT SUM(s.FinalAmount)
+            FROM Sales s
+            WHERE s.SoldBy = ms.UserId
+              AND s.HospitalCenterId = ms.HospitalCenterId
+              AND CAST(s.SaleDate AS DATE) = d.ReportDate
+        ), 0) +
+        ISNULL((
+            SELECT SUM(ce.TotalCost)
+            FROM CareEpisodes ce
+            WHERE ce.PrimaryCaregiver = ms.UserId
+              AND ce.HospitalCenterId = ms.HospitalCenterId
+              AND CAST(ce.EpisodeStartDate AS DATE) = d.ReportDate
+        ), 0) +
+        ISNULL((
+            SELECT SUM(e.FinalPrice)
+            FROM Examinations e
+            WHERE e.RequestedBy = ms.UserId
+              AND e.HospitalCenterId = ms.HospitalCenterId
+              AND CAST(e.RequestDate AS DATE) = d.ReportDate
+        ), 0) AS TotalRevenueGenerated,
+        GETUTCDATE() AS ReportGeneratedAt,
+        1 AS CreatedBy
+    FROM 
+        @Dates d
+    CROSS JOIN
+        @MedicalStaff ms
+    -- Ne garder que les enregistrements avec au moins une activité
+    WHERE
+        (
+            EXISTS (
+                SELECT 1
+                FROM CareEpisodes ce
+                WHERE ce.PrimaryCaregiver = ms.UserId
+                  AND ce.HospitalCenterId = ms.HospitalCenterId
+                  AND CAST(ce.EpisodeStartDate AS DATE) = d.ReportDate
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM CareServices cs
+                INNER JOIN CareEpisodes ce ON cs.CareEpisodeId = ce.Id
+                WHERE cs.AdministeredBy = ms.UserId
+                  AND ce.HospitalCenterId = ms.HospitalCenterId
+                  AND CAST(cs.ServiceDate AS DATE) = d.ReportDate
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM Examinations e
+                WHERE e.RequestedBy = ms.UserId
+                  AND e.HospitalCenterId = ms.HospitalCenterId
+                  AND CAST(e.RequestDate AS DATE) = d.ReportDate
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM Prescriptions p
+                WHERE p.PrescribedBy = ms.UserId
+                  AND p.HospitalCenterId = ms.HospitalCenterId
+                  AND CAST(p.PrescriptionDate AS DATE) = d.ReportDate
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM Sales s
+                WHERE s.SoldBy = ms.UserId
+                  AND s.HospitalCenterId = ms.HospitalCenterId
+                  AND CAST(s.SaleDate AS DATE) = d.ReportDate
+            )
+        )
+    ORDER BY 
+        d.ReportDate, ms.UserName;
+    
+    -- Mettre à jour les champs d'audit
+    UPDATE rpt_CaregiverPerformance
+    SET CreatedAt = ReportGeneratedAt
+    WHERE CAST(ReportDate AS DATE) BETWEEN @DateFrom AND @DateTo;
+    
+    RETURN 0;
+END
+GO
+
+-- =====================================================
+-- PROCÉDURE : sp_RefreshAllReports
+-- Description : Met à jour toutes les tables de rapport
+-- =====================================================
+CREATE OR ALTER PROCEDURE sp_RefreshAllReports
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Mettre à jour chaque rapport
+    EXEC sp_UpdateStockReports;
+    EXEC sp_UpdateUserCenterDetails;
+    EXEC sp_UpdateActiveSessions;
+    EXEC sp_UpdateFinancialActivity;
+    EXEC sp_UpdateCaregiverPerformance;
+    
+    RETURN 0;
+END
+GO
+
+-- =====================================================
+-- PROCÉDURE : sp_CleanExpiredSessions
+-- Description : Nettoie les sessions expirées
+-- =====================================================
+CREATE OR ALTER PROCEDURE sp_CleanExpiredSessions
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Marquer comme inactives les sessions expirées (plus de 12 heures)
+    UPDATE UserSessions
+    SET IsActive = 0,
+        LogoutTime = GETUTCDATE()
+    WHERE IsActive = 1
+      AND LogoutTime IS NULL
+      AND DATEDIFF(HOUR, LoginTime, GETUTCDATE()) >= 12;
+    
+    -- Mettre à jour la table de rapport des sessions actives
+    EXEC sp_UpdateActiveSessions;
+    
+    RETURN 0;
+END
+GO

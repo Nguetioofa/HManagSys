@@ -1,0 +1,402 @@
+﻿@using HManagSys.Models.ViewModels.Reports
+@model StockStatusReportViewModel
+@{
+    ViewData["Title"] = "Rapport d'État des Stocks";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800"><i class="fas fa-boxes"></i> Rapport d'État des Stocks</h1>
+        
+        <div>
+            <button type="button" class="btn btn-sm btn-outline-primary mr-2" data-bs-toggle="collapse" data-bs-target="#filterSection">
+                <i class="fas fa-filter"></i> Filtres
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-success mr-2" data-bs-toggle="modal" data-bs-target="#exportModal">
+                <i class="fas fa-file-export"></i> Exporter
+            </button>
+            @if (Context.Session.GetString("CurrentRole") == "SuperAdmin")
+            {
+                <form asp-action="RefreshReportData" method="post" class="d-inline">
+                    <input type="hidden" name="reportType" value="StockStatusReport" />
+                    <button type="submit" class="btn btn-sm btn-outline-warning" onclick="return confirm('Êtes-vous sûr de vouloir rafraîchir les données ?')">
+                        <i class="fas fa-sync-alt"></i> Rafraîchir
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+
+    <!-- Filtres -->
+@*     <div class="collapse mb-4 @(Model.Filters != null && (Model.Filters.HospitalCenterId.HasValue || Model.Filters.ProductCategoryId.HasValue || !string.IsNullOrEmpty(Model.Filters.StockStatus) || !string.IsNullOrEmpty(Model.Filters.SearchTerm)) ? "show" : "")" id="filterSection">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="m-0 font-weight-bold text-primary">Filtres</h6>
+            </div>
+            <div class="card-body">
+                <form asp-action="StockStatusReport" method="get" id="filtersForm">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="HospitalCenterId" class="form-label">Centre</label>
+                            <select name="HospitalCenterId" id="HospitalCenterId" class="form-select">
+                                @foreach (var center in ViewBag.Centers)
+                                {
+                                    <option value="@center.Value" @(Model.Filters?.HospitalCenterId.ToString() == center.Value ? "selected" : "")>@center.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="ProductCategoryId" class="form-label">Catégorie</label>
+                            <select name="ProductCategoryId" id="ProductCategoryId" class="form-select">
+                                @foreach (var category in ViewBag.Categories)
+                                {
+                                    <option value="@category.Value" @(Model.Filters?.ProductCategoryId.ToString() == category.Value ? "selected" : "")>@category.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="StockStatus" class="form-label">Statut</label>
+                            <select name="StockStatus" id="StockStatus" class="form-select">
+                                @foreach (var status in ViewBag.StockStatuses)
+                                {
+                                    <option value="@status.Value" @(Model.Filters?.StockStatus == status.Value ? "selected" : "")>@status.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="SearchTerm" class="form-label">Recherche</label>
+                            <input type="text" name="SearchTerm" id="SearchTerm" class="form-control" placeholder="Nom, catégorie..." value="@Model.Filters?.SearchTerm" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 text-end">
+                            <a href="@Url.Action("StockStatusReport")" class="btn btn-outline-secondary mr-2">
+                                <i class="fas fa-redo"></i> Réinitialiser
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search"></i> Appliquer
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+ *@
+    <!-- Résumé -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Produits
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalProducts</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-boxes fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Stock Critique
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ProductsWithCriticalStock</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Stock Bas
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.ProductsWithLowStock</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-level-down-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Valeur Totale
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalStockValue.ToString("N0") FCFA</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Distribution par catégorie -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Distribution par catégorie</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Valeur par catégorie</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="height: 300px;">
+                        <canvas id="valueChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau de données -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">État des stocks</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="stockTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Produit</th>
+                            <th>Catégorie</th>
+                            <th>Centre</th>
+                            <th>Quantité</th>
+                            <th>Seuil Min</th>
+                            <th>Seuil Max</th>
+                            <th>Statut</th>
+                            <th>Dernier Mouvement</th>
+                            <th>Valeur</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.ProductName</td>
+                                <td>@item.ProductCategory</td>
+                                <td>@item.HospitalCenterName</td>
+                                <td>@item.FormattedCurrentQuantity</td>
+                                <td>@item.FormattedMinThreshold</td>
+                                <td>@item.FormattedMaxThreshold</td>
+                                <td><span class="@item.StockStatusBadge">@item.StockStatus</span></td>
+                                <td>@item.FormattedLastMovement</td>
+                                <td>@item.FormattedTotalValue</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Génération du rapport -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Informations sur le rapport</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Généré le :</strong> @Model.FormattedGeneratedAt</p>
+                    <p><strong>Généré par :</strong> @Model.GeneratedBy</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p><strong>Nombre d'éléments :</strong> @Model.TotalCount</p>
+@*                     <p><strong>Filtres appliqués :</strong> @(Model.Filters != null && (Model.Filters.HospitalCenterId.HasValue || Model.Filters.ProductCategoryId.HasValue || !string.IsNullOrEmpty(Model.Filters.StockStatus) || !string.IsNullOrEmpty(Model.Filters.SearchTerm)) ? "Oui" : "Non")</p>
+ *@                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'export -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel">Exporter le rapport</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Sélectionnez le format d'export :</p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-success mb-2" onclick="exportReport('Excel')">
+                        <i class="fas fa-file-excel"></i> Exporter en Excel
+                    </button>
+                    <button type="button" class="btn btn-outline-danger mb-2" onclick="exportReport('PDF')">
+                        <i class="fas fa-file-pdf"></i> Exporter en PDF
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .badge {
+            font-size: 0.8rem;
+            padding: 5px 10px;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // Initialisation de la table
+        $(document).ready(function () {
+            $('#stockTable').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/fr-FR.json'
+                },
+                order: [[6, 'asc']], // Tri par statut par défaut
+                pageLength: 25
+            });
+
+            // Graphique de distribution par catégorie
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            const categoryChart = new Chart(categoryCtx, {
+                type: 'pie',
+                data: {
+                    labels: [@Html.Raw(string.Join(",", Model.ProductsByCategory.Select(c => $"'{c.Key}'")))],
+                    datasets: [{
+                        data: [@string.Join(",", Model.ProductsByCategory.Select(c => c.Value))],
+                        backgroundColor: [
+                            '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                            '#6f42c1', '#5a5c69', '#858796', '#fd7e14', '#20c9a6'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+
+            // Graphique de valeur par catégorie
+            const valueCtx = document.getElementById('valueChart').getContext('2d');
+            const valueChart = new Chart(valueCtx, {
+                type: 'bar',
+                data: {
+                    labels: [@Html.Raw(string.Join(",", Model.ValueByCategory.Select(c => $"'{c.Key}'")))],
+                    datasets: [{
+                        label: 'Valeur (FCFA)',
+                        data: [@string.Join(",", Model.ValueByCategory.Select(c => c.Value))],
+                        backgroundColor: '#4e73df'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        });
+
+        // Fonction d'export
+        function exportReport(format) {
+            const filters = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Filters));
+            
+            // Créer un formulaire pour l'export
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = format === 'Excel' 
+                ? '@Url.Action("ExportToExcel", "Report")' 
+                : '@Url.Action("ExportToPdf", "Report")';
+            
+            // Ajouter les champs
+            const reportTypeField = document.createElement('input');
+            reportTypeField.type = 'hidden';
+            reportTypeField.name = 'reportType';
+            reportTypeField.value = 'StockStatusReport';
+            form.appendChild(reportTypeField);
+            
+            const filtersField = document.createElement('input');
+            filtersField.type = 'hidden';
+            filtersField.name = 'filters';
+            filtersField.value = JSON.stringify(filters);
+            form.appendChild(filtersField);
+            
+            // Ajouter le token CSRF
+            const csrfField = document.createElement('input');
+            csrfField.type = 'hidden';
+            csrfField.name = '__RequestVerificationToken';
+            csrfField.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            form.appendChild(csrfField);
+            
+            // Soumettre le formulaire
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+            
+            // Fermer la modal
+            $('#exportModal').modal('hide');
+        }
+    </script>
+}

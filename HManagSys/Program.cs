@@ -51,7 +51,11 @@ builder.Services.AddScoped<IPrescriptionService, PrescriptionService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IFinancierService, FinancierService>();
 builder.Services.AddScoped<ICashManagementService, CashManagementService>();
- 
+
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IProductCategoryRepository, ProductCategoryRepository>();
+
+
 
 builder.Services.AddScoped<IDocumentGenerationService, DocumentGenerationService>();
 QuestPDF.Settings.License = LicenseType.Community;
