@@ -9,11 +9,8 @@ using System;
 
 namespace HManagSys.Controllers;
 
-/// <summary>
-/// Contrôleur d'authentification moderne - Le cerveau de sécurité de l'interface
-/// Gère toutes les interactions utilisateur liées à l'authentification
-/// Comme un réceptionniste intelligent avec formation sécuritaire avancée
-/// </summary>
+
+
 public class AuthController : Controller
 {
     private readonly IAuthenticationService _authService;
@@ -90,13 +87,13 @@ public class AuthController : Controller
             var result = await _authService.LoginAsync(model.Email, model.Password, clientIp);
 
             // Enregistrement détaillé de la tentative
-            //await _auditService.LogAuthenticationEventAsync(
-            //    result.User?.Id ?? 0,
-            //    AuthenticationEvent.Login,
-            //    result.IsSuccess,
-            //    clientIp,
-            //    userAgent,
-            //    result.ErrorMessage);
+            await _auditService.LogAuthenticationEventAsync(
+                result.User?.Id ?? 0,
+                AuthenticationEvent.Login,
+                result.IsSuccess,
+                clientIp,
+                userAgent,
+                result.ErrorMessage);
 
             if (result.IsSuccess && result.User != null)
             {
@@ -277,8 +274,8 @@ public class AuthController : Controller
                 userId, centerId);
 
             // Redirection vers le tableau de bord approprié selon le rôle
-            var returnAction = sessionInfo.CurrentRole == "SuperAdmin" ? "Admin" : "Dashboard";
-            return RedirectToAction("Index", returnAction);
+            //var returnAction = sessionInfo.CurrentRole == "SuperAdmin" ? "Admin" : "Dashboard";
+            return RedirectToAction("Index", "Dashboard");
         }
         catch (Exception ex)
         {
@@ -303,7 +300,7 @@ public class AuthController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [RequireAuthentication]
-    //[RequireCenterAccess("centerId")]
+    [RequireCenterAccess]
     public async Task<IActionResult> SwitchCenter(int centerId)
     {
         var sessionToken = HttpContext.Session.GetString("SessionToken");
@@ -447,7 +444,6 @@ public class AuthController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
     {
-        model.CurrentPassword = "1234";
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -477,7 +473,7 @@ public class AuthController : Controller
 
             // Changement du mot de passe (forcé, donc sans vérification de l'ancien)
             var result = await _authService.ChangePasswordAsync(model.UserId,
-                string.Empty, // Pas d'ancien mot de passe en cas de changement forcé
+                string.Empty,
                 model.NewPassword);
 
             if (result.IsSuccess)

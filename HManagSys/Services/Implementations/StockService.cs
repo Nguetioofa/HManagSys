@@ -1,4 +1,5 @@
-﻿using HManagSys.Data.Repositories.Interfaces;
+﻿using DocumentFormat.OpenXml.InkML;
+using HManagSys.Data.Repositories.Interfaces;
 using HManagSys.Helpers;
 using HManagSys.Models;
 using HManagSys.Models.EfModels;
@@ -556,9 +557,101 @@ namespace HManagSys.Services.Implementations
             throw new NotImplementedException();
         }
 
-        public Task<List<StockAlertDetailViewModel>> GetStockAlertsAsync(int? centerId = null, string? severity = null)
+        /// <summary>
+        /// Récupère les alertes de stock détaillées pour un centre
+        /// </summary>
+        /// <param name="centerId">ID du centre (null pour tous les centres)</param>
+        /// <param name="severity">Filtre de sévérité (Low, Critical, OutOfStock, etc.)</param>
+        /// <returns>Liste des alertes de stock</returns>
+        public async Task<List<StockAlertDetailViewModel>> GetStockAlertsAsync(int? centerId = null, string? severity = null)
         {
-            throw new NotImplementedException();
+            try
+            {
+                // Récupérer tous les stocks avec les produits associés
+                var inventories = await _stockInventoryRepository.QueryListAsync(query => {
+                    var filtered = query
+                        .Include(s => s.Product)
+                        .Include(s => s.Product.ProductCategory)
+                        .Include(s => s.HospitalCenter)
+                        .AsQueryable();
+
+                    if (centerId.HasValue)
+                    {
+                        filtered = filtered.Where(s => s.HospitalCenterId == centerId.Value);
+                    }
+
+                    return filtered;
+                });
+
+                // Filtrer pour trouver les stocks critiques
+                var alerts = new List<StockAlertDetailViewModel>();
+
+                foreach (var inventory in inventories)
+                {
+                    // Déterminer le statut du stock
+                    string stockStatus;
+
+                    if (inventory.CurrentQuantity <= 0)
+                    {
+                        stockStatus = "OutOfStock";
+                    }
+                    else if (inventory.MinimumThreshold.HasValue && inventory.CurrentQuantity <= inventory.MinimumThreshold.Value)
+                    {
+                        stockStatus = "Low";
+                    }
+                    else if (inventory.MinimumThreshold.HasValue && inventory.CurrentQuantity <= inventory.MinimumThreshold.Value * 1.5m)
+                    {
+                        stockStatus = "Warning";
+                    }
+                    else
+                    {
+                        // Stock normal, ignorer
+                        continue;
+                    }
+
+                    // Filtrer par sévérité si spécifiée
+                    if (!string.IsNullOrEmpty(severity) && stockStatus != severity)
+                    {
+                        continue;
+                    }
+
+                    // Récupérer le dernier mouvement pour ce stock
+                    var lastMovement = await _stockMovementRepository.QuerySingleAsync(q =>
+                        q.Where(m => m.ProductId == inventory.ProductId && m.HospitalCenterId == inventory.HospitalCenterId)
+                         .OrderByDescending(m => m.MovementDate)
+                         .Select(m => new { Date = m.MovementDate }));
+
+                    // Créer l'alerte
+                    var alert = new StockAlertDetailViewModel
+                    {
+                        ProductId = inventory.ProductId,
+                        ProductName = inventory.Product.Name,
+                        CategoryName = inventory.Product.ProductCategory?.Name ?? "Non catégorisé",
+                        HospitalCenterId = inventory.HospitalCenterId,
+                        HospitalCenterName = inventory.HospitalCenter.Name,
+                        CurrentQuantity = inventory.CurrentQuantity,
+                        MinimumThreshold = inventory.MinimumThreshold,
+                        MaximumThreshold = inventory.MaximumThreshold,
+                        Severity = stockStatus,
+                        UnitOfMeasure = inventory.Product.UnitOfMeasure,
+                        LastMovementDate = lastMovement?.Date
+                    };
+
+                    alerts.Add(alert);
+                }
+
+                // Trier les alertes par statut puis par quantité
+                return alerts
+                    .OrderBy(a => a.Severity == "OutOfStock" ? 0 : a.Severity == "Low" ? 1 : 2)
+                    .ThenBy(a => a.CurrentQuantity)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                //_logger.LogError("Erreur lors de la récupération des alertes de stock", "Stock", "GetStockAlerts",
+                //    ex.Message,  new { CenterId = centerId, Severity = severity });
+                return new List<StockAlertDetailViewModel>();
+            }
         }
 
         public Task<OperationResult> MarkAlertAsHandledAsync(int alertId, int handledBy, string? notes = null)
@@ -650,5 +743,6 @@ namespace HManagSys.Services.Implementations
         {
             return await _stockInventoryRepository.QueryListAsync(queryBuilder);
         }
+
     }
 }

@@ -7,10 +7,14 @@
     public class StockAlertViewModel
     {
         public int ProductId { get; set; }
+        public int HospitalCenterId { get; set; }
         public string ProductName { get; set; } = string.Empty;
+        public string HospitalCenterName { get; set; } = string.Empty;
         public string CategoryName { get; set; } = string.Empty;
         public decimal CurrentQuantity { get; set; }
         public decimal? MinimumThreshold { get; set; }
+
+        public decimal? MaximumThreshold { get; set; }
         public string UnitOfMeasure { get; set; } = string.Empty;
         public string Severity { get; set; } = string.Empty;
         public DateTime? LastMovementDate { get; set; }

@@ -490,7 +490,6 @@ namespace HManagSys.Data.Repositories
             {
                 var query = queryBuilder(_dbSet);
 
-                var tt = query.ToQueryString();
                 return await query.ToListAsync();
             }
             catch (Exception ex)

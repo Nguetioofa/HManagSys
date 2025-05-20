@@ -57,7 +57,7 @@ namespace HManagSys.Services.Implementations
 
                 var products = await _productRepository.QueryListAsync(query =>
                 {
-                    query = query.Include(p => p.ProductCategory);
+                    query = query.Include(p => p.ProductCategory).Include(q=>q.StockInventories).AsSplitQuery().AsNoTracking();
 
                     if (!string.IsNullOrWhiteSpace(filters.SearchTerm))
                     {

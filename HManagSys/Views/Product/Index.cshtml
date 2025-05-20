@@ -141,11 +141,11 @@
                     <div class="col-md-2">
                         <label class="form-label">Stock</label>
                         <select class="form-select" name="stockFilter">
-@*                             <option value="">Tous</option>
-                            <option value="Critical" selected="@(Model.Filters.StockFilter == "Critical")">Critique</option>
-                            <option value="Low" selected="@(Model.Filters.StockFilter == "Low")">Bas</option>
-                            <option value="Normal" selected="@(Model.Filters.StockFilter == "Normal")">Normal</option>
-                            <option value="High" selected="@(Model.Filters.StockFilter == "High")">Élevé</option> *@
+                            <option value="" selected>Tous</option>
+                            <option value="Critical">Critique</option>
+                            <option value="Low">Bas</option>
+                            <option value="Normal">Normal</option>
+                            <option value="High">Élevé</option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -318,7 +318,7 @@
                                                             <i class="fas fa-exclamation-triangle"></i> Gérer le stock
                                                         </a></li>
                                                     }
-                                                    @if (isSuperAdmin@*  && product.CanDelete *@)
+                                                    @if (isSuperAdmin @* && product.CanDelete *@)
                                                     {
                                                         <li><hr class="dropdown-divider"></li>
                                                         <li><a class="dropdown-item text-danger" href="#" onclick="deleteProduct(@product.Id, '@product.Name')">

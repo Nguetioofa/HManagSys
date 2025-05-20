@@ -1,0 +1,768 @@
+﻿@using HManagSys.Models.ViewModels
+@model AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Tableau de bord Administrateur";
+    var now = DateTime.Now;
+}
+
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="h3 mb-1">Tableau de bord SuperAdmin</h1>
+                            <p class="mb-0">
+                                <i class="fas fa-network-wired"></i>
+                                Vue réseau - Tous les centres
+                                <span class="ms-2 badge bg-secondary" id="current-date">@now.ToString("dd MMMM yyyy")</span>
+                            </p>
+                        </div>
+                        <div class="col-md-4 text-end d-none d-md-block">
+                            <i class="fas fa-user-shield fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiques principales -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Utilisateurs Totaux</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-users">@Model.Statistics.TotalUsers</div>
+                            <div class="progress progress-sm mt-2">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: @Model.Statistics.ActiveUsersPercentage%"
+                                     aria-valuenow="@Model.Statistics.ActiveUsersPercentage" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <small class="text-muted">@Model.Statistics.ActiveUsers actifs (@Math.Round(Model.Statistics.ActiveUsersPercentage, 1)%)</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Sessions Actives</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="active-sessions">@Model.Statistics.TotalActiveSessions</div>
+                            <div class="mt-2 text-xs">
+                                <span class="text-success">
+                                    <i class="fas fa-user-clock me-1"></i>
+                                    <span id="users-logged-today">@Model.Statistics.UsersLoggedToday</span> utilisateurs aujourd'hui
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-desktop fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Répartition des Rôles</div>
+                            <div class="row">
+                                <div class="col">
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800" id="super-admins">@Model.Statistics.SuperAdmins</div>
+                                    <div class="text-xs text-muted">SuperAdmin</div>
+                                </div>
+                                <div class="col">
+                                    <div class="h5 mb-0 font-weight-bold text-gray-800" id="medical-staff">@Model.Statistics.MedicalStaff</div>
+                                    <div class="text-xs text-muted">Personnel</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-tag fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Attention Requise</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="password-changes">@Model.Statistics.UsersRequiringPasswordChange</div>
+                            <div class="text-xs text-muted mt-2">Changements de mot de passe requis</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Activité Réseau -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-line me-1"></i>
+                        Activité Réseau
+                    </h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="networkActivityDropdown"
+                           data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end shadow animated--fade-in"
+                             aria-labelledby="networkActivityDropdown">
+                            <div class="dropdown-header">Période:</div>
+                            <a class="dropdown-item period-selector" href="#" data-period="7">7 jours</a>
+                            <a class="dropdown-item period-selector" href="#" data-period="30">30 jours</a>
+                            <a class="dropdown-item period-selector" href="#" data-period="90">90 jours</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="network-activity-loading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        <p class="mt-2">Chargement des données d'activité...</p>
+                    </div>
+                    <div id="network-activity-content" style="display: none;">
+                        <canvas id="networkActivityChart" style="height: 300px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribution par Centre -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-hospital me-1"></i>
+                        Distribution par Centre
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="centers-loading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        <p class="mt-2">Chargement des données...</p>
+                    </div>
+                    <div id="centers-content" style="display: none;">
+                        <canvas id="centerDistributionChart" style="height: 300px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Utilisateurs Récents -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user-plus me-1"></i>
+                        Utilisateurs Récents
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="users-loading" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        <p class="mt-2 mb-0">Chargement des utilisateurs...</p>
+                    </div>
+                    <div id="users-content" class="table-responsive" style="display: none;">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Email</th>
+                                    <th>Statut</th>
+                                    <th>Dernière connexion</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-users">
+                                <!-- Contenu chargé dynamiquement -->
+                            </tbody>
+                        </table>
+                        <div class="text-center mt-3">
+                            <a href="@Url.Action("Index", "Admin")" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-users me-1"></i>
+                                Voir tous les utilisateurs
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sessions Actives -->
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user-clock me-1"></i>
+                        Sessions Actives
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div id="sessions-loading" class="text-center py-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Chargement...</span>
+                        </div>
+                        <p class="mt-2 mb-0">Chargement des sessions...</p>
+                    </div>
+                    <div id="sessions-content" class="table-responsive" style="display: none;">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Utilisateur</th>
+                                    <th>Centre</th>
+                                    <th>Connexion</th>
+                                    <th>Durée</th>
+                                </tr>
+                            </thead>
+                            <tbody id="active-sessions-list">
+                                <!-- Contenu chargé dynamiquement -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions Rapides -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-bolt me-1"></i>
+                        Actions Rapides
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="@Url.Action("Create", "Admin")" class="btn btn-primary btn-block w-100 py-3">
+                                <i class="fas fa-user-plus fa-fw me-1"></i>
+                                Nouvel Utilisateur
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="@Url.Action("Index", "Stock")" class="btn btn-success btn-block w-100 py-3">
+                                <i class="fas fa-boxes fa-fw me-1"></i>
+                                Gestion des Stocks
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="#" class="btn btn-info btn-block w-100 py-3">
+                                <i class="fas fa-chart-bar fa-fw me-1"></i>
+                                Rapports Globaux
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="#" class="btn btn-warning btn-block w-100 py-3">
+                                <i class="fas fa-exchange-alt fa-fw me-1"></i>
+                                Transferts Inter-Centres
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.js"></script>
+    <script>
+        // Fonction pour formater les nombres avec séparateur de milliers
+        function formatNumber(num) {
+            return new Intl.NumberFormat('fr-FR').format(num);
+        }
+
+        // Variables pour les graphiques
+        let networkActivityChart;
+        let centerDistributionChart;
+        let currentPeriod = 30; // Période par défaut en jours
+
+        // Fonction pour charger les données du tableau de bord
+        function loadAdminDashboardData() {
+            loadNetworkActivity(currentPeriod);
+            loadCenterDistribution();
+            loadRecentUsers();
+            loadActiveSessions();
+            refreshStatistics();
+        }
+
+        // Fonction pour charger l'activité réseau
+        function loadNetworkActivity(days) {
+            $('#network-activity-loading').show();
+            $('#network-activity-content').hide();
+
+            $.ajax({
+                url: '@Url.Action("GetCenterMetrics")',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    $('#network-activity-loading').hide();
+
+                    if (response.success) {
+                        // Vérifier que les données sont disponibles
+                        if (!response.data || !response.data.dailyActivity) {
+                            $('#network-activity-content').html('<div class="alert alert-warning">Données d\'activité non disponibles</div>').show();
+                            return;
+                        }
+
+                        const data = response.data;
+
+                        try {
+                            // Préparation des données pour le graphique
+                            const dailyActivity = data.dailyActivity || [];
+                            const labels = dailyActivity.map(item => item.date ? new Date(item.date).toLocaleDateString('fr-FR', {day: '2-digit', month: '2-digit'}) : "");
+                            const patientsData = dailyActivity.map(item => item.patientsCount || 0);
+                            const salesData = dailyActivity.map(item => item.salesCount || 0);
+                            const revenueData = dailyActivity.map(item => item.totalRevenue || 0);
+
+                            // Destruction du graphique existant s'il y en a un
+                            if (networkActivityChart) {
+                                networkActivityChart.destroy();
+                            }
+
+                            // Création du graphique
+                            const ctx = document.getElementById('networkActivityChart').getContext('2d');
+                            networkActivityChart = new Chart(ctx, {
+                                type: 'line',
+                                data: {
+                                    labels: labels,
+                                    datasets: [
+                                        {
+                                            label: 'Patients',
+                                            data: patientsData,
+                                            borderColor: '#4e73df',
+                                            backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                                            tension: 0.3,
+                                            fill: true
+                                        },
+                                        {
+                                            label: 'Ventes',
+                                            data: salesData,
+                                            borderColor: '#1cc88a',
+                                            backgroundColor: 'rgba(28, 200, 138, 0.1)',
+                                            tension: 0.3,
+                                            fill: true
+                                        },
+                                        {
+                                            label: 'Revenus (FCFA)',
+                                            data: revenueData,
+                                            borderColor: '#f6c23e',
+                                            backgroundColor: 'rgba(246, 194, 62, 0.1)',
+                                            tension: 0.3,
+                                            fill: true,
+                                            yAxisID: 'y1'
+                                        }
+                                    ]
+                                },
+                                options: {
+                                    responsive: true,
+                                    interaction: {
+                                        mode: 'index',
+                                        intersect: false,
+                                    },
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true,
+                                            title: {
+                                                display: true,
+                                                text: 'Nombre'
+                                            }
+                                        },
+                                        y1: {
+                                            beginAtZero: true,
+                                            position: 'right',
+                                            title: {
+                                                display: true,
+                                                text: 'FCFA'
+                                            },
+                                            grid: {
+                                                drawOnChartArea: false,
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+
+                            $('#network-activity-content').show();
+                        } catch (chartError) {
+                            console.error('Erreur lors de la création du graphique:', chartError);
+                            $('#network-activity-content').html('<div class="alert alert-warning">Erreur lors de la création du graphique</div>').show();
+                        }
+                    } else {
+                        $('#network-activity-content').html('<div class="alert alert-warning">Impossible de charger les données d\'activité</div>').show();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#network-activity-loading').hide();
+                    $('#network-activity-content').html('<div class="alert alert-warning">Impossible de charger les données d\'activité</div>').show();
+                    console.error('Erreur lors du chargement des données d\'activité:', error);
+                }
+            });
+        }
+
+        // Fonction pour charger la distribution par centre
+        function loadCenterDistribution() {
+            $('#centers-loading').show();
+            $('#centers-content').hide();
+
+            $.ajax({
+                url: '@Url.Action("GetCenterMetrics")',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    $('#centers-loading').hide();
+
+                    if (response.success) {
+                        // Vérifier que les données sont disponibles
+                        if (!response.data || !response.data.centerDistribution) {
+                            $('#centers-content').html('<div class="alert alert-warning">Données de distribution non disponibles</div>').show();
+                            return;
+                        }
+
+                        const data = response.data;
+
+                        try {
+                            // Préparation des données pour le graphique
+                            const centerDistribution = data.centerDistribution || [];
+                            const labels = centerDistribution.map(item => item.centerName || "");
+                            const patientsData = centerDistribution.map(item => item.patientsCount || 0);
+                            const usersData = centerDistribution.map(item => item.usersCount || 0);
+
+                            // Destruction du graphique existant s'il y en a un
+                            if (centerDistributionChart) {
+                                centerDistributionChart.destroy();
+                            }
+
+                            // Création du graphique
+                            const ctx = document.getElementById('centerDistributionChart').getContext('2d');
+                            centerDistributionChart = new Chart(ctx, {
+                                type: 'bar',
+                                data: {
+                                    labels: labels,
+                                    datasets: [
+                                        {
+                                            label: 'Patients',
+                                            data: patientsData,
+                                            backgroundColor: 'rgba(78, 115, 223, 0.7)',
+                                            borderColor: 'rgba(78, 115, 223, 1)',
+                                            borderWidth: 1
+                                        },
+                                        {
+                                            label: 'Utilisateurs',
+                                            data: usersData,
+                                            backgroundColor: 'rgba(28, 200, 138, 0.7)',
+                                            borderColor: 'rgba(28, 200, 138, 1)',
+                                            borderWidth: 1
+                                        }
+                                    ]
+                                },
+                                options: {
+                                    responsive: true,
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true
+                                        }
+                                    }
+                                }
+                            });
+
+                            $('#centers-content').show();
+                        } catch (chartError) {
+                            console.error('Erreur lors de la création du graphique:', chartError);
+                            $('#centers-content').html('<div class="alert alert-warning">Erreur lors de la création du graphique</div>').show();
+                        }
+                    } else {
+                        $('#centers-content').html('<div class="alert alert-warning">Impossible de charger les données des centres</div>').show();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#centers-loading').hide();
+                    $('#centers-content').html('<div class="alert alert-warning">Impossible de charger les données des centres</div>').show();
+                    console.error('Erreur lors du chargement des données des centres:', error);
+                }
+            });
+        }
+
+        // Fonction pour charger les utilisateurs récents
+        function loadRecentUsers() {
+            $('#users-loading').show();
+            $('#users-content').hide();
+
+            $.ajax({
+                url: '@Url.Action("GetRecentUsers")',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    $('#users-loading').hide();
+
+                    if (response.success) {
+                        // Vérifier que les données sont disponibles
+                        if (!response.data) {
+                            $('#users-content').html('<div class="alert alert-warning">Données utilisateurs non disponibles</div>').show();
+                            return;
+                        }
+
+                        const users = response.data;
+                        let html = '';
+
+                        if (!users || users.length === 0) {
+                            html = '<tr><td colspan="4" class="text-center">Aucun utilisateur récent</td></tr>';
+                        } else {
+                            users.forEach(function(user) {
+                                html += `
+                                    <tr>
+                                        <td>${user.firstName || ''} ${user.lastName || ''}</td>
+                                        <td>${user.email || ''}</td>
+                                        <td>
+                                            <span class="badge ${user.isActive ? 'bg-success' : 'bg-secondary'}">
+                                                ${user.isActive ? 'Actif' : 'Inactif'}
+                                            </span>
+                                        </td>
+                                        <td>${user.lastLoginDate ? new Date(user.lastLoginDate).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : 'Jamais'}</td>
+                                    </tr>
+                                `;
+                            });
+                        }
+
+                        $('#recent-users').html(html);
+                        $('#users-content').show();
+                    } else {
+                        $('#users-content').html('<div class="alert alert-warning">Impossible de charger les utilisateurs récents</div>').show();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#users-loading').hide();
+                    $('#users-content').html('<div class="alert alert-warning">Impossible de charger les utilisateurs récents</div>').show();
+                    console.error('Erreur lors du chargement des utilisateurs récents:', error);
+                }
+            });
+        }
+
+        // Fonction pour charger les sessions actives
+        function loadActiveSessions() {
+            $('#sessions-loading').show();
+            $('#sessions-content').hide();
+
+            $.ajax({
+                url: '@Url.Action("GetActiveSessions")',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    $('#sessions-loading').hide();
+
+                    if (response.success) {
+                        // Vérifier que les données sont disponibles
+                        if (!response.data) {
+                            $('#sessions-content').html('<div class="alert alert-warning">Données sessions non disponibles</div>').show();
+                            return;
+                        }
+
+                        const sessions = response.data;
+                        let html = '';
+
+                        if (!sessions || sessions.length === 0) {
+                            html = '<tr><td colspan="4" class="text-center">Aucune session active</td></tr>';
+                        } else {
+                            sessions.forEach(function(session) {
+                                html += `
+                                    <tr>
+                                        <td>${session.userName || ''}</td>
+                                        <td>${session.currentCenterName || ''}</td>
+                                        <td>${session.loginTime ? new Date(session.loginTime).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : ''}</td>
+                                        <td>${session.durationText || ''}</td>
+                                    </tr>
+                                `;
+                            });
+                        }
+
+                        $('#active-sessions-list').html(html);
+                        $('#sessions-content').show();
+                    } else {
+                        $('#sessions-content').html('<div class="alert alert-warning">Impossible de charger les sessions actives</div>').show();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#sessions-loading').hide();
+                    $('#sessions-content').html('<div class="alert alert-warning">Impossible de charger les sessions actives</div>').show();
+                    console.error('Erreur lors du chargement des sessions actives:', error);
+                }
+            });
+        }
+
+        // Fonction pour rafraîchir les statistiques principales
+        function refreshStatistics() {
+            $.ajax({
+                url: '@Url.Action("GetAdminStatistics")',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success && response.data) {
+                        const stats = response.data;
+
+                        // Mettre à jour les compteurs
+                        $('#total-users').text(formatNumber(stats.totalUsers || 0));
+                        $('#active-sessions').text(formatNumber(stats.totalActiveSessions || 0));
+                        $('#users-logged-today').text(formatNumber(stats.usersLoggedToday || 0));
+                        $('#super-admins').text(formatNumber(stats.superAdmins || 0));
+                        $('#medical-staff').text(formatNumber(stats.medicalStaff || 0));
+                        $('#password-changes').text(formatNumber(stats.usersRequiringPasswordChange || 0));
+
+                        // Mettre à jour la barre de progression
+                        const activePercentage = stats.activeUsersPercentage || 0;
+                        $('.progress-bar').css('width', activePercentage + '%');
+                        $('.progress-bar').attr('aria-valuenow', activePercentage);
+
+                        // Mettre à jour le texte sous la barre de progression
+                        $('.text-muted:first').text(`${formatNumber(stats.activeUsers || 0)} actifs (${Math.round(activePercentage * 10) / 10}%)`);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Erreur lors du rafraîchissement des statistiques:', error);
+                }
+            });
+        }
+
+        // Gestionnaire d'événements pour le changement de période
+        $(document).on('click', '.period-selector', function(e) {
+            e.preventDefault();
+            const period = $(this).data('period');
+            if (period) {
+                currentPeriod = period;
+                loadNetworkActivity(period);
+            }
+        });
+
+        // Fonction pour gérer les erreurs de chargement de données
+        function handleLoadError(containerId, message) {
+            $(`#${containerId}-loading`).hide();
+            $(`#${containerId}-content`).html(`<div class="alert alert-warning">${message}</div>`).show();
+        }
+
+        // Fonction pour initialiser les graphiques avec gestion d'erreurs
+        function initializeChart(chartFunction) {
+            try {
+                chartFunction();
+            } catch (error) {
+                console.error(`Erreur lors de l'initialisation du graphique:`, error);
+                handleLoadError(chartFunction.name.replace('load', '').toLowerCase(), 'Erreur lors de l\'initialisation du graphique');
+            }
+        }
+
+        // Charger les données au chargement de la page
+        $(document).ready(function() {
+            loadAdminDashboardData();
+
+            // Rafraîchir les données toutes les 60 secondes
+            setInterval(refreshStatistics, 60000);
+            setInterval(loadActiveSessions, 120000);
+        });
+
+        // Mettre à jour l'heure actuelle
+        setInterval(function() {
+            document.getElementById('current-date').innerText = new Date().toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric'
+            });
+        }, 60000);
+    </script>
+}
+
+@section Styles {
+    <style>
+        .border-left-primary {
+            border-left: .25rem solid #4e73df !important;
+        }
+
+        .border-left-success {
+            border-left: .25rem solid #1cc88a !important;
+        }
+
+        .border-left-info {
+            border-left: .25rem solid #36b9cc !important;
+        }
+
+        .border-left-warning {
+            border-left: .25rem solid #f6c23e !important;
+        }
+
+        .text-gray-300 {
+            color: #dddfeb !important;
+        }
+
+        .text-gray-800 {
+            color: #5a5c69 !important;
+        }
+
+        .font-weight-bold {
+            font-weight: 700 !important;
+        }
+
+        .text-xs {
+            font-size: .8rem;
+        }
+
+        .text-uppercase {
+            text-transform: uppercase !important;
+        }
+
+        .shadow {
+            box-shadow: 0 .15rem 1.75rem 0 rgba(58,59,69,.15) !important;
+        }
+
+        .py-2 {
+            padding-top: .5rem !important;
+            padding-bottom: .5rem !important;
+        }
+
+        .py-3 {
+            padding-top: 1rem !important;
+            padding-bottom: 1rem !important;
+        }
+
+        .btn-block {
+            display: block;
+            width: 100%;
+        }
+
+        .table-responsive {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+}

@@ -1,0 +1,69 @@
+﻿@using HManagSys.Models.ViewModels.Stock
+@model List<StockAlertViewModel>
+
+<div class="stock-alerts-widget">
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            Aucune alerte de stock à signaler
+        </div>
+    }
+    else
+    {
+        <div class="list-group">
+            @foreach (var alert in Model)
+            {
+                var statusClass = alert.Severity == "OutOfStock" ? "list-group-item-danger" :
+                alert.Severity == "Low" ? "list-group-item-warning" :
+                "list-group-item-info";
+
+                <div class="list-group-item @statusClass">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">@alert.ProductName</h6>
+                        <span class="badge bg-secondary">@alert.CurrentQuantity @alert.UnitOfMeasure</span>
+                    </div>
+                    <p class="mb-1">
+                        @if (alert.Severity == "OutOfStock")
+                        {
+                            <span class="text-danger">Rupture de stock</span>
+                        }
+                        else if (alert.Severity == "Low")
+                        {
+                            <span class="text-warning">Stock bas</span>
+                            @if (alert.MinimumThreshold.HasValue)
+                            {
+                                <span> (seuil: @alert.MinimumThreshold @alert.UnitOfMeasure)</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-info">Stock à surveiller</span>
+                        }
+                    </p>
+                    <div class="d-flex">
+                        <a href="@Url.Action("Details", "Product", new { id = alert.ProductId })" class="btn btn-sm btn-outline-secondary me-2">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="@Url.Action("AdjustStock", "Stock", new { productId = alert.ProductId })" class="btn btn-sm btn-outline-primary me-2">
+                            <i class="fas fa-plus"></i>
+                        </a>
+                        <a href="@Url.Action("RequestTransfer", "Transfer", new { productId = alert.ProductId })" class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-exchange-alt"></i>
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (Model.Count > 5)
+        {
+            <div class="text-center mt-3">
+                <a href="@Url.Action("Alerts", "Stock")" class="btn btn-sm btn-outline-danger">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Voir toutes les alertes (@Model.Count)
+                </a>
+            </div>
+        }
+    }
+</div>

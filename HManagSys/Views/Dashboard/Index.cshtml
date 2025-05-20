@@ -248,8 +248,11 @@
             </div>
         </div>
     </div>
-</div>
+</div>loadStockAlerts
+<div id="stock-content">
+    @await Html.PartialAsync("_Stock/_StockMovementPartial", ViewBag.StockAlerts, null)
 
+</div>
 @section Scripts {
     <script>
         // Fonction pour formater les nombres avec séparateur de milliers
