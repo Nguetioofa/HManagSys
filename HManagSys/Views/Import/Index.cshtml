@@ -1,0 +1,195 @@
+﻿@{
+    ViewData["Title"] = "Importation Excel";
+}
+
+<div class="container-fluid">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="m-0"><i class="fas fa-file-excel me-2"></i>Importation de Produits et Entrées en Stock</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <h6 class="text-muted mb-3">Centre: <strong>@Context.Session.GetString("CurrentCenterName")</strong></h6>
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>À propos de cette fonctionnalité</h6>
+                        <p>Cet outil vous permet d'importer des produits et des entrées en stock via un fichier Excel. Le processus se déroule en deux étapes :</p>
+                        <ol>
+                            <li>Téléchargez le modèle Excel pré-configuré</li>
+                            <li>Remplissez le fichier avec vos données et importez-le</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Téléchargement du modèle -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h6 class="m-0"><i class="fas fa-download me-2"></i>Étape 1: Télécharger le modèle</h6>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <p>Téléchargez le modèle Excel pré-configuré qui contient:</p>
+                            <ul>
+                                <li>Une feuille d'instructions détaillées</li>
+                                <li>Une feuille pour enregistrer les nouveaux produits</li>
+                                <li>Une feuille pour enregistrer les entrées en stock</li>
+                                <li>Des données de référence pour les listes déroulantes</li>
+                            </ul>
+                            <div class="mt-auto">
+                                <a href="@Url.Action("DownloadTemplate", "Import")" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-file-download me-2"></i>Télécharger le modèle Excel
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Import du fichier rempli -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-light">
+                            <h6 class="m-0"><i class="fas fa-upload me-2"></i>Étape 2: Importer vos données</h6>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <p>Une fois le modèle rempli avec vos données, importez-le ici:</p>
+                            <ol>
+                                <li>Vérifiez que toutes les données sont correctes</li>
+                                <li>Assurez-vous que les noms des produits sont uniques</li>
+                                <li>Sélectionnez le fichier Excel et cliquez sur Importer</li>
+                            </ol>
+                            <div class="mt-auto">
+                                <form asp-controller="Import" asp-action="UploadExcel" method="post" enctype="multipart/form-data" class="mt-3">
+                                    <div class="mb-3">
+                                        <div class="input-group">
+                                            <input type="file" class="form-control" name="file" id="fileInput" accept=".xlsx" required>
+                                            <button type="submit" class="btn btn-success">
+                                                <i class="fas fa-upload me-2"></i>Importer
+                                            </button>
+                                        </div>
+                                        <div class="form-text">Seuls les fichiers .xlsx sont acceptés</div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Résultats de l'importation -->
+            @if (TempData["ImportErrors"] != null || TempData["ImportSummary"] != null)
+            {
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="m-0"><i class="fas fa-clipboard-check me-2"></i>Résultats de l'importation</h6>
+                            </div>
+                            <div class="card-body">
+                                @if (TempData["ImportSummary"] != null)
+                                {
+                                    <div class="mb-3">
+                                        <h6>Résumé:</h6>
+                                        <ul class="list-group">
+                                            @foreach (var item in (string[])TempData["ImportSummary"])
+                                            {
+                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                    @item
+                                                    <span class="badge bg-primary rounded-pill">
+                                                        <i class="fas fa-check"></i>
+                                                    </span>
+                                                </li>
+                                            }
+                                        </ul>
+                                    </div>
+                                }
+
+                                @if (TempData["ImportErrors"] != null)
+                                {
+                                    <div>
+                                        <h6>Erreurs (@(((List<string>)TempData["ImportErrors"]).Count)):</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>Message d'erreur</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @{
+                                                        int index = 1;
+                                                        foreach (var error in (List<string>)TempData["ImportErrors"])
+                                                        {
+                                                            <tr>
+                                                                <td>@index</td>
+                                                                <td class="text-danger">@error</td>
+                                                            </tr>
+                                                            index++;
+                                                        }
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Informations supplémentaires -->
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h6 class="m-0"><i class="fas fa-info-circle me-2"></i>Informations utiles</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Structure du fichier Excel</h6>
+                                    <ul>
+                                        <li><strong>Instructions</strong>: Guide détaillé pour remplir le fichier</li>
+                                        <li><strong>Nouveaux Produits</strong>: Définition des nouveaux produits à ajouter</li>
+                                        <li><strong>Entrées Stock</strong>: Enregistrement des entrées en stock</li>
+                                        <li><strong>References</strong>: Listes de valeurs pour les menus déroulants</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Conseils pour éviter les erreurs</h6>
+                                    <ul>
+                                        <li>Respectez les formats attendus (nombres, dates)</li>
+                                        <li>Remplissez tous les champs obligatoires</li>
+                                        <li>Pour les entrées en stock, utilisez l'ID Produit pour les produits existants</li>
+                                        <li>Ne modifiez pas la structure du fichier</li>
+                                        <li>Vérifiez l'existence des catégories avant l'import</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Vérifier le type de fichier lors de la sélection
+        document.getElementById('fileInput').addEventListener('change', function() {
+            const fileInput = this;
+            const filePath = fileInput.value;
+            const allowedExtensions = /(\.xlsx)$/i;
+
+            if (!allowedExtensions.exec(filePath)) {
+                alert('Veuillez sélectionner un fichier Excel (.xlsx)');
+                fileInput.value = '';
+                return false;
+            }
+        });
+    </script>
+}

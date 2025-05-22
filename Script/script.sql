@@ -223,7 +223,7 @@ CREATE TABLE StockMovements (
     CONSTRAINT FK_StockMovements_HospitalCenters 
         FOREIGN KEY (HospitalCenterId) REFERENCES HospitalCenters(Id),
     CONSTRAINT CK_StockMovements_MovementType 
-        CHECK (MovementType IN ('Initial', 'Entry', 'Sale', 'Transfer', 'Adjustment', 'Care')),
+        CHECK (MovementType IN ('Initial', 'Entry', 'Sale', 'Transfer', 'Adjustment','Prescription','Dispensed', 'Care')),
     
     INDEX IX_StockMovements_Product_Date (ProductId, MovementDate),
     INDEX IX_StockMovements_Center_Date (HospitalCenterId, MovementDate),
@@ -260,7 +260,7 @@ CREATE TABLE StockTransfers (
     CONSTRAINT FK_StockTransfers_ApprovedBy 
         FOREIGN KEY (ApprovedBy) REFERENCES Users(Id),
     CONSTRAINT CK_StockTransfers_Status 
-        CHECK (Status IN ('Pending', 'Approved', 'Completed', 'Cancelled')),
+        CHECK (Status IN ('Pending', 'Approved', 'Completed','Requested','Rejected', 'Cancelled')),
     
     INDEX IX_StockTransfers_Status (Status),
     INDEX IX_StockTransfers_Product (ProductId),
@@ -1044,14 +1044,11 @@ GO
 -- =====================================================
 
 -- Insertion d'un utilisateur système
-INSERT INTO Users (FirstName, LastName, Email, PhoneNumber, PasswordHash, CreatedBy)
-VALUES ('System', 'Account', 'system@hospital.local', '0000000000', 'SYSTEM_ACCOUNT', 1)
-GO
 
 -- Création d'un SuperAdmin initial
 INSERT INTO Users (FirstName, LastName, Email, PhoneNumber, PasswordHash, MustChangePassword, CreatedBy)
 VALUES ('Super', 'Administrator', 'admin@hospital.local', '0000000001', 
-        '$2a$11$example.hash.for.AdminTemp123!', 1, 1)
+        '$2a$12$qr20fNhIH.UWSEs6GmMpuu8SUeWRXHK.g4DC48Cny1vvS5wCW704O', 1, 1)
 GO
 
 -- Création de centres d'exemple
@@ -1083,8 +1080,7 @@ INSERT INTO PaymentMethods (Name, RequiresBankAccount, CreatedBy)
 VALUES 
     ('Espèces', 0, 2),
     ('Orange Money', 1, 2),
-    ('MTN Money', 1, 2),
-    ('Carte Bancaire', 1, 2)
+    ('MTN Money', 1, 2)
 GO
 
 -- Création des types de soins de base

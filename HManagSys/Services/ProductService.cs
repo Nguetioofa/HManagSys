@@ -137,6 +137,24 @@ namespace HManagSys.Services.Implementations
             }
         }
 
+
+        public async Task<Product?> GetProductByNameAsync(string name)
+        {
+            try
+            {
+                return await _productRepository.QuerySingleAsync<Product>(query =>
+                    query.Where(p => p.Name.ToLower() == name.ToLower()));
+            }
+            catch (Exception ex)
+            {
+                await _appLogger.LogErrorAsync("Stock", "GetProductByName",
+                    $"Erreur lors de la récupération du produit par nom : {name}",
+                    details: new { Name = name, Error = ex.Message });
+                throw;
+            }
+        }
+
+
         public async Task<ProductViewModel?> GetProductByIdAsync(int id)
         {
             try

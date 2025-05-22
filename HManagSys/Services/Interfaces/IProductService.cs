@@ -17,6 +17,7 @@ namespace HManagSys.Services.Interfaces
         Task<(List<ProductViewModel> Products, int TotalCount)> GetProductsAsync(
             ProductFilters filters);
 
+        Task<Product?> GetProductByNameAsync(string name);
         /// <summary>
         /// Récupère un produit par son ID avec toutes ses informations
         /// </summary>

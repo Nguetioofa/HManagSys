@@ -41,6 +41,7 @@ builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ITransferService, TransferService>();
 builder.Services.AddScoped<IStockService, StockService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
+builder.Services.AddScoped<IProductExcelService, ProductExcelService>();
 
 //
 builder.Services.AddScoped<IPatientService, PatientService>();
